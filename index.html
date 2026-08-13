@@ -941,15 +941,5 @@ function wireDrop(dropEl, inputEl, onFile){
 
   const PY_SCRIPT = "hand_tracking_hud.py"
 
-  pyBtn.addEventListener('click', ()=>{
-    const blob = new Blob([PY_SCRIPT], {type:'text/x-python'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'hand_tracking_hud.py';
-    a.click();
-  });
-})();
-</script>
-
 </body>
 </html>
