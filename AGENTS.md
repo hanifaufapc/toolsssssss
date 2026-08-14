@@ -26,6 +26,11 @@ Static single-page site ("PERKAKAS", https://perkakas.id) + one standalone Pytho
 - Run: `pip install opencv-python mediapipe numpy` then `python hand_tracking_hud.py` (add `--cam 1` for another webcam). Needs a webcam.
 - Controls: `1-6` select pinch-triggered effect, `s` saves screenshot, `q`/`ESC` quits. HUD shows FPS, pinch distance, and PINCH/PEACE tags.
 
+## Vercel (opsional, siap pakai)
+
+- `vercel.json` menyetel `Cross-Origin-Opener-Policy: same-origin` + `Cross-Origin-Embedder-Policy: credentialless` → SharedArrayBuffer tersedia (ffmpeg core multithread bisa dipakai). Semua CDN yang dipakai sudah mengirim `CORP: cross-origin`, jadi aman.
+- Site tetap bekerja tanpa Vercel — ffmpeg memakai core single-thread yang jalan di GitHub Pages tanpa header. Jangan ubah mekanisme `ensureFfmpeg()` agar tetap universal.
+
 ## Git
 
-- Origin is `github.com/hanifaufapc/toolsssssss`; deploy = commit + push to `main` (GitHub Pages serves it). Commit messages in repo are like `Update index.html`.
+- Origin adalah `github.com/hanifaufapc/toolsssssss`; deploy = commit + push ke `main` (GitHub Pages melayani itu). Pesan commit di repo seperti `Update index.html`.
