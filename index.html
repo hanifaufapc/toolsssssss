@@ -4,9 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PERKAKAS — Tools Digital Gratis</title>
+<meta name="description" content="Kompresor, konverter, palet warna, kode QR, dan webcam efektif — gratis, tanpa login, semua jalan di browser.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <style>
   :root{
     --ink:#12172A;
@@ -117,6 +118,7 @@
   }
   input[type=text]:focus, input[type=number]:focus, select:focus{border-color:var(--brass);}
   input[type=color]{width:44px; height:36px; border:none; border-radius:7px; padding:0; cursor:pointer; background:none;}
+  input[type=checkbox]{accent-color:var(--orange); width:16px; height:16px;}
 
   .btn{
     border:none; border-radius:8px; padding:10px 18px; font-size:13px; font-weight:700;
@@ -139,6 +141,7 @@
     text-align:center; margin-top:14px; font-family:'IBM Plex Mono',monospace;
     font-size:13px; background:rgba(66,163,153,0.14); color:#2c6e66; border-radius:8px; padding:9px;
   }
+  .reduction.warn{background:rgba(226,85,46,0.12); color:#a03d20;}
 
   .segmented{display:flex; gap:6px; flex-wrap:wrap;}
   .segmented button{
@@ -146,17 +149,29 @@
     border-radius:7px; padding:8px 14px; font-size:12.5px; font-weight:600; cursor:pointer;
   }
   .segmented button.active{background:var(--ink); color:var(--text-light); border-color:var(--ink);}
+  .segmented button:disabled{opacity:0.4; cursor:not-allowed;}
 
   .hint{font-size:11.5px; color:var(--text-dim); margin-top:10px;}
+  .progress{height:10px; background:var(--paper-2); border-radius:100px; overflow:hidden; margin-top:16px;}
+  .progress i{display:block; height:100%; width:0%; background:var(--teal); transition:width .25s ease;}
+  .prog-label{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-dim); margin-top:10px; min-height:16px;}
 
   /* palette */
   .swatch-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px; margin-top:18px;}
   .swatch{border-radius:10px; overflow:hidden; cursor:pointer; border:1px solid rgba(28,24,16,0.1);}
   .swatch .fill{height:64px;}
-  .swatch .code{background:#fff; padding:6px 8px; font-family:'IBM Plex Mono',monospace; font-size:10.5px;}
+  .swatch .code{background:#fff; padding:6px 8px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .picker-row{display:flex; align-items:center; gap:14px; margin-top:22px; flex-wrap:wrap;}
   .shade-row{display:flex; margin-top:10px; border-radius:8px; overflow:hidden; height:34px;}
   .shade-row div{flex:1;}
+  .gen-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:26px; flex-wrap:wrap;}
+  .gen-head h3{font-family:'Bebas Neue',sans-serif; font-size:19px; letter-spacing:0.03em; margin:0;}
+  .code-rows{margin-top:16px; display:flex; flex-direction:column; gap:8px;}
+  .code-row{
+    display:flex; align-items:center; gap:12px; background:var(--paper-2); border-radius:8px; padding:8px 12px;
+  }
+  .code-row .k{font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.08em; color:var(--text-dim); width:44px; flex-shrink:0;}
+  .code-row .v{font-family:'IBM Plex Mono',monospace; font-size:12.5px; flex:1; word-break:break-all;}
 
   /* qr */
   .qr-layout{display:flex; gap:26px; flex-wrap:wrap; margin-top:18px;}
@@ -164,7 +179,12 @@
     flex:0 0 auto; background:#fff; border-radius:12px; padding:16px;
     display:flex; align-items:center; justify-content:center; min-width:180px; min-height:180px;
   }
+  .qr-preview canvas{max-width:min(64vw,280px); height:auto; image-rendering:pixelated;}
   .qr-controls{flex:1; min-width:220px; display:flex; flex-direction:column; gap:14px;}
+  .chk-row{display:flex; gap:18px; flex-wrap:wrap; align-items:center;}
+  .chk-row label{display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:var(--text-dark);}
+  .dot-presets{display:flex; gap:8px; align-items:center;}
+  .dot-presets button{width:26px; height:26px; border-radius:50%; border:2px solid rgba(28,24,16,0.15); cursor:pointer; padding:0;}
 
   /* webcam */
   .cam-stage{position:relative; border-radius:12px; overflow:hidden; background:#000; aspect-ratio:16/9;}
@@ -227,13 +247,13 @@
   <div class="panel" data-panel="kompres">
     <div class="panel-head">
       <div class="ic-wrap"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></div>
-      <div><h2>Kompresor File</h2><p>Perkecil ukuran, atur kualitasnya sendiri.</p></div>
+      <div><h2>Kompresor File</h2><p>Perkecil ukuran, atur sendiri targetnya.</p></div>
     </div>
 
     <div class="drop" id="compDrop">
       <svg class="icon" viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
       <span id="compDropText">Seret file ke sini, atau klik untuk pilih</span>
-      <small>Gambar, dokumen, audio, atau file apa saja</small>
+      <small>Gambar, video, audio, atau file apa saja</small>
       <input type="file" id="compInput">
     </div>
 
@@ -242,16 +262,49 @@
         <div class="field">
           <label>Kualitas (<span id="qVal">80</span>%)</label>
           <input type="range" id="qSlider" min="5" max="100" value="80">
+          <div class="segmented" id="qPresets">
+            <button data-q="25">25%</button>
+            <button data-q="50">50%</button>
+            <button data-q="75">75%</button>
+            <button data-q="90">90%</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Max. lebar (px, opsional)</label>
+          <select id="compResize">
+            <option value="0">Ukuran asli</option>
+            <option value="2560">2560 (2K)</option>
+            <option value="1920">1920 (Full HD)</option>
+            <option value="1600">1600</option>
+            <option value="1280">1280 (HD)</option>
+            <option value="960">960</option>
+            <option value="640">640</option>
+          </select>
         </div>
         <div class="field">
           <label>Target ukuran (KB, opsional)</label>
           <input type="number" id="targetKb" placeholder="mis. 200">
         </div>
       </div>
+
+      <div class="row" id="compMediaControls">
+        <div class="field">
+          <label>Kualitas (<span id="mqVal">70</span>%)</label>
+          <input type="range" id="mqSlider" min="0" max="100" value="70">
+        </div>
+        <div class="field">
+          <label>Target ukuran (KB, opsional)</label>
+          <input type="number" id="mediaKb" placeholder="mis. 5000">
+          <span class="hint">Video → H.264 (MP4), audio → MP3</span>
+        </div>
+      </div>
+
       <div class="row">
         <button class="btn btn-primary" id="compRunBtn">Kompres Sekarang</button>
         <button class="btn btn-ghost" id="compResetBtn">Ganti File</button>
       </div>
+      <div class="progress" id="compProgWrap" style="display:none"><i id="compProgBar"></i></div>
+      <p class="prog-label mono" id="compProgLabel"></p>
       <div id="compResult"></div>
     </div>
   </div>
@@ -260,24 +313,38 @@
   <div class="panel" data-panel="konversi">
     <div class="panel-head">
       <div class="ic-wrap"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h13l-3-3m3 3l-3 3"/><path d="M20 17H7l3 3m-3-3l3-3"/></svg></div>
-      <div><h2>Ubah Format</h2><p>Konversi gambar, kualitas tetap terjaga.</p></div>
+      <div><h2>Ubah Format</h2><p>Konversi gambar, audio, dan video.</p></div>
     </div>
 
     <div class="drop" id="convDrop">
       <svg class="icon" viewBox="0 0 24 24"><path d="M4 7h13l-3-3m3 3l-3 3"/><path d="M20 17H7l3 3m-3-3l3-3"/></svg>
-      <span id="convDropText">Seret gambar ke sini, atau klik untuk pilih</span>
-      <small>Mendukung PNG, JPG, WEBP</small>
-      <input type="file" id="convInput" accept="image/*">
+      <span id="convDropText">Seret file ke sini, atau klik untuk pilih</span>
+      <small>Gambar (PNG/JPG/WebP/GIF/BMP/AVIF…) · Audio (MP3/WAV/OGG/M4A/FLAC…) · Video (MP4/WebM/MKV/AVI/MOV…)</small>
+      <input type="file" id="convInput">
     </div>
 
     <div id="convControls" style="display:none">
-      <div class="row">
+      <div class="row" style="margin-top:14px">
+        <div class="field">
+          <label>Mode</label>
+          <div class="segmented" id="convModeSeg">
+            <button data-mode="img" class="active">Gambar</button>
+            <button data-mode="media">Audio / Video</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" id="convImgControls">
         <div class="field">
           <label>Format Tujuan</label>
           <div class="segmented" id="convFormatSeg">
             <button data-fmt="image/png" class="active">PNG</button>
             <button data-fmt="image/jpeg">JPG</button>
             <button data-fmt="image/webp">WEBP</button>
+            <button data-fmt="image/avif">AVIF</button>
+            <button data-fmt="image/bmp">BMP</button>
+            <button data-fmt="image/gif">GIF</button>
+            <button data-fmt="application/pdf">PDF</button>
           </div>
         </div>
         <div class="field" id="convQualityField">
@@ -285,10 +352,24 @@
           <input type="range" id="convQSlider" min="50" max="100" value="95">
         </div>
       </div>
+
+      <div class="row" id="convMediaControls" style="display:none">
+        <div class="field" style="max-width:240px">
+          <label>Format Tujuan</label>
+          <select id="convOutFmt"></select>
+        </div>
+        <div class="field">
+          <label>Kualitas (<span id="cmqVal">60</span>%)</label>
+          <input type="range" id="cmqSlider" min="5" max="100" value="60">
+        </div>
+      </div>
+
       <div class="row">
         <button class="btn btn-primary" id="convRunBtn">Konversi</button>
         <button class="btn btn-ghost" id="convResetBtn">Ganti File</button>
       </div>
+      <div class="progress" id="convProgWrap" style="display:none"><i id="convProgBar"></i></div>
+      <p class="prog-label mono" id="convProgLabel"></p>
       <div id="convResult"></div>
     </div>
   </div>
@@ -297,7 +378,7 @@
   <div class="panel" data-panel="palet">
     <div class="panel-head">
       <div class="ic-wrap"><svg class="icon" viewBox="0 0 24 24"><path d="M12 21a9 9 0 110-18 7 7 0 017 7c0 1.7-1.3 3-3 3h-1.5a1.5 1.5 0 000 3H15a2 2 0 010 4c-1 0-2-.5-3 0z"/><circle cx="8" cy="11" r="1"/><circle cx="12" cy="8" r="1"/><circle cx="16" cy="11" r="1"/></svg></div>
-      <div><h2>Palet Warna</h2><p>Ambil warna dari gambar, lengkap kode warnanya.</p></div>
+      <div><h2>Palet Warna</h2><p>Ekstrak dari gambar, lengkap dengan kode warnanya.</p></div>
     </div>
 
     <div class="drop" id="paletDrop">
@@ -307,11 +388,29 @@
     </div>
     <div class="swatch-grid" id="swatchGrid"></div>
 
+    <div class="gen-head">
+      <h3>Generator Palet</h3>
+      <div class="segmented" id="genSeg">
+        <button data-gen="mono" class="active">Monokrom</button>
+        <button data-gen="analog">Analog</button>
+        <button data-gen="komplemen">Komplementer</button>
+        <button data-gen="triad">Triadik</button>
+        <button data-gen="split">Split</button>
+      </div>
+    </div>
+    <div class="swatch-grid" id="genGrid"></div>
+
     <div class="picker-row">
       <input type="color" id="colorPicker" value="#c9a54d">
       <div style="flex:1; min-width:160px;">
-        <div class="mono" id="pickerCodes" style="font-size:12.5px; line-height:1.6;"></div>
+        <div class="code-rows" id="codeRows"></div>
         <div class="shade-row" id="shadeRow"></div>
+        <div class="row" style="margin-top:12px">
+          <div class="field">
+            <label>Input kode HEX</label>
+            <input type="text" id="hexInput" value="#c9a54d" maxlength="7" placeholder="#C9A54D" style="text-transform:uppercase">
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -334,6 +433,7 @@
           <div class="field">
             <label>Warna QR</label>
             <input type="color" id="qrDark" value="#12172a">
+            <div class="dot-presets" id="qrPresets"></div>
           </div>
           <div class="field">
             <label>Warna Latar</label>
@@ -341,24 +441,39 @@
           </div>
           <div class="field">
             <label>Ukuran</label>
-            <input type="range" id="qrSize" min="128" max="512" value="256">
+            <input type="range" id="qrSize" min="128" max="1024" step="16" value="256">
           </div>
         </div>
-        <div class="field">
-          <label>Ketahanan Error</label>
-          <div class="segmented" id="qrLevelSeg">
-            <button data-lvl="L">L</button>
-            <button data-lvl="M" class="active">M</button>
-            <button data-lvl="Q">Q</button>
-            <button data-lvl="H">H</button>
+        <div class="row" style="margin-top:0">
+          <div class="field">
+            <label>Ketahanan Error</label>
+            <div class="segmented" id="qrLevelSeg">
+              <button data-lvl="L">L</button>
+              <button data-lvl="M" class="active">M</button>
+              <button data-lvl="Q">Q</button>
+              <button data-lvl="H">H</button>
+            </div>
           </div>
+          <div class="field">
+            <label>Gaya Modul</label>
+            <div class="segmented" id="qrStyleSeg">
+              <button data-style="square" class="active">Kotak</button>
+              <button data-style="rounded">Bulat</button>
+              <button data-style="dots">Titik</button>
+            </div>
+          </div>
+        </div>
+        <div class="chk-row">
+          <label><input type="checkbox" id="qrTransparent"> Latar transparan</label>
+          <label><input type="checkbox" id="qrMargin" checked> Ruang tepi (4 modul)</label>
         </div>
         <div class="field">
           <label>Logo di Tengah (opsional)</label>
           <input type="file" id="qrLogo" accept="image/*">
         </div>
         <div class="row" style="margin-top:6px">
-          <button class="btn btn-primary" id="qrDownload">Unduh PNG</button>
+          <button class="btn btn-primary" id="qrDownloadPng">Unduh PNG</button>
+          <button class="btn btn-dark" id="qrDownloadSvg">Unduh SVG</button>
         </div>
       </div>
     </div>
@@ -457,6 +572,146 @@ function wireDrop(dropEl, inputEl, onFile){
   dropEl.addEventListener('drop', e=>{ const f = e.dataTransfer.files[0]; if(f) onFile(f); });
 }
 
+/* ============ SCRIPT/UTIL LOADER ============ */
+const loadedScripts = new Set();
+function loadScript(src){
+  if(loadedScripts.has(src)) return Promise.resolve();
+  return new Promise((res, rej)=>{
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = ()=>{ loadedScripts.add(src); res(); };
+    s.onerror = ()=> rej(new Error('Gagal memuat ' + src));
+    document.head.appendChild(s);
+  });
+}
+function downloadBlob(blob, name){
+  const a = document.createElement('a');
+  a.download = name;
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  setTimeout(()=> URL.revokeObjectURL(a.href), 30000);
+}
+function baseName(name){ return name.replace(/\.[^.]+$/, ''); }
+function extOf(name){ const m = name.match(/\.([^.]+)$/); return m ? m[1].toLowerCase() : ''; }
+const VID_EXTS = ['mp4','webm','mkv','mov','avi','m4v','3gp','ogv','ts','flv','wmv','mpeg','mpg'];
+const AUD_EXTS = ['mp3','wav','ogg','oga','m4a','aac','flac','opus','weba','wma','aiff','aif'];
+function mediaKind(file){
+  if(file.type.startsWith('image/')) return 'image';
+  const e = extOf(file.name);
+  if(file.type.startsWith('video/') || VID_EXTS.includes(e)) return 'video';
+  if(file.type.startsWith('audio/') || AUD_EXTS.includes(e)) return 'audio';
+  return 'other';
+}
+
+/* ============ FFMPEG (lazy, shared) ============ */
+const FF_URLS = {
+  lib: 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js',
+  worker: 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/worker.js',
+  const: 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/const.js',
+  errors: 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/errors.js',
+  core: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
+  wasm: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm',
+};
+let ffState = { ready:false, FFmpeg:null, workerBlob:null, ffmpeg:null, onProgress:null };
+
+async function ensureFfmpeg(){
+  if(ffState.ready && ffState.ffmpeg) return;
+  if(location.protocol === 'file:') throw new Error('FILE_ONLY');
+  if(!ffState.FFmpeg){
+    const mod = await import(FF_URLS.lib);
+    ffState.FFmpeg = mod.FFmpeg;
+  }
+  if(!ffState.workerBlob){
+    const [w, c, e] = await Promise.all([
+      fetch(FF_URLS.worker).then(r=>r.text()),
+      fetch(FF_URLS.const).then(r=>r.text()),
+      fetch(FF_URLS.errors).then(r=>r.text()),
+    ]);
+    ffState.workerBlob = URL.createObjectURL(new Blob([
+      w.replace('from "./const.js"', 'from "'+FF_URLS.const+'"')
+       .replace('from "./errors.js"', 'from "'+FF_URLS.errors+'"'),
+    ], {type:'text/javascript'}));
+  }
+  ffState.ffmpeg = new ffState.FFmpeg();
+  ffState.ffmpeg.on('progress', ({progress})=>{
+    if(ffState.onProgress && isFinite(progress)) ffState.onProgress(progress);
+  });
+  await ffState.ffmpeg.load({ classWorkerURL: ffState.workerBlob, coreURL: FF_URLS.core, wasmURL: FF_URLS.wasm });
+  ffState.ready = true;
+}
+async function ffmpegRun(args){
+  try{
+    await ffState.ffmpeg.exec(args);
+  }catch(err){
+    ffState.ready = false;
+    throw err;
+  }
+}
+function ffmpegExit(){
+  try{ if(ffState.ffmpeg) ffState.ffmpeg.terminate(); }catch(err){}
+  ffState.ready = false;
+  ffState.ffmpeg = null;
+  ffState.onProgress = null;
+}
+function ffRead(name){ return ffState.ffmpeg.readFile(name); }
+function ffWrite(name, data){ return ffState.ffmpeg.writeFile(name, data); }
+function ffUnlink(name){ return ffState.ffmpeg.deleteFile(name); }
+function ffmpegFailHint(err){
+  if(String(err.message||err).indexOf('FILE_ONLY') > -1){
+    return `<div class="hint">Konversi media butuh HTTP/HTTPS — buka situs online (atau localhost), bukan dari file lokal.</div>`;
+  }
+  return `<div class="hint">Gagal memuat engine FFmpeg — cek koneksi internet lalu coba lagi. Konversi media butuh akses CDN.</div>`;
+}
+
+/* ============ BMP & WAV ENCODER (lossless) ============ */
+function canvasToBMP(canvas){
+  const w = canvas.width, h = canvas.height;
+  const img = canvas.getContext('2d').getImageData(0,0,w,h);
+  const rowSize = Math.ceil(w*3/4)*4;
+  const dataSize = rowSize*h;
+  const buf = new ArrayBuffer(54+dataSize);
+  const dv = new DataView(buf);
+  const ws = (off,str)=>{ for(let i=0;i<str.length;i++) dv.setUint8(off+i, str.charCodeAt(i)); };
+  ws(0,'BM'); dv.setUint32(2, 54+dataSize, true); dv.setUint32(10, 54, true);
+  dv.setUint32(14, 40, true); dv.setInt32(18, w, true); dv.setInt32(22, h, true);
+  dv.setUint16(26, 1, true); dv.setUint16(28, 24, true);
+  dv.setUint32(34, dataSize, true); dv.setInt32(38, 2835, true); dv.setInt32(42, 2835, true);
+  let off = 54;
+  for(let y=h-1; y>=0; y--){
+    for(let x=0; x<w; x++){
+      const i = (y*w+x)*4;
+      dv.setUint8(off++, img.data[i+2]);
+      dv.setUint8(off++, img.data[i+1]);
+      dv.setUint8(off++, img.data[i]);
+    }
+    off += rowSize - w*3;
+  }
+  return new Blob([buf], {type:'image/bmp'});
+}
+function audioBufferToWav(buffer){
+  const ch = buffer.numberOfChannels, sr = buffer.sampleRate, len = buffer.length;
+  const blockAlign = ch*2, dataSize = len*blockAlign;
+  const buf = new ArrayBuffer(44+dataSize);
+  const dv = new DataView(buf);
+  const ws = (off,str)=>{ for(let i=0;i<str.length;i++) dv.setUint8(off+i, str.charCodeAt(i)); };
+  ws(0,'RIFF'); dv.setUint32(4, 36+dataSize, true); ws(8,'WAVE'); ws(12,'fmt ');
+  dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, ch, true);
+  dv.setUint32(24, sr, true); dv.setUint32(28, sr*blockAlign, true);
+  dv.setUint16(32, blockAlign, true); dv.setUint16(34, 16, true);
+  ws(36,'data'); dv.setUint32(40, dataSize, true);
+  const chans = [];
+  for(let c=0; c<ch; c++) chans.push(buffer.getChannelData(c));
+  let off = 44;
+  for(let i=0; i<len; i++){
+    for(let c=0; c<ch; c++){
+      let s = Math.max(-1, Math.min(1, chans[c][i]));
+      dv.setInt16(off, s < 0 ? s*0x8000 : s*0x7FFF, true);
+      off += 2;
+    }
+  }
+  return new Blob([buf], {type:'audio/wav'});
+}
+
 /* ============================================================
    1) KOMPRESOR
    ============================================================ */
@@ -466,32 +721,51 @@ function wireDrop(dropEl, inputEl, onFile){
   const input = document.getElementById('compInput');
   const controls = document.getElementById('compControls');
   const imgControls = document.getElementById('compImgControls');
+  const mediaControls = document.getElementById('compMediaControls');
   const qSlider = document.getElementById('qSlider');
   const qVal = document.getElementById('qVal');
+  const qPresets = document.getElementById('qPresets');
   const targetKb = document.getElementById('targetKb');
+  const compResize = document.getElementById('compResize');
+  const mqSlider = document.getElementById('mqSlider');
+  const mqVal = document.getElementById('mqVal');
+  const mediaKb = document.getElementById('mediaKb');
   const runBtn = document.getElementById('compRunBtn');
   const resetBtn = document.getElementById('compResetBtn');
   const resultEl = document.getElementById('compResult');
+  const progWrap = document.getElementById('compProgWrap');
+  const progBar = document.getElementById('compProgBar');
+  const progLabel = document.getElementById('compProgLabel');
 
-  let currentFile = null;
-  let isImage = false;
-  let hasAlpha = false;
-  let imgEl = null;
+  let currentFile = null, kind = null, imgEl = null, hasAlpha = null;
 
   qSlider.addEventListener('input', ()=> qVal.textContent = qSlider.value);
+  mqSlider.addEventListener('input', ()=> mqVal.textContent = mqSlider.value);
+  qPresets.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    qSlider.value = b.dataset.q;
+    qVal.textContent = qSlider.value;
+  });
+
+  function setProg(label, pct){
+    if(label == null){ progWrap.style.display='none'; progLabel.textContent=''; return; }
+    progWrap.style.display='block';
+    if(label) progLabel.textContent = label;
+    if(pct != null) progBar.style.width = Math.min(100, Math.max(0, pct)) + '%';
+  }
 
   function toBlobAsync(canvas, type, quality){
     return new Promise(res=> canvas.toBlob(res, type, quality));
   }
 
-  async function detectAlpha(canvas, ctx){
+  function detectAlpha(canvas, ctx){
     const {width, height} = canvas;
     const data = ctx.getImageData(0,0,width,height).data;
     for(let i=3;i<data.length;i+=4*97){ if(data[i] < 255) return true; }
     return false;
   }
 
-  async function loadImageFile(file){
+  function loadImageFile(file){
     return new Promise((res)=>{
       const img = new Image();
       img.onload = ()=> res(img);
@@ -500,12 +774,16 @@ function wireDrop(dropEl, inputEl, onFile){
   }
 
   async function runImageCompress(){
+    const maxW = parseInt(compResize.value) || 0;
+    const scale = maxW ? Math.min(1, maxW / imgEl.naturalWidth) : 1;
     const canvas = document.createElement('canvas');
-    canvas.width = imgEl.naturalWidth; canvas.height = imgEl.naturalHeight;
+    canvas.width = Math.max(1, Math.round(imgEl.naturalWidth*scale));
+    canvas.height = Math.max(1, Math.round(imgEl.naturalHeight*scale));
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(imgEl, 0, 0);
-    if(hasAlpha === null) hasAlpha = await detectAlpha(canvas, ctx);
+    ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+    if(hasAlpha === null) hasAlpha = detectAlpha(canvas, ctx);
     const mime = hasAlpha ? 'image/webp' : 'image/jpeg';
+    const ext = hasAlpha ? 'webp' : 'jpg';
 
     let quality = qSlider.value / 100;
     let blob = await toBlobAsync(canvas, mime, quality);
@@ -523,17 +801,95 @@ function wireDrop(dropEl, inputEl, onFile){
 
     const url = URL.createObjectURL(blob);
     const pct = Math.max(0, Math.round((1 - blob.size/currentFile.size)*100));
+    const scaleNote = scale < 1 ? ` · diperkecil ke ${canvas.width}px` : '';
     resultEl.innerHTML = `
       <div class="compare">
         <div class="box"><img src="${imgEl.src}"><div class="size">Asli — <b>${fmtBytes(currentFile.size)}</b></div></div>
         <div class="box"><img src="${url}"><div class="size">Hasil — <b>${fmtBytes(blob.size)}</b></div></div>
       </div>
       <div class="reduction">${pct > 0 ? `Berkurang ${pct}%` : 'Ukuran nyaris sama — file sudah efisien'}</div>
-      <div class="row"><a class="btn btn-dark" href="${url}" download="kompres.${mime==='image/webp'?'webp':'jpg'}">Unduh Hasil</a></div>
+      <div class="row">
+        <a class="btn btn-dark" href="${url}" download="kompres.${ext}">Unduh Hasil (.${ext})</a>
+        <span class="hint">${hasAlpha ? 'Memakai WebP (lossless-ish) agar transparansi terjaga' : 'Memakai JPG' + scaleNote}</span>
+      </div>
     `;
   }
 
-  async function runFileCompress(){
+  async function runMediaCompress(){
+    const isVideo = kind === 'video';
+    const q = mqSlider.value / 100;
+    const target = parseFloat(mediaKb.value);
+    let crf, bitrate;
+    if(isVideo){ crf = Math.round(45 - q*30); } else { bitrate = Math.round(64 + q*192); }
+    try{
+      setProg('Memuat engine FFmpeg (sekitar 25 MB, hanya sekali)...', 3);
+      await ensureFfmpeg();
+    }catch(err){
+      setProg(null);
+      resultEl.innerHTML = ffmpegFailHint(err);
+      return;
+    }
+    try{
+      setProg('Menyiapkan file...', 6);
+      ffState.onProgress = p => setProg('Mengompresi...', 5 + p*80);
+      const inName = 'in.' + (extOf(currentFile.name) || 'in');
+      ffWrite(inName, new Uint8Array(await currentFile.arrayBuffer()));
+
+      let outName = 'out.mp4', outType = 'video/mp4';
+      if(target > 0 && isVideo){
+        let lo = 18, hi = 45, best = 45;
+        for(let pass=1; pass<=4; pass++){
+          const v = Math.round((lo+hi)/2);
+          setProg(`Pass ${pass}/4 — menyesuaikan kualitas ke target...`, 10 + (pass-1)*20);
+          await ffmpegRun(['-i',inName,'-c:v','libx264','-preset','veryfast','-crf',String(v),'-c:a','aac','-b:a','96k','-movflags','+faststart','out.mp4']);
+          const sz = (await ffRead('out.mp4')).length/1024;
+          ffUnlink('out.mp4');
+          if(sz <= target){ best = v; lo = v; } else { hi = v; }
+        }
+        crf = best;
+      }
+      if(target > 0 && !isVideo){
+        let lo = 32, hi = 320, best = 320;
+        for(let pass=1; pass<=4; pass++){
+          const v = Math.round((lo+hi)/2);
+          setProg(`Pass ${pass}/4 — menyesuaikan kualitas ke target...`, 10 + (pass-1)*20);
+          await ffmpegRun(['-i',inName,'-b:a',v+'k','out.mp3']);
+          const sz = (await ffRead('out.mp3')).length/1024;
+          ffUnlink('out.mp3');
+          if(sz <= target){ best = v; lo = v; } else { hi = v; }
+        }
+        bitrate = best;
+      }
+      if(isVideo){
+        setProg('Finalisasi encode...', 85);
+        await ffmpegRun(['-i',inName,'-c:v','libx264','-preset','veryfast','-crf',String(crf),'-c:a','aac','-b:a','96k','-movflags','+faststart','out.mp4']);
+      }else{
+        setProg('Finalisasi encode...', 85);
+        await ffmpegRun(['-i',inName,'-b:a',bitrate+'k','out.mp3']);
+        outName = 'out.mp3'; outType = 'audio/mpeg';
+      }
+      setProg('Menyelesaikan...', 96);
+      const blob = new Blob([ffRead(outName)], {type: outType});
+      const pct = Math.max(0, Math.round((1 - blob.size/currentFile.size)*100));
+      const outExt = outName.split('.').pop();
+      const outName2 = baseName(currentFile.name) + '.' + outExt;
+      resultEl.innerHTML = `
+        <div class="reduction">${currentFile.name} — <b>${fmtBytes(currentFile.size)}</b> → <b>${fmtBytes(blob.size)}</b> (${pct}% lebih kecil)</div>
+        <div class="hint" style="color:var(--text-dim)">${target > 0 ? 'Kualitas disesuaikan otomatis agar pas di target.' : (isVideo ? 'H.264 CRF ' + crf : 'MP3 ' + bitrate + ' kbps')}</div>
+        <div class="row"><a class="btn btn-dark" id="compDl" download="${outName2}" href="#">Unduh ${outExt.toUpperCase()}</a></div>
+      `;
+      const dl = resultEl.querySelector('#compDl');
+      dl.href = URL.createObjectURL(blob);
+    }catch(err){
+      console.error(err);
+      resultEl.innerHTML = `<div class="hint">Terjadi kesalahan saat kompresi: ${String(err.message||err).slice(0,200)}</div>`;
+    }finally{
+      ffmpegExit();
+      setProg(null);
+    }
+  }
+
+  async function runGenericCompress(){
     if(!('CompressionStream' in window)){
       resultEl.innerHTML = `<div class="hint">Browser ini belum mendukung kompresi native. Coba pakai Chrome, Edge, atau Firefox terbaru.</div>`;
       return;
@@ -545,30 +901,38 @@ function wireDrop(dropEl, inputEl, onFile){
     const pct = Math.max(0, Math.round((1 - blob.size/currentFile.size)*100));
     resultEl.innerHTML = `
       <div class="reduction">${currentFile.name} — <b>${fmtBytes(currentFile.size)}</b> → <b>${fmtBytes(blob.size)}</b> (${pct}% lebih kecil)</div>
-      <div class="hint">File terkompresi lossless (gzip). Untuk format yang sudah terkompresi (mp3, zip, pdf berisi gambar), hasilnya wajar minim.</div>
+      <div class="hint" style="color:var(--text-dim)">Kompresi lossless (gzip) — aman untuk dokumen &amp; teks. Format yang sudah terkompresi (mp3, zip, jpg sudah terkompresi) hasilnya minim.</div>
       <div class="row"><a class="btn btn-dark" href="${url}" download="${currentFile.name}.gz">Unduh .gz</a></div>
     `;
   }
 
   runBtn.addEventListener('click', ()=>{
     resultEl.innerHTML = `<p class="hint">Memproses...</p>`;
-    setTimeout(()=> isImage ? runImageCompress() : runFileCompress(), 30);
+    setTimeout(()=>{
+      if(kind === 'image') runImageCompress();
+      else if(kind === 'video' || kind === 'audio') runMediaCompress();
+      else runGenericCompress();
+    }, 30);
   });
 
   resetBtn.addEventListener('click', ()=>{
-    currentFile = null; controls.style.display='none'; resultEl.innerHTML=''; input.value='';
+    currentFile = null; kind = null;
+    controls.style.display='none'; resultEl.innerHTML=''; input.value='';
+    setProg(null);
     dropText.textContent = 'Seret file ke sini, atau klik untuk pilih';
   });
 
   wireDrop(drop, input, async (file)=>{
     currentFile = file;
-    isImage = file.type.startsWith('image/');
-    hasAlpha = null;
     dropText.textContent = file.name;
     controls.style.display = 'block';
-    imgControls.style.display = isImage ? 'flex' : 'none';
     resultEl.innerHTML = '';
-    if(isImage) imgEl = await loadImageFile(file);
+    setProg(null);
+    kind = mediaKind(file);
+    imgControls.style.display = kind === 'image' ? 'flex' : 'none';
+    mediaControls.style.display = (kind === 'video' || kind === 'audio') ? 'flex' : 'none';
+    hasAlpha = null;
+    if(kind === 'image') imgEl = await loadImageFile(file);
   });
 })();
 
@@ -580,48 +944,276 @@ function wireDrop(dropEl, inputEl, onFile){
   const dropText = document.getElementById('convDropText');
   const input = document.getElementById('convInput');
   const controls = document.getElementById('convControls');
-  const seg = document.getElementById('convFormatSeg');
+  const modeSeg = document.getElementById('convModeSeg');
+  const imgControls = document.getElementById('convImgControls');
+  const mediaControls = document.getElementById('convMediaControls');
+  const fmtSeg = document.getElementById('convFormatSeg');
   const qField = document.getElementById('convQualityField');
   const qSlider = document.getElementById('convQSlider');
   const qVal = document.getElementById('convQVal');
+  const outFmt = document.getElementById('convOutFmt');
+  const cmqSlider = document.getElementById('cmqSlider');
+  const cmqVal = document.getElementById('cmqVal');
   const runBtn = document.getElementById('convRunBtn');
   const resetBtn = document.getElementById('convResetBtn');
   const resultEl = document.getElementById('convResult');
+  const progWrap = document.getElementById('convProgWrap');
+  const progBar = document.getElementById('convProgBar');
+  const progLabel = document.getElementById('convProgLabel');
 
   let currentFile = null, imgEl = null, targetFmt = 'image/png';
+  let mode = 'img';
+
+  const MEDIA_OUT = {
+    video: {
+      video: [
+        {v:'mp4',  l:'MP4 (H.264)'},
+        {v:'webm', l:'WebM (VP9)'},
+        {v:'mkv',  l:'MKV (H.264)'},
+        {v:'avi',  l:'AVI (MPEG-4)'},
+        {v:'mov',  l:'MOV (H.264)'},
+        {v:'gif',  l:'GIF (animasi)'},
+      ],
+      audio: [
+        {v:'mp3',  l:'MP3'},
+        {v:'wav',  l:'WAV (lossless)'},
+        {v:'ogg',  l:'OGG (Vorbis)'},
+        {v:'m4a',  l:'M4A (AAC)'},
+        {v:'flac', l:'FLAC (lossless)'},
+        {v:'aac',  l:'AAC'},
+        {v:'opus', l:'OPUS'},
+      ],
+    },
+    audio: [
+      {v:'wav',  l:'WAV (lossless)'},
+      {v:'mp3',  l:'MP3'},
+      {v:'ogg',  l:'OGG (Vorbis)'},
+      {v:'m4a',  l:'M4A (AAC)'},
+      {v:'flac', l:'FLAC (lossless)'},
+      {v:'aac',  l:'AAC'},
+      {v:'opus', l:'OPUS'},
+    ],
+  };
 
   qSlider.addEventListener('input', ()=> qVal.textContent = qSlider.value);
-  seg.addEventListener('click', e=>{
+  cmqSlider.addEventListener('input', ()=> cmqVal.textContent = cmqSlider.value);
+
+  fmtSeg.addEventListener('click', e=>{
     const b = e.target.closest('button'); if(!b) return;
-    seg.querySelectorAll('button').forEach(x=> x.classList.remove('active'));
+    fmtSeg.querySelectorAll('button').forEach(x=> x.classList.remove('active'));
     b.classList.add('active');
     targetFmt = b.dataset.fmt;
-    qField.style.display = targetFmt === 'image/png' ? 'none' : 'flex';
+    qField.style.display = (targetFmt === 'image/png' || targetFmt === 'image/bmp' || targetFmt === 'application/pdf') ? 'none' : 'flex';
   });
 
-  function ext(mime){ return {'image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[mime]; }
+  modeSeg.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    modeSeg.querySelectorAll('button').forEach(x=> x.classList.remove('active'));
+    b.classList.add('active');
+    mode = b.dataset.mode;
+    imgControls.style.display = mode === 'img' ? 'flex' : 'none';
+    mediaControls.style.display = mode === 'media' ? 'flex' : 'none';
+    if(mode === 'media') fillOutFmts();
+  });
 
-  runBtn.addEventListener('click', ()=>{
+  function fillOutFmts(){
+    outFmt.innerHTML = '';
+    const kind = mediaKind(currentFile) === 'video' ? 'video' : 'audio';
+    if(kind === 'video'){
+      const og1 = document.createElement('optgroup'); og1.label = 'Video';
+      MEDIA_OUT.video.video.forEach(f=> og1.appendChild(new Option(f.l, f.v)));
+      const og2 = document.createElement('optgroup'); og2.label = 'Ekstrak audio saja';
+      MEDIA_OUT.video.audio.forEach(f=> og2.appendChild(new Option(f.l, f.v)));
+      outFmt.appendChild(og1); outFmt.appendChild(og2);
+    }else{
+      MEDIA_OUT.audio.forEach(f=> outFmt.appendChild(new Option(f.l, f.v)));
+    }
+    outFmt.value = outFmt.options[0].value;
+  }
+
+  function ext(mime){ return {'image/png':'png','image/jpeg':'jpg','image/webp':'webp','image/avif':'avif','image/bmp':'bmp','image/gif':'gif','application/pdf':'pdf'}[mime]; }
+
+  async function encodeImageBlob(fmt, quality){
     const canvas = document.createElement('canvas');
     canvas.width = imgEl.naturalWidth; canvas.height = imgEl.naturalHeight;
     const ctx = canvas.getContext('2d');
-    if(targetFmt === 'image/jpeg'){ ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+    if(fmt === 'image/jpeg'){ ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); }
     ctx.drawImage(imgEl, 0, 0);
-    canvas.toBlob(blob=>{
+    if(fmt === 'image/bmp') return canvasToBMP(canvas);
+
+    if(fmt === 'application/pdf'){
+      if(!window.PDFLib){
+        await loadScript('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js');
+        if(!window.PDFLib) throw new Error('Library PDF gagal dimuat');
+      }
+      const pngBytes = await (await fetch(canvas.toDataURL('image/png'))).arrayBuffer();
+      const doc = await PDFLib.PDFDocument.create();
+      const pdfImg = await doc.embedPng(pngBytes);
+      const page = doc.addPage([canvas.width, canvas.height]);
+      page.drawImage(pdfImg, {x:0, y:0, width:canvas.width, height:canvas.height});
+      const saved = await doc.save();
+      return new Blob([saved], {type:'application/pdf'});
+    }
+
+    if(fmt === 'image/gif'){
+      if(!window.GIF){
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js');
+        if(!window.GIF) throw new Error('Library GIF gagal dimuat');
+      }
+      const workerCode = await (await fetch('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js')).text();
+      const workerBlob = URL.createObjectURL(new Blob([workerCode], {type:'text/javascript'}));
+      return new Promise((res, rej)=>{
+        const g = new GIF({workers: 1, width: canvas.width, height: canvas.height, workerScript: workerBlob});
+        g.addFrame(ctx.getImageData(0,0,canvas.width,canvas.height).data, true);
+        g.on('finished', blob => res(blob));
+        g.on('error', e => rej(e));
+        g.render();
+      });
+    }
+
+    if(fmt === 'image/avif'){
+      const blob = await toBlobAsync(canvas, 'image/avif', quality);
+      if(blob && blob.type === 'image/avif') return blob;
+      throw new Error('Browser tidak mendukung encode AVIF');
+    }
+    return toBlobAsync(canvas, fmt, quality);
+  }
+
+  async function toBlobAsync(canvas, type, quality){
+    return new Promise(res=> canvas.toBlob(res, type, quality));
+  }
+
+  async function runImageConvert(){
+    const quality = qSlider.value / 100;
+    resultEl.innerHTML = `<p class="hint">Memproses...</p>`;
+    try{
+      const blob = await encodeImageBlob(targetFmt, quality);
+      if(blob && blob.size > 0){
+        const url = URL.createObjectURL(blob);
+        const e2 = ext(targetFmt);
+        if(e2 === 'pdf'){
+          resultEl.innerHTML = `
+            <div class="reduction">PDF siap — ${fmtBytes(blob.size)} · kualitas asli terjaga</div>
+            <div class="row"><a class="btn btn-dark" id="convDlPdf" download="hasil.pdf" href="#">Unduh PDF</a></div>
+          `;
+          resultEl.querySelector('#convDlPdf').href = url;
+        }else{
+          resultEl.innerHTML = `
+            <div class="compare">
+              <div class="box"><img src="${imgEl.src}"><div class="size">Asli — <b>${fmtBytes(currentFile.size)}</b></div></div>
+              <div class="box"><img src="${url}"><div class="size">${e2.toUpperCase()} — <b>${fmtBytes(blob.size)}</b></div></div>
+            </div>
+            <div class="row"><a class="btn btn-dark" id="convDl" download="hasil.${e2}" href="#">Unduh Hasil</a></div>
+          `;
+          resultEl.querySelector('#convDl').href = url;
+        }
+      }else{
+        resultEl.innerHTML = `<div class="hint">Encode gagal — format ini mungkin belum didukung browser Anda.</div>`;
+      }
+    }catch(err){
+      console.error(err);
+      resultEl.innerHTML = `<div class="hint">Gagal: ${String(err.message||err).slice(0,200)}</div>`;
+    }
+  }
+
+  function setProg(label, pct){
+    if(label == null){ progWrap.style.display='none'; progLabel.textContent=''; return; }
+    progWrap.style.display='block';
+    if(label) progLabel.textContent = label;
+    if(pct != null) progBar.style.width = Math.min(100, Math.max(0, pct)) + '%';
+  }
+
+  function ffArgsFor(out, inExt, quality){
+    const kind = mediaKind(currentFile) === 'video' ? 'video' : 'audio';
+    const args = ['-i', 'in.'+inExt];
+    if(kind === 'audio'){
+      if(out === 'wav') args.push('-c:a','pcm_s16le');
+      else if(out === 'flac') args.push('-c:a','flac');
+      else if(out === 'ogg') args.push('-c:a','libvorbis','-q:a',String(2 + Math.round(quality*8)));
+      else if(out === 'opus') args.push('-c:a','libopus','-b:a',String(Math.round(48 + quality*192)) + 'k');
+      else if(out === 'aac') args.push('-c:a','aac','-b:a',String(Math.round(64 + quality*192)) + 'k');
+      else if(out === 'm4a') args.push('-c:a','aac','-b:a',String(Math.round(64 + quality*192)) + 'k','-movflags','+faststart');
+      else args.push('-c:a','libmp3lame','-b:a',String(Math.round(64 + quality*192)) + 'k');
+      args.push('out.'+out);
+    }else{
+      const vPresets = {
+        mp4:  ['-c:v','libx264','-crf',String(Math.round(36 - quality*20)),'-preset','veryfast','-c:a','aac','-b:a','96k','-movflags','+faststart'],
+        webm: ['-c:v','libvpx-vp9','-crf',String(Math.round(44 - quality*24)),'-b:v','0','-c:a','libopus','-b:a','96k','-deadline','realtime'],
+        mkv:  ['-c:v','libx264','-crf',String(Math.round(36 - quality*20)),'-preset','veryfast','-c:a','aac','-b:a','96k'],
+        avi:  ['-c:v','mpeg4','-q:v',String(Math.round(10 - quality*7)),'-c:a','mp3','-b:a','128k'],
+        mov:  ['-c:v','libx264','-crf',String(Math.round(36 - quality*20)),'-preset','veryfast','-c:a','aac','-b:a','96k'],
+        gif:  ['-vf','fps=10,scale=640:-1:flags=lanczos','-pix_fmt','rgb24'],
+      };
+      if(out === 'gif'){ args.push(...vPresets.gif, 'out.gif'); }
+      else{
+        const vExts = ['mp4','webm','mkv','avi','mov'];
+        if(vExts.includes(out)) args.push(...vPresets[out], 'out.'+out);
+        else{
+          const aup = {
+            mp3:  ['-vn','-c:a','libmp3lame','-b:a',String(Math.round(64 + quality*192))+'k'],
+            wav:  ['-vn','-c:a','pcm_s16le'],
+            ogg:  ['-vn','-c:a','libvorbis','-q:a',String(2 + Math.round(quality*8))],
+            flac: ['-vn','-c:a','flac'],
+            aac:  ['-vn','-c:a','aac','-b:a',String(Math.round(64 + quality*192))+'k'],
+            m4a:  ['-vn','-c:a','aac','-b:a',String(Math.round(64 + quality*192))+'k','-movflags','+faststart'],
+            opus: ['-vn','-c:a','libopus','-b:a',String(Math.round(48 + quality*192))+'k'],
+          };
+          args.push(...(aup[out]||aup.mp3), 'out.'+out);
+        }
+      }
+    }
+    return args;
+  }
+
+  async function runMediaConvert(){
+    const out = outFmt.value;
+    const quality = cmqSlider.value / 100;
+    let blob = null;
+    try{
+      setProg('Memuat engine FFmpeg (sekitar 25 MB, hanya sekali)...', 3);
+      await ensureFfmpeg();
+    }catch(err){
+      setProg(null);
+      resultEl.innerHTML = ffmpegFailHint(err);
+      return;
+    }
+    try{
+      setProg('Menyiapkan file...', 6);
+      ffState.onProgress = p => setProg('Mengonversi...', 5 + p*85);
+      const inExt = extOf(currentFile.name) || 'in';
+      ffWrite('in.'+inExt, new Uint8Array(await currentFile.arrayBuffer()));
+      const args = ffArgsFor(out, inExt, quality);
+      setProg('Mengonversi...', 10);
+      await ffmpegRun(args);
+      setProg('Menyelesaikan...', 95);
+      blob = new Blob([ffRead('out.'+out)]);
+      const fname = baseName(currentFile.name) + '.' + out;
       const url = URL.createObjectURL(blob);
+      const pct = Math.max(0, Math.round((1 - blob.size/currentFile.size)*100));
       resultEl.innerHTML = `
-        <div class="compare">
-          <div class="box"><img src="${imgEl.src}"><div class="size">Asli — <b>${fmtBytes(currentFile.size)}</b></div></div>
-          <div class="box"><img src="${url}"><div class="size">${ext(targetFmt).toUpperCase()} — <b>${fmtBytes(blob.size)}</b></div></div>
-        </div>
-        <div class="row"><a class="btn btn-dark" href="${url}" download="hasil.${ext(targetFmt)}">Unduh Hasil</a></div>
+        <div class="reduction">${currentFile.name} → <b>${fname}</b> · ${fmtBytes(blob.size)} (${pct}% ${blob.size < currentFile.size ? 'lebih kecil' : 'lebih besar'})</div>
+        <div class="row"><a class="btn btn-dark" id="convMdl" download="${fname}" href="#">Unduh Hasil</a></div>
       `;
-    }, targetFmt, qSlider.value/100);
+      resultEl.querySelector('#convMdl').href = url;
+    }catch(err){
+      console.error(err);
+      resultEl.innerHTML = `<div class="hint">Terjadi kesalahan: ${String(err.message||err).slice(0,200)}</div>`;
+    }finally{
+      ffmpegExit();
+      setProg(null);
+    }
+  }
+
+  runBtn.addEventListener('click', ()=>{
+    if(mode === 'img') runImageConvert();
+    else runMediaConvert();
   });
 
   resetBtn.addEventListener('click', ()=>{
-    currentFile = null; controls.style.display='none'; resultEl.innerHTML=''; input.value='';
-    dropText.textContent = 'Seret gambar ke sini, atau klik untuk pilih';
+    currentFile = null; imgEl = null;
+    controls.style.display='none'; resultEl.innerHTML=''; input.value='';
+    setProg(null);
+    dropText.textContent = 'Seret file ke sini, atau klik untuk pilih';
   });
 
   wireDrop(drop, input, (file)=>{
@@ -629,9 +1221,23 @@ function wireDrop(dropEl, inputEl, onFile){
     dropText.textContent = file.name;
     controls.style.display = 'block';
     resultEl.innerHTML = '';
-    imgEl = new Image();
-    imgEl.onload = ()=>{};
-    imgEl.src = URL.createObjectURL(file);
+    setProg(null);
+    const isMedia = mediaKind(file) === 'video' || mediaKind(file) === 'audio';
+    if(isMedia){
+      mode = 'media';
+      modeSeg.querySelectorAll('button').forEach(x=> x.classList.toggle('active', x.dataset.mode==='media'));
+      imgControls.style.display = 'none';
+      mediaControls.style.display = 'flex';
+      fillOutFmts();
+    }else{
+      mode = 'img';
+      modeSeg.querySelectorAll('button').forEach(x=> x.classList.toggle('active', x.dataset.mode==='img'));
+      imgControls.style.display = 'flex';
+      mediaControls.style.display = 'none';
+      imgEl = new Image();
+      imgEl.onload = ()=>{};
+      imgEl.src = URL.createObjectURL(file);
+    }
   });
 })();
 
@@ -642,11 +1248,18 @@ function wireDrop(dropEl, inputEl, onFile){
   const drop = document.getElementById('paletDrop');
   const input = document.getElementById('paletInput');
   const grid = document.getElementById('swatchGrid');
+  const genGrid = document.getElementById('genGrid');
   const picker = document.getElementById('colorPicker');
-  const codesEl = document.getElementById('pickerCodes');
+  const codeRows = document.getElementById('codeRows');
   const shadeRow = document.getElementById('shadeRow');
+  const hexInput = document.getElementById('hexInput');
+  const genSeg = document.getElementById('genSeg');
 
-  function rgbToHex(r,g,b){ return '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join(''); }
+  function rgbToHex(r,g,b){ return '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase(); }
+  function hexToRgb(hex){
+    const n = parseInt(hex.slice(1),16);
+    return [(n>>16)&255, (n>>8)&255, n&255];
+  }
   function rgbToHsl(r,g,b){
     r/=255; g/=255; b/=255;
     const max=Math.max(r,g,b), min=Math.min(r,g,b);
@@ -661,17 +1274,35 @@ function wireDrop(dropEl, inputEl, onFile){
       }
       h/=6;
     }
-    return `hsl(${Math.round(h*360)}, ${Math.round(s*100)}%, ${Math.round(l*100)}%)`;
+    return [Math.round(h*360), Math.round(s*100), Math.round(l*100)];
   }
-  function hexToRgb(hex){
-    const n = parseInt(hex.slice(1),16);
-    return [(n>>16)&255, (n>>8)&255, n&255];
+  function hslToRgb(h,s,l){
+    h = ((h%360)+360)%360; s/=100; l/=100;
+    const c = (1-Math.abs(2*l-1))*s;
+    const x = c*(1-Math.abs((h/60)%2-1));
+    const m = l-c/2;
+    let r,g,b;
+    if(h<60){r=c;g=x;b=0;} else if(h<120){r=x;g=c;b=0;}
+    else if(h<180){r=0;g=c;b=x;} else if(h<240){r=0;g=x;b=c;}
+    else if(h<300){r=x;g=0;b=c;} else {r=c;g=0;b=x;}
+    return [Math.round((r+m)*255), Math.round((g+m)*255), Math.round((b+m)*255)];
+  }
+  function rgbToCmyk(r,g,b){
+    const r1=r/255, g1=g/255, b1=b/255;
+    const k = 1-Math.max(r1,g1,b1);
+    if(k >= 0.999) return [0,0,0,100];
+    return [
+      Math.round((1-r1-k)/(1-k)*100),
+      Math.round((1-g1-k)/(1-k)*100),
+      Math.round((1-b1-k)/(1-k)*100),
+      Math.round(k*100),
+    ];
   }
 
-  function extractPalette(img, k=8){
+  function extractPalette(img, k=12){
     const c = document.createElement('canvas');
-    const scale = 90 / img.naturalWidth;
-    c.width = 90; c.height = Math.max(1, Math.round(img.naturalHeight*scale));
+    const scale = 96 / img.naturalWidth;
+    c.width = 96; c.height = Math.max(1, Math.round(img.naturalHeight*scale));
     const ctx = c.getContext('2d');
     ctx.drawImage(img, 0, 0, c.width, c.height);
     const data = ctx.getImageData(0,0,c.width,c.height).data;
@@ -685,7 +1316,8 @@ function wireDrop(dropEl, inputEl, onFile){
       const bucket = buckets.get(key);
       bucket.r+=r; bucket.g+=g; bucket.b+=b; bucket.n++;
     }
-    let clusters = [...buckets.values()].map(b=>({r:Math.round(b.r/b.n), g:Math.round(b.g/b.n), b:Math.round(b.b/b.n), n:b.n}))
+    const clusters = [...buckets.values()]
+      .map(b=>({r:Math.round(b.r/b.n), g:Math.round(b.g/b.n), b:Math.round(b.b/b.n), n:b.n}))
       .sort((a,b)=> b.n - a.n);
 
     const chosen = [];
@@ -694,11 +1326,12 @@ function wireDrop(dropEl, inputEl, onFile){
       const tooClose = chosen.some(o => Math.abs(o.r-cl.r)+Math.abs(o.g-cl.g)+Math.abs(o.b-cl.b) < 60);
       if(!tooClose) chosen.push(cl);
     }
+    if(!chosen.length && data.length) chosen.push({r:data[0],g:data[1],b:data[2],n:1});
     return chosen;
   }
 
-  function renderSwatches(colors){
-    grid.innerHTML = colors.map(c=>{
+  function renderSwatches(el, colors){
+    el.innerHTML = colors.map(c=>{
       const hex = rgbToHex(c.r,c.g,c.b);
       return `<div class="swatch" data-hex="${hex}">
         <div class="fill" style="background:${hex}"></div>
@@ -707,29 +1340,101 @@ function wireDrop(dropEl, inputEl, onFile){
     }).join('');
   }
 
-  grid.addEventListener('click', e=>{
+  function copyHex(hex){
+    navigator.clipboard?.writeText(hex).catch(()=>{});
+    showToast(`Disalin: ${hex}`);
+  }
+
+  [grid, genGrid].forEach(g=> g.addEventListener('click', e=>{
     const sw = e.target.closest('.swatch'); if(!sw) return;
-    navigator.clipboard?.writeText(sw.dataset.hex);
-    showToast(`Disalin: ${sw.dataset.hex}`);
+    copyHex(sw.dataset.hex);
+  }));
+
+  function genPalette(style){
+    const [r,g,b] = hexToRgb(picker.value);
+    const [h,s,l] = rgbToHsl(r,g,b);
+    const out = [];
+    const push = (H,S,L)=>{ const c = hslToRgb(H,S,L); out.push({r:c[0],g:c[1],b:c[2]}); };
+    const H = h, S = s, L = l;
+    if(style === 'mono'){
+      [0.93,0.78,0.60,0.45,0.30,0.16].forEach(ll=> push(H, S, Math.round(ll*100)));
+    }else if(style === 'analog'){
+      [-45,-25,0,25,45,65].forEach(d=> push((H+d+360)%360, S, L));
+    }else if(style === 'komplemen'){
+      push(H,S,L); push((H+180)%360, S, L);
+      push((H+15)%360, 70, 75); push((H+165)%360, 80, 45); push((H+90)%360, 55, 60);
+    }else if(style === 'triad'){
+      push(H,S,L); push((H+120)%360, S, L); push((H+240)%360, S, L);
+      push((H+180)%360, 25, 88); push(H, 20, 30);
+    }else{
+      push(H,S,L); push((H+150)%360, S, L); push((H+210)%360, S, L);
+      push(0,0,95); push(0,0,15);
+    }
+    return out;
+  }
+  function renderGen(){
+    const style = genSeg.querySelector('.active').dataset.gen;
+    renderSwatches(genGrid, genPalette(style));
+  }
+  genSeg.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    genSeg.querySelectorAll('button').forEach(x=> x.classList.remove('active'));
+    b.classList.add('active');
+    renderGen();
   });
 
-  function updatePicker(){
-    const hex = picker.value;
-    const [r,g,b] = hexToRgb(hex);
-    codesEl.innerHTML = `HEX ${hex}<br>RGB ${r}, ${g}, ${b}<br>${rgbToHsl(r,g,b)}`;
+  function renderCodes(){
+    const [r,g,b] = hexToRgb(picker.value);
+    const [hs,ss,ls] = rgbToHsl(r,g,b);
+    const [c,m,y,k] = rgbToCmyk(r,g,b);
+    const rows = [
+      {k:'HEX', v: picker.value.toUpperCase()},
+      {k:'RGB', v: `${r}, ${g}, ${b}`},
+      {k:'HSL', v: `${hs}°, ${ss}%, ${ls}%`},
+      {k:'CMYK', v: `${c}%, ${m}%, ${y}%, ${k}%`},
+    ];
+    codeRows.innerHTML = rows.map(row=>`
+      <div class="code-row">
+        <span class="k">${row.k}</span>
+        <span class="v">${row.v}</span>
+        <button class="btn btn-ghost small" data-copy="${picker.value.toUpperCase()}" data-tag="${row.k}">Salin</button>
+      </div>
+    `).join('');
     const steps = [-60,-30,0,30,60];
     shadeRow.innerHTML = steps.map(s=>{
-      const mix = c => Math.max(0, Math.min(255, c + s));
-      const h = rgbToHex(mix(r), mix(g), mix(b));
-      return `<div style="background:${h}"></div>`;
+      const mix = c2 => Math.max(0, Math.min(255, c2 + s));
+      const h2 = rgbToHex(mix(r), mix(g), mix(b));
+      return `<div style="background:${h2}" title="${h2}"></div>`;
     }).join('');
   }
-  picker.addEventListener('input', updatePicker);
-  updatePicker();
+  codeRows.addEventListener('click', e=>{
+    const btn = e.target.closest('button[data-copy]'); if(!btn) return;
+    copyHex(btn.dataset.copy);
+  });
+
+  picker.addEventListener('input', ()=>{
+    hexInput.value = picker.value.toUpperCase();
+    renderCodes();
+    renderGen();
+  });
+  hexInput.addEventListener('input', ()=>{
+    let v = hexInput.value.trim();
+    if(!/^#?[0-9a-fA-F]{6}$/.test(v)) return;
+    v = (v.startsWith('#') ? v : '#'+v).toLowerCase();
+    picker.value = v;
+    renderCodes();
+    renderGen();
+  });
+
+  renderCodes();
+  renderGen();
 
   wireDrop(drop, input, (file)=>{
     const img = new Image();
-    img.onload = ()=> renderSwatches(extractPalette(img));
+    img.onload = ()=>{
+      renderSwatches(grid, extractPalette(img));
+      showToast('Palet diekstrak dari gambar');
+    };
     img.src = URL.createObjectURL(file);
   });
 })();
@@ -744,10 +1449,23 @@ function wireDrop(dropEl, inputEl, onFile){
   const light = document.getElementById('qrLight');
   const size = document.getElementById('qrSize');
   const levelSeg = document.getElementById('qrLevelSeg');
+  const styleSeg = document.getElementById('qrStyleSeg');
+  const transparent = document.getElementById('qrTransparent');
+  const margin = document.getElementById('qrMargin');
   const logoInput = document.getElementById('qrLogo');
-  const downloadBtn = document.getElementById('qrDownload');
+  const presetsRow = document.getElementById('qrPresets');
+  const dlPng = document.getElementById('qrDownloadPng');
+  const dlSvg = document.getElementById('qrDownloadSvg');
 
-  let level = 'M', logoImg = null, debounceT;
+  const PRESET_COLORS = ['#12172A','#000000','#C9A54D','#E2552E','#42A399','#1C1810'];
+  presetsRow.innerHTML = PRESET_COLORS.map(c=>`<button style="background:${c}" data-c="${c}" title="${c}"></button>`).join('');
+  presetsRow.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    dark.value = b.dataset.c;
+    render();
+  });
+
+  let level = 'M', style = 'square', logoImg = null, logoDataUrl = null, debounceT;
   const levels = {L:'L', M:'M', Q:'Q', H:'H'};
 
   levelSeg.addEventListener('click', e=>{
@@ -757,48 +1475,129 @@ function wireDrop(dropEl, inputEl, onFile){
     level = b.dataset.lvl;
     render();
   });
+  styleSeg.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    styleSeg.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    style = b.dataset.style;
+    render();
+  });
+  [transparent, margin].forEach(el=> el.addEventListener('change', render));
 
   logoInput.addEventListener('change', ()=>{
     const f = logoInput.files[0]; if(!f) return;
     const img = new Image();
-    img.onload = ()=>{ logoImg = img; render(); };
+    img.onload = ()=>{
+      logoImg = img;
+      const c = document.createElement('canvas');
+      c.width = 96; c.height = 96;
+      c.getContext('2d').drawImage(img, 0, 0, 96, 96);
+      logoDataUrl = c.toDataURL('image/png');
+      render();
+    };
     img.src = URL.createObjectURL(f);
   });
 
-  function render(){
-    preview.innerHTML = '';
-    const s = parseInt(size.value);
-    new QRCode(preview, {
-      text: text.value || ' ',
-      width: s, height: s,
-      colorDark: dark.value,
-      colorLight: light.value,
-      correctLevel: QRCode.CorrectLevel[level],
-    });
-    setTimeout(()=>{
-      const canvas = preview.querySelector('canvas');
-      if(canvas && logoImg){
-        const ctx = canvas.getContext('2d');
-        const box = s * 0.24;
-        const cx = (s-box)/2, cy = (s-box)/2;
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(cx-4, cy-4, box+8, box+8);
-        ctx.drawImage(logoImg, cx, cy, box, box);
+  function buildModules(){
+    if(typeof qrcode !== 'function') throw new Error('Library QR gagal dimuat');
+    const qr = qrcode(0, level);
+    qr.addData(text.value || ' ');
+    qr.make();
+    const n = qr.getModuleCount();
+    const quiet = margin.checked ? 4 : 0;
+    const N = n + quiet*2;
+    const darkCells = [];
+    for(let r=0; r<n; r++){
+      for(let c=0; c<n; c++){
+        if(qr.isDark(r,c)) darkCells.push([r+quiet, c+quiet]);
       }
-    }, 40);
+    }
+    return {N, darkCells};
+  }
+
+  function canvasRender(){
+    const {N, darkCells} = buildModules();
+    const px = Math.max(1, Math.floor(parseInt(size.value)/N));
+    const dim = px*N;
+    const canvas = document.createElement('canvas');
+    canvas.width = dim; canvas.height = dim;
+    const ctx = canvas.getContext('2d');
+    if(!transparent.checked){
+      ctx.fillStyle = light.value;
+      ctx.fillRect(0,0,dim,dim);
+    }
+    ctx.fillStyle = dark.value;
+    const r = style === 'dots' ? px*0.42 : style === 'rounded' ? px*0.45 : 0;
+    darkCells.forEach(([r2,c2])=>{
+      const x = c2*px, y = r2*px;
+      if(style === 'dots'){
+        ctx.beginPath();
+        ctx.arc(x+px/2, y+px/2, r, 0, Math.PI*2);
+        ctx.fill();
+      }else if(style === 'rounded'){
+        if(ctx.roundRect){
+          ctx.beginPath();
+          ctx.roundRect(x, y, px, px, r);
+          ctx.fill();
+        }else{
+          ctx.fillRect(x, y, px, px);
+        }
+      }else{
+        ctx.fillRect(x, y, px, px);
+      }
+    });
+    if(logoImg){
+      const box = dim*0.22;
+      const pad = box*0.1;
+      ctx.fillStyle = transparent.checked ? 'rgba(255,255,255,0.92)' : light.value;
+      ctx.fillRect(dim/2-box/2-pad, dim/2-box/2-pad, box+pad*2, box+pad*2);
+      ctx.drawImage(logoImg, dim/2-box/2, dim/2-box/2, box, box);
+    }
+    return canvas;
+  }
+
+  function svgRender(){
+    const {N, darkCells} = buildModules();
+    const px = Math.max(1, Math.floor(parseInt(size.value)/N));
+    const dim = px*N;
+    const r = style === 'dots' ? px*0.42 : style === 'rounded' ? px*0.45 : 0;
+    let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${dim}" height="${dim}" viewBox="0 0 ${dim} ${dim}"${style==='square' ? ' shape-rendering="crispEdges"' : ''}>`;
+    if(!transparent.checked) s += `<rect width="${dim}" height="${dim}" fill="${light.value}"/>`;
+    if(style === 'dots'){
+      darkCells.forEach(([r2,c2])=> s += `<circle cx="${c2*px+px/2}" cy="${r2*px+px/2}" r="${r}" fill="${dark.value}"/>`);
+    }else{
+      darkCells.forEach(([r2,c2])=> s += `<rect x="${c2*px}" y="${r2*px}" width="${px}" height="${px}" rx="${r}" fill="${dark.value}"/>`);
+    }
+    if(logoDataUrl){
+      const box = dim*0.22;
+      s += `<rect x="${dim/2-box/2}" y="${dim/2-box/2}" width="${box}" height="${box}" fill="${transparent.checked ? '#ffffff' : light.value}"/><image href="${logoDataUrl}" x="${dim/2-box/2}" y="${dim/2-box/2}" width="${box}" height="${box}"/>`;
+    }
+    s += '</svg>';
+    return new Blob([s], {type:'image/svg+xml'});
+  }
+
+  let lastCanvas = null;
+  function render(){
+    try{
+      preview.innerHTML = '';
+      lastCanvas = canvasRender();
+      preview.appendChild(lastCanvas);
+    }catch(err){
+      preview.innerHTML = '<span class="mono" style="font-size:11px;color:#999">' + (err.message||'Gagal render') + '</span>';
+    }
   }
 
   [text, dark, light, size].forEach(el=> el.addEventListener('input', ()=>{
-    clearTimeout(debounceT); debounceT = setTimeout(render, 150);
+    clearTimeout(debounceT);
+    debounceT = setTimeout(render, 150);
   }));
 
-  downloadBtn.addEventListener('click', ()=>{
-    const canvas = preview.querySelector('canvas');
-    if(!canvas) return;
-    const a = document.createElement('a');
-    a.download = 'kode-qr.png';
-    a.href = canvas.toDataURL('image/png');
-    a.click();
+  dlPng.addEventListener('click', ()=>{
+    if(!lastCanvas) return;
+    lastCanvas.toBlob(blob => downloadBlob(blob, 'kode-qr.png'), 'image/png');
+  });
+  dlSvg.addEventListener('click', ()=>{
+    downloadBlob(svgRender(), 'kode-qr.svg');
   });
 
   render();
@@ -939,8 +1738,13 @@ function wireDrop(dropEl, inputEl, onFile){
     a.click();
   });
 
-  const PY_SCRIPT = "hand_tracking_hud.py"
-  })();
+  pyBtn.addEventListener('click', ()=>{
+    const a = document.createElement('a');
+    a.download = 'hand_tracking_hud.py';
+    a.href = 'hand_tracking_hud.py';
+    a.click();
+  });
+})();
 </script>
 
 </body>

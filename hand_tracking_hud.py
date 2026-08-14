@@ -15,10 +15,14 @@ Kontrol keyboard:
   s        simpan screenshot ke folder ini
   q / ESC  keluar
 
+Argumen opsional:
+  python hand_tracking_hud.py --cam 1   (pilih index webcam, default 0)
+
 Install dulu:
   pip install opencv-python mediapipe numpy
 """
 
+import sys
 import time
 import random
 
@@ -88,6 +92,8 @@ class HandHUD:
         cv2.putText(frame, f"{handedness_label.upper()}  d={dist:.0f}px",
                     (x0, max(y0 - 10, 14)), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
                     color, 1, cv2.LINE_AA)
+        if dist < 90:
+            cv2.line(frame, pts[4], pts[8], (255, 255, 255), 1, cv2.LINE_AA)
         return pts, dist
 
     # ---------- effects ----------
@@ -145,7 +151,15 @@ class HandHUD:
     # ---------- main loop ----------
 
     def run(self):
-        cap = cv2.VideoCapture(self.cam_index)
+        cam_index = 0
+        args = sys.argv[1:]
+        if "--cam" in args:
+            try:
+                cam_index = int(args[args.index("--cam") + 1])
+            except (IndexError, ValueError):
+                pass
+
+        cap = cv2.VideoCapture(cam_index)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
 
@@ -193,6 +207,10 @@ class HandHUD:
             status = f"FPS {fps:.0f}  EFEK[{self.active_effect_index + 1}] {EFFECTS[self.active_effect_index].upper()}"
             cv2.putText(frame, status, (16, h - 16), cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, (0, 255, 200), 1, cv2.LINE_AA)
+            if pinch_active or peace_active:
+                gesture_tag = "PINCH" if pinch_active else "PEACE"
+                cv2.putText(frame, gesture_tag, (16, 32), cv2.FONT_HERSHEY_SIMPLEX,
+                            0.8, (255, 200, 0) if pinch_active else (0, 255, 200), 2, cv2.LINE_AA)
 
             cv2.imshow("Hand Tracking HUD", frame)
             key = cv2.waitKey(1) & 0xFF
