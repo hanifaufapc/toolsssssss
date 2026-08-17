@@ -75,7 +75,7 @@
 
   /* ---------- TOOL NAV (icon tiles) ---------- */
   .tool-nav{max-width:1080px; margin:0 auto; padding:8px 28px 36px;}
-  .tile-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:12px;}
+  .tile-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:12px;}
   @media (max-width:720px){.tile-grid{grid-template-columns:repeat(3,1fr);}}
   @media (max-width:440px){.tile-grid{grid-template-columns:repeat(2,1fr);}}
   .tile{
@@ -156,6 +156,22 @@
   .progress i{display:block; height:100%; width:0%; background:var(--teal); transition:width .25s ease;}
   .prog-label{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-dim); margin-top:10px; min-height:16px;}
 
+  /* file preview */
+  .file-preview{
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    background:var(--paper-2); border-radius:12px; padding:14px; margin-top:18px;
+  }
+  .file-preview img{max-height:240px; max-width:100%; border-radius:8px; object-fit:contain;}
+  .file-preview video{max-height:240px; width:100%; border-radius:8px; background:#000;}
+  .file-preview audio{width:100%;}
+  .file-preview .file-chip{
+    display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 22px; color:var(--text-dim);
+  }
+  .file-preview .file-meta{
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-dim);
+    word-break:break-all; text-align:center; max-width:100%;
+  }
+
   /* palette */
   .swatch-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px; margin-top:18px;}
   .swatch{border-radius:10px; overflow:hidden; cursor:pointer; border:1px solid rgba(28,24,16,0.1);}
@@ -190,6 +206,13 @@
   .cam-stage{position:relative; border-radius:12px; overflow:hidden; background:#000; aspect-ratio:16/9;}
   .cam-stage video{display:none;}
   .cam-stage canvas{width:100%; height:100%; display:block;}
+  .cam-badge{
+    position:absolute; top:10px; left:10px; z-index:5;
+    background:rgba(18,23,42,0.78); color:var(--teal);
+    border:1px solid rgba(66,163,153,0.35); border-radius:100px;
+    padding:4px 11px; font-size:10.5px; letter-spacing:0.06em;
+  }
+  .cam-badge.warn{color:#ffc46b; border-color:rgba(255,196,107,0.35);}
   .cam-placeholder{
     position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:10px; color:#9a9a9a; background:#0d0d0d;
@@ -230,7 +253,7 @@
   <div class="hero-inner">
     <span class="kicker mono">Gratis · Tanpa Login</span>
     <h1 class="display">Tools Digital<br><span class="accent">Siap Pakai</span></h1>
-    <p>5 alat harian, langsung jalan di browser.</p>
+    <p>6 alat harian, langsung jalan di browser.</p>
     <button class="cta" onclick="document.getElementById('tools').scrollIntoView({behavior:'smooth'})">
       Mulai Pakai
       <svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -258,6 +281,7 @@
     </div>
 
     <div id="compControls" style="display:none">
+      <div id="compPreview"></div>
       <div class="row" id="compImgControls">
         <div class="field">
           <label>Kualitas (<span id="qVal">80</span>%)</label>
@@ -269,33 +293,13 @@
             <button data-q="90">90%</button>
           </div>
         </div>
-        <div class="field">
-          <label>Max. lebar (px, opsional)</label>
-          <select id="compResize">
-            <option value="0">Ukuran asli</option>
-            <option value="2560">2560 (2K)</option>
-            <option value="1920">1920 (Full HD)</option>
-            <option value="1600">1600</option>
-            <option value="1280">1280 (HD)</option>
-            <option value="960">960</option>
-            <option value="640">640</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Target ukuran (KB, opsional)</label>
-          <input type="number" id="targetKb" placeholder="mis. 200">
-        </div>
       </div>
 
       <div class="row" id="compMediaControls">
         <div class="field">
           <label>Kualitas (<span id="mqVal">70</span>%)</label>
           <input type="range" id="mqSlider" min="0" max="100" value="70">
-        </div>
-        <div class="field">
-          <label>Target ukuran (KB, opsional)</label>
-          <input type="number" id="mediaKb" placeholder="mis. 5000">
-          <span class="hint">Video → H.264 (MP4), audio → MP3</span>
+          <span class="hint">Video → H.264 (MP4) · Audio → MP3 · makin kecil angkanya makin bagus</span>
         </div>
       </div>
 
@@ -306,6 +310,70 @@
       <div class="progress" id="compProgWrap" style="display:none"><i id="compProgBar"></i></div>
       <p class="prog-label mono" id="compProgLabel"></p>
       <div id="compResult"></div>
+    </div>
+  </div>
+
+  <!-- RESIZE -->
+  <div class="panel" data-panel="resize">
+    <div class="panel-head">
+      <div class="ic-wrap"><svg class="icon" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></div>
+      <div><h2>Resize Gambar</h2><p>Ubah ukuran gambar, tetapkan sendiri dimensinya.</p></div>
+    </div>
+
+    <div class="drop" id="resDrop">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+      <span id="resDropText">Seret gambar ke sini, atau klik untuk pilih</span>
+      <input type="file" id="resInput" accept="image/*">
+    </div>
+
+    <div id="resControls" style="display:none">
+      <div id="resPreview"></div>
+      <div class="row">
+        <div class="field">
+          <label>Lebar (px)</label>
+          <input type="number" id="resW" min="1" max="16000" value="800">
+        </div>
+        <div class="field">
+          <label>Tinggi (px)</label>
+          <input type="number" id="resH" min="1" max="16000" value="600">
+        </div>
+        <div class="field">
+          <label style="opacity:0">.</label>
+          <label><input type="checkbox" id="resLock" checked> Jaga rasio</label>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Skala cepat</label>
+          <div class="segmented" id="resPresets">
+            <button data-p="25">25%</button>
+            <button data-p="50">50%</button>
+            <button data-p="75">75%</button>
+            <button data-p="100" class="active">100%</button>
+            <button data-p="150">150%</button>
+            <button data-p="200">200%</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Format Tujuan</label>
+          <div class="segmented" id="resFmtSeg">
+            <button data-fmt="image/png" class="active">PNG</button>
+            <button data-fmt="image/jpeg">JPG</button>
+            <button data-fmt="image/webp">WEBP</button>
+          </div>
+        </div>
+      </div>
+      <div class="row" id="resQRow">
+        <div class="field">
+          <label>Kualitas (<span id="resQVal">90</span>%)</label>
+          <input type="range" id="resQ" min="50" max="100" value="90">
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn btn-primary" id="resRunBtn">Resize Sekarang</button>
+        <button class="btn btn-ghost" id="resResetBtn">Ganti File</button>
+      </div>
+      <div id="resResult"></div>
     </div>
   </div>
 
@@ -324,15 +392,7 @@
     </div>
 
     <div id="convControls" style="display:none">
-      <div class="row" style="margin-top:14px">
-        <div class="field">
-          <label>Mode</label>
-          <div class="segmented" id="convModeSeg">
-            <button data-mode="img" class="active">Gambar</button>
-            <button data-mode="media">Audio / Video</button>
-          </div>
-        </div>
-      </div>
+      <div id="convPreview"></div>
 
       <div class="row" id="convImgControls">
         <div class="field">
@@ -347,20 +407,15 @@
             <button data-fmt="application/pdf">PDF</button>
           </div>
         </div>
-        <div class="field" id="convQualityField">
-          <label>Kualitas (<span id="convQVal">95</span>%)</label>
-          <input type="range" id="convQSlider" min="50" max="100" value="95">
-        </div>
       </div>
 
       <div class="row" id="convMediaControls" style="display:none">
-        <div class="field" style="max-width:240px">
+        <div class="field" style="max-width:260px">
           <label>Format Tujuan</label>
           <select id="convOutFmt"></select>
         </div>
         <div class="field">
-          <label>Kualitas (<span id="cmqVal">60</span>%)</label>
-          <input type="range" id="cmqSlider" min="5" max="100" value="60">
+          <span class="hint">Selalu dikonversi ke kualitas terbaik — tanpa penurunan kualitas.</span>
         </div>
       </div>
 
@@ -433,7 +488,6 @@
           <div class="field">
             <label>Warna QR</label>
             <input type="color" id="qrDark" value="#12172a">
-            <div class="dot-presets" id="qrPresets"></div>
           </div>
           <div class="field">
             <label>Warna Latar</label>
@@ -468,8 +522,10 @@
           <label><input type="checkbox" id="qrMargin" checked> Ruang tepi (4 modul)</label>
         </div>
         <div class="field">
-          <label>Logo di Tengah (opsional)</label>
+          <label>Logo di Tengah — upload gambar (opsional)</label>
           <input type="file" id="qrLogo" accept="image/*">
+          <input type="range" id="qrLogoSize" min="8" max="32" value="22">
+          <span class="hint">Ukuran logo: <span id="qrLogoSizeVal">22</span>% dari QR</span>
         </div>
         <div class="row" style="margin-top:6px">
           <button class="btn btn-primary" id="qrDownloadPng">Unduh PNG</button>
@@ -491,8 +547,9 @@
       <canvas id="camCanvas"></canvas>
       <div class="cam-placeholder" id="camPlaceholder">
         <svg class="icon" style="width:34px;height:34px" viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/></svg>
-        <span class="mono" style="font-size:12px">Kamera belum aktif</span>
+        <span class="mono" style="font-size:12px" id="camPlaceholderText">Kamera belum aktif</span>
       </div>
+      <div class="cam-badge mono" id="camBadge" style="display:none"></div>
     </div>
 
     <div class="row">
@@ -511,8 +568,8 @@
       <button data-fx="freeze" disabled>Freeze</button>
     </div>
 
-    <p class="hint">Deteksi gesture tangan (pinch &amp; peace sign) otomatis butuh model ML yang tak bisa dimuat aman di halaman web ini — dipisah jadi script Python asli, real-time, pakai OpenCV + MediaPipe.</p>
-    <button class="btn btn-dark small" id="pyDownload">Unduh Script Python (Hand Tracking HUD)</button>
+    <p class="hint">Hand tracking langsung di browser (MediaPipe WASM): jari-jari terdeteksi real-time dengan overlay HUD. Gesture <b>pinch</b> (jempol + telunjuk bersentuhan) memicu efek terpilih, <b>peace sign</b> otomatis blur — aktif selama gesture dipegang, kembali normal saat dilepas. Butuh koneksi internet sekali untuk memuat model.</p>
+    <button class="btn btn-dark small" id="pyDownload">Unduh Versi Python (Hand Tracking HUD)</button>
   </div>
 </div>
 
@@ -538,6 +595,7 @@ function fmtBytes(b){
 /* ============ TOOL NAV ============ */
 const TOOLS = [
   {key:'kompres', label:'Kompres', icon:'<path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>'},
+  {key:'resize', label:'Resize', icon:'<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>'},
   {key:'konversi', label:'Ubah Format', icon:'<path d="M4 7h13l-3-3m3 3l-3 3"/><path d="M20 17H7l3 3m-3-3l3-3"/>'},
   {key:'palet', label:'Palet Warna', icon:'<path d="M12 21a9 9 0 110-18 7 7 0 017 7c0 1.7-1.3 3-3 3h-1.5a1.5 1.5 0 000 3H15a2 2 0 010 4c-1 0-2-.5-3 0z"/><circle cx="8" cy="11" r="1"/><circle cx="12" cy="8" r="1"/><circle cx="16" cy="11" r="1"/>'},
   {key:'qr', label:'Kode QR', icon:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM18 18h3v3h-3z"/>'},
@@ -601,6 +659,19 @@ function mediaKind(file){
   if(file.type.startsWith('video/') || VID_EXTS.includes(e)) return 'video';
   if(file.type.startsWith('audio/') || AUD_EXTS.includes(e)) return 'audio';
   return 'other';
+}
+function filePreviewEl(file){
+  const kind = mediaKind(file);
+  const div = document.createElement('div');
+  div.className = 'file-preview';
+  const url = URL.createObjectURL(file);
+  let inner = '';
+  if(kind === 'image') inner = `<img src="${url}" alt="">`;
+  else if(kind === 'video') inner = `<video src="${url}" muted controls playsinline></video>`;
+  else if(kind === 'audio') inner = `<audio src="${url}" controls></audio>`;
+  else inner = `<div class="file-chip"><svg class="icon" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg></div>`;
+  div.innerHTML = inner + `<div class="file-meta">${file.name} — ${fmtBytes(file.size)}</div>`;
+  return div;
 }
 
 /* ============ FFMPEG (lazy, shared) ============ */
@@ -725,11 +796,9 @@ function audioBufferToWav(buffer){
   const qSlider = document.getElementById('qSlider');
   const qVal = document.getElementById('qVal');
   const qPresets = document.getElementById('qPresets');
-  const targetKb = document.getElementById('targetKb');
-  const compResize = document.getElementById('compResize');
   const mqSlider = document.getElementById('mqSlider');
   const mqVal = document.getElementById('mqVal');
-  const mediaKb = document.getElementById('mediaKb');
+  const previewEl = document.getElementById('compPreview');
   const runBtn = document.getElementById('compRunBtn');
   const resetBtn = document.getElementById('compResetBtn');
   const resultEl = document.getElementById('compResult');
@@ -774,30 +843,17 @@ function audioBufferToWav(buffer){
   }
 
   async function runImageCompress(){
-    const maxW = parseInt(compResize.value) || 0;
-    const scale = maxW ? Math.min(1, maxW / imgEl.naturalWidth) : 1;
     const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(imgEl.naturalWidth*scale));
-    canvas.height = Math.max(1, Math.round(imgEl.naturalHeight*scale));
+    canvas.width = imgEl.naturalWidth;
+    canvas.height = imgEl.naturalHeight;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
     if(hasAlpha === null) hasAlpha = detectAlpha(canvas, ctx);
     const mime = hasAlpha ? 'image/webp' : 'image/jpeg';
     const ext = hasAlpha ? 'webp' : 'jpg';
 
-    let quality = qSlider.value / 100;
-    let blob = await toBlobAsync(canvas, mime, quality);
-
-    const target = parseFloat(targetKb.value);
-    if(target && target > 0){
-      let lo = 0.05, hi = 0.97, best = blob;
-      for(let i=0;i<7;i++){
-        quality = (lo+hi)/2;
-        blob = await toBlobAsync(canvas, mime, quality);
-        if(blob.size/1024 > target){ hi = quality; } else { best = blob; lo = quality; }
-      }
-      blob = best;
-    }
+    const quality = qSlider.value / 100;
+    const blob = await toBlobAsync(canvas, mime, quality);
 
     const url = URL.createObjectURL(blob);
     const pct = Math.max(0, Math.round((1 - blob.size/currentFile.size)*100));
@@ -810,7 +866,7 @@ function audioBufferToWav(buffer){
       <div class="reduction">${pct > 0 ? `Berkurang ${pct}%` : 'Ukuran nyaris sama — file sudah efisien'}</div>
       <div class="row">
         <a class="btn btn-dark" href="${url}" download="kompres.${ext}">Unduh Hasil (.${ext})</a>
-        <span class="hint">${hasAlpha ? 'Memakai WebP (lossless-ish) agar transparansi terjaga' : 'Memakai JPG' + scaleNote}</span>
+        <span class="hint">${hasAlpha ? 'Memakai WebP agar transparansi terjaga' : 'Memakai JPG'}</span>
       </div>
     `;
   }
@@ -818,7 +874,6 @@ function audioBufferToWav(buffer){
   async function runMediaCompress(){
     const isVideo = kind === 'video';
     const q = mqSlider.value / 100;
-    const target = parseFloat(mediaKb.value);
     let crf, bitrate;
     if(isVideo){ crf = Math.round(45 - q*30); } else { bitrate = Math.round(64 + q*192); }
     try{
@@ -836,30 +891,6 @@ function audioBufferToWav(buffer){
       ffWrite(inName, new Uint8Array(await currentFile.arrayBuffer()));
 
       let outName = 'out.mp4', outType = 'video/mp4';
-      if(target > 0 && isVideo){
-        let lo = 18, hi = 45, best = 45;
-        for(let pass=1; pass<=4; pass++){
-          const v = Math.round((lo+hi)/2);
-          setProg(`Pass ${pass}/4 — menyesuaikan kualitas ke target...`, 10 + (pass-1)*20);
-          await ffmpegRun(['-i',inName,'-c:v','libx264','-preset','veryfast','-crf',String(v),'-c:a','aac','-b:a','96k','-movflags','+faststart','out.mp4']);
-          const sz = (await ffRead('out.mp4')).length/1024;
-          ffUnlink('out.mp4');
-          if(sz <= target){ best = v; lo = v; } else { hi = v; }
-        }
-        crf = best;
-      }
-      if(target > 0 && !isVideo){
-        let lo = 32, hi = 320, best = 320;
-        for(let pass=1; pass<=4; pass++){
-          const v = Math.round((lo+hi)/2);
-          setProg(`Pass ${pass}/4 — menyesuaikan kualitas ke target...`, 10 + (pass-1)*20);
-          await ffmpegRun(['-i',inName,'-b:a',v+'k','out.mp3']);
-          const sz = (await ffRead('out.mp3')).length/1024;
-          ffUnlink('out.mp3');
-          if(sz <= target){ best = v; lo = v; } else { hi = v; }
-        }
-        bitrate = best;
-      }
       if(isVideo){
         setProg('Finalisasi encode...', 85);
         await ffmpegRun(['-i',inName,'-c:v','libx264','-preset','veryfast','-crf',String(crf),'-c:a','aac','-b:a','96k','-movflags','+faststart','out.mp4']);
@@ -875,7 +906,7 @@ function audioBufferToWav(buffer){
       const outName2 = baseName(currentFile.name) + '.' + outExt;
       resultEl.innerHTML = `
         <div class="reduction">${currentFile.name} — <b>${fmtBytes(currentFile.size)}</b> → <b>${fmtBytes(blob.size)}</b> (${pct}% lebih kecil)</div>
-        <div class="hint" style="color:var(--text-dim)">${target > 0 ? 'Kualitas disesuaikan otomatis agar pas di target.' : (isVideo ? 'H.264 CRF ' + crf : 'MP3 ' + bitrate + ' kbps')}</div>
+        <div class="hint" style="color:var(--text-dim)">${isVideo ? 'H.264 CRF ' + crf : 'MP3 ' + bitrate + ' kbps'}</div>
         <div class="row"><a class="btn btn-dark" id="compDl" download="${outName2}" href="#">Unduh ${outExt.toUpperCase()}</a></div>
       `;
       const dl = resultEl.querySelector('#compDl');
@@ -918,6 +949,7 @@ function audioBufferToWav(buffer){
   resetBtn.addEventListener('click', ()=>{
     currentFile = null; kind = null;
     controls.style.display='none'; resultEl.innerHTML=''; input.value='';
+    previewEl.innerHTML = '';
     setProg(null);
     dropText.textContent = 'Seret file ke sini, atau klik untuk pilih';
   });
@@ -931,29 +963,136 @@ function audioBufferToWav(buffer){
     kind = mediaKind(file);
     imgControls.style.display = kind === 'image' ? 'flex' : 'none';
     mediaControls.style.display = (kind === 'video' || kind === 'audio') ? 'flex' : 'none';
+    previewEl.innerHTML = '';
+    previewEl.appendChild(filePreviewEl(file));
     hasAlpha = null;
     if(kind === 'image') imgEl = await loadImageFile(file);
   });
 })();
 
 /* ============================================================
-   2) KONVERTER FORMAT
+   2) RESIZE GAMBAR
+   ============================================================ */
+(function(){
+  const drop = document.getElementById('resDrop');
+  const dropText = document.getElementById('resDropText');
+  const input = document.getElementById('resInput');
+  const controls = document.getElementById('resControls');
+  const previewEl = document.getElementById('resPreview');
+  const wIn = document.getElementById('resW');
+  const hIn = document.getElementById('resH');
+  const lock = document.getElementById('resLock');
+  const presets = document.getElementById('resPresets');
+  const fmtSeg = document.getElementById('resFmtSeg');
+  const qRow = document.getElementById('resQRow');
+  const qSlider = document.getElementById('resQ');
+  const qVal = document.getElementById('resQVal');
+  const runBtn = document.getElementById('resRunBtn');
+  const resetBtn = document.getElementById('resResetBtn');
+  const resultEl = document.getElementById('resResult');
+
+  let imgEl = null, origW = 0, origH = 0, fmt = 'image/png', filling = false;
+  const MIME_EXT = {'image/png':'png','image/jpeg':'jpg','image/webp':'webp'};
+  qRow.style.display = 'none';
+
+  function updateFromW(){
+    if(!lock.checked || filling || !origW) return;
+    filling = true;
+    hIn.value = Math.max(1, Math.round(wIn.value * origH / origW));
+    filling = false;
+  }
+  function updateFromH(){
+    if(!lock.checked || filling || !origW) return;
+    filling = true;
+    wIn.value = Math.max(1, Math.round(hIn.value * origW / origH));
+    filling = false;
+  }
+  wIn.addEventListener('input', updateFromW);
+  hIn.addEventListener('input', updateFromH);
+  lock.addEventListener('change', ()=>{ if(lock.checked) updateFromW(); });
+
+  presets.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    presets.querySelectorAll('button').forEach(x=> x.classList.remove('active'));
+    b.classList.add('active');
+    const p = parseInt(b.dataset.p)/100;
+    wIn.value = Math.max(1, Math.round(origW*p));
+    hIn.value = Math.max(1, Math.round(origH*p));
+  });
+
+  fmtSeg.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    fmtSeg.querySelectorAll('button').forEach(x=> x.classList.remove('active'));
+    b.classList.add('active');
+    fmt = b.dataset.fmt;
+    qRow.style.display = fmt === 'image/png' ? 'none' : 'flex';
+  });
+  qSlider.addEventListener('input', ()=> qVal.textContent = qSlider.value);
+
+  runBtn.addEventListener('click', ()=>{
+    const w = Math.max(1, Math.min(16000, parseInt(wIn.value)||0));
+    const h = Math.max(1, Math.min(16000, parseInt(hIn.value)||0));
+    if(!w || !h){ showToast('Masukkan lebar & tinggi yang valid'); return; }
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(imgEl, 0, 0, w, h);
+    const quality = fmt === 'image/png' ? undefined : qSlider.value/100;
+    canvas.toBlob(blob=>{
+      if(!blob) return;
+      const url = URL.createObjectURL(blob);
+      resultEl.innerHTML = `
+        <div class="compare">
+          <div class="box"><img src="${imgEl.src}"><div class="size">Asli — ${origW}×${origH} · <b>${fmtBytes(currentFileSize)}</b></div></div>
+          <div class="box"><img src="${url}"><div class="size">Hasil — ${w}×${h} · <b>${fmtBytes(blob.size)}</b></div></div>
+        </div>
+        <div class="row"><a class="btn btn-dark" href="${url}" download="resize.${MIME_EXT[fmt]}">Unduh Hasil (.${MIME_EXT[fmt]})</a></div>
+      `;
+    }, fmt, quality);
+  });
+
+  let currentFileSize = 0;
+  resetBtn.addEventListener('click', ()=>{
+    imgEl = null;
+    controls.style.display='none'; resultEl.innerHTML=''; input.value='';
+    previewEl.innerHTML = '';
+    dropText.textContent = 'Seret gambar ke sini, atau klik untuk pilih';
+  });
+
+  wireDrop(drop, input, (file)=>{
+    if(!file.type.startsWith('image/')){ showToast('File harus gambar'); return; }
+    currentFileSize = file.size;
+    const img = new Image();
+    img.onload = ()=>{
+      imgEl = img;
+      origW = img.naturalWidth; origH = img.naturalHeight;
+      wIn.value = origW; hIn.value = origH;
+      controls.style.display = 'block';
+      dropText.textContent = file.name;
+      resultEl.innerHTML = '';
+      previewEl.innerHTML = '';
+      previewEl.appendChild(filePreviewEl(file));
+      showToast(`${origW}×${origH} — pilih ukuran lalu resize`);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+})();
+
+/* ============================================================
+   3) KONVERTER FORMAT
    ============================================================ */
 (function(){
   const drop = document.getElementById('convDrop');
   const dropText = document.getElementById('convDropText');
   const input = document.getElementById('convInput');
   const controls = document.getElementById('convControls');
-  const modeSeg = document.getElementById('convModeSeg');
   const imgControls = document.getElementById('convImgControls');
   const mediaControls = document.getElementById('convMediaControls');
   const fmtSeg = document.getElementById('convFormatSeg');
-  const qField = document.getElementById('convQualityField');
-  const qSlider = document.getElementById('convQSlider');
-  const qVal = document.getElementById('convQVal');
   const outFmt = document.getElementById('convOutFmt');
-  const cmqSlider = document.getElementById('cmqSlider');
-  const cmqVal = document.getElementById('cmqVal');
+  const previewEl = document.getElementById('convPreview');
   const runBtn = document.getElementById('convRunBtn');
   const resetBtn = document.getElementById('convResetBtn');
   const resultEl = document.getElementById('convResult');
@@ -965,28 +1104,21 @@ function audioBufferToWav(buffer){
   let mode = 'img';
 
   const MEDIA_OUT = {
-    video: {
-      video: [
-        {v:'mp4',  l:'MP4 (H.264)'},
-        {v:'webm', l:'WebM (VP9)'},
-        {v:'mkv',  l:'MKV (H.264)'},
-        {v:'avi',  l:'AVI (MPEG-4)'},
-        {v:'mov',  l:'MOV (H.264)'},
-        {v:'gif',  l:'GIF (animasi)'},
-      ],
-      audio: [
-        {v:'mp3',  l:'MP3'},
-        {v:'wav',  l:'WAV (lossless)'},
-        {v:'ogg',  l:'OGG (Vorbis)'},
-        {v:'m4a',  l:'M4A (AAC)'},
-        {v:'flac', l:'FLAC (lossless)'},
-        {v:'aac',  l:'AAC'},
-        {v:'opus', l:'OPUS'},
-      ],
-    },
+    video: [
+      {v:'mp4',  l:'MP4 (H.264)'},
+      {v:'webm', l:'WebM (VP9)'},
+      {v:'mkv',  l:'MKV (H.264)'},
+      {v:'avi',  l:'AVI (MPEG-4)'},
+      {v:'mov',  l:'MOV (H.264)'},
+      {v:'gif',  l:'GIF (animasi)'},
+      {v:'mp3',  l:'MP3 (ambil audio saja)'},
+      {v:'wav',  l:'WAV (ambil audio saja)'},
+      {v:'ogg',  l:'OGG (ambil audio saja)'},
+      {v:'m4a',  l:'M4A (ambil audio saja)'},
+    ],
     audio: [
-      {v:'wav',  l:'WAV (lossless)'},
       {v:'mp3',  l:'MP3'},
+      {v:'wav',  l:'WAV (lossless)'},
       {v:'ogg',  l:'OGG (Vorbis)'},
       {v:'m4a',  l:'M4A (AAC)'},
       {v:'flac', l:'FLAC (lossless)'},
@@ -995,45 +1127,24 @@ function audioBufferToWav(buffer){
     ],
   };
 
-  qSlider.addEventListener('input', ()=> qVal.textContent = qSlider.value);
-  cmqSlider.addEventListener('input', ()=> cmqVal.textContent = cmqSlider.value);
-
   fmtSeg.addEventListener('click', e=>{
     const b = e.target.closest('button'); if(!b) return;
     fmtSeg.querySelectorAll('button').forEach(x=> x.classList.remove('active'));
     b.classList.add('active');
     targetFmt = b.dataset.fmt;
-    qField.style.display = (targetFmt === 'image/png' || targetFmt === 'image/bmp' || targetFmt === 'application/pdf') ? 'none' : 'flex';
-  });
-
-  modeSeg.addEventListener('click', e=>{
-    const b = e.target.closest('button'); if(!b) return;
-    modeSeg.querySelectorAll('button').forEach(x=> x.classList.remove('active'));
-    b.classList.add('active');
-    mode = b.dataset.mode;
-    imgControls.style.display = mode === 'img' ? 'flex' : 'none';
-    mediaControls.style.display = mode === 'media' ? 'flex' : 'none';
-    if(mode === 'media') fillOutFmts();
   });
 
   function fillOutFmts(){
     outFmt.innerHTML = '';
-    const kind = mediaKind(currentFile) === 'video' ? 'video' : 'audio';
-    if(kind === 'video'){
-      const og1 = document.createElement('optgroup'); og1.label = 'Video';
-      MEDIA_OUT.video.video.forEach(f=> og1.appendChild(new Option(f.l, f.v)));
-      const og2 = document.createElement('optgroup'); og2.label = 'Ekstrak audio saja';
-      MEDIA_OUT.video.audio.forEach(f=> og2.appendChild(new Option(f.l, f.v)));
-      outFmt.appendChild(og1); outFmt.appendChild(og2);
-    }else{
-      MEDIA_OUT.audio.forEach(f=> outFmt.appendChild(new Option(f.l, f.v)));
-    }
+    const kinds = mediaKind(currentFile) === 'video' ? MEDIA_OUT.video : MEDIA_OUT.audio;
+    kinds.forEach(f=> outFmt.appendChild(new Option(f.l, f.v)));
     outFmt.value = outFmt.options[0].value;
   }
 
   function ext(mime){ return {'image/png':'png','image/jpeg':'jpg','image/webp':'webp','image/avif':'avif','image/bmp':'bmp','image/gif':'gif','application/pdf':'pdf'}[mime]; }
+  const BEST_Q = 0.96;
 
-  async function encodeImageBlob(fmt, quality){
+  async function encodeImageBlob(fmt){
     const canvas = document.createElement('canvas');
     canvas.width = imgEl.naturalWidth; canvas.height = imgEl.naturalHeight;
     const ctx = canvas.getContext('2d');
@@ -1072,11 +1183,11 @@ function audioBufferToWav(buffer){
     }
 
     if(fmt === 'image/avif'){
-      const blob = await toBlobAsync(canvas, 'image/avif', quality);
+      const blob = await toBlobAsync(canvas, 'image/avif', BEST_Q);
       if(blob && blob.type === 'image/avif') return blob;
       throw new Error('Browser tidak mendukung encode AVIF');
     }
-    return toBlobAsync(canvas, fmt, quality);
+    return toBlobAsync(canvas, fmt, BEST_Q);
   }
 
   async function toBlobAsync(canvas, type, quality){
@@ -1084,10 +1195,9 @@ function audioBufferToWav(buffer){
   }
 
   async function runImageConvert(){
-    const quality = qSlider.value / 100;
     resultEl.innerHTML = `<p class="hint">Memproses...</p>`;
     try{
-      const blob = await encodeImageBlob(targetFmt, quality);
+      const blob = await encodeImageBlob(targetFmt);
       if(blob && blob.size > 0){
         const url = URL.createObjectURL(blob);
         const e2 = ext(targetFmt);
@@ -1123,26 +1233,26 @@ function audioBufferToWav(buffer){
     if(pct != null) progBar.style.width = Math.min(100, Math.max(0, pct)) + '%';
   }
 
-  function ffArgsFor(out, inExt, quality){
+  function ffArgsFor(out, inExt){
     const kind = mediaKind(currentFile) === 'video' ? 'video' : 'audio';
     const args = ['-i', 'in.'+inExt];
     if(kind === 'audio'){
       if(out === 'wav') args.push('-c:a','pcm_s16le');
       else if(out === 'flac') args.push('-c:a','flac');
-      else if(out === 'ogg') args.push('-c:a','libvorbis','-q:a',String(2 + Math.round(quality*8)));
-      else if(out === 'opus') args.push('-c:a','libopus','-b:a',String(Math.round(48 + quality*192)) + 'k');
-      else if(out === 'aac') args.push('-c:a','aac','-b:a',String(Math.round(64 + quality*192)) + 'k');
-      else if(out === 'm4a') args.push('-c:a','aac','-b:a',String(Math.round(64 + quality*192)) + 'k','-movflags','+faststart');
-      else args.push('-c:a','libmp3lame','-b:a',String(Math.round(64 + quality*192)) + 'k');
+      else if(out === 'ogg') args.push('-c:a','libvorbis','-q:a','10');
+      else if(out === 'opus') args.push('-c:a','libopus','-b:a','256k');
+      else if(out === 'aac') args.push('-c:a','aac','-b:a','320k');
+      else if(out === 'm4a') args.push('-c:a','aac','-b:a','320k','-movflags','+faststart');
+      else args.push('-c:a','libmp3lame','-b:a','320k');
       args.push('out.'+out);
     }else{
       const vPresets = {
-        mp4:  ['-c:v','libx264','-crf',String(Math.round(36 - quality*20)),'-preset','veryfast','-c:a','aac','-b:a','96k','-movflags','+faststart'],
-        webm: ['-c:v','libvpx-vp9','-crf',String(Math.round(44 - quality*24)),'-b:v','0','-c:a','libopus','-b:a','96k','-deadline','realtime'],
-        mkv:  ['-c:v','libx264','-crf',String(Math.round(36 - quality*20)),'-preset','veryfast','-c:a','aac','-b:a','96k'],
-        avi:  ['-c:v','mpeg4','-q:v',String(Math.round(10 - quality*7)),'-c:a','mp3','-b:a','128k'],
-        mov:  ['-c:v','libx264','-crf',String(Math.round(36 - quality*20)),'-preset','veryfast','-c:a','aac','-b:a','96k'],
-        gif:  ['-vf','fps=10,scale=640:-1:flags=lanczos','-pix_fmt','rgb24'],
+        mp4:  ['-c:v','libx264','-crf','16','-preset','veryfast','-c:a','aac','-b:a','192k','-movflags','+faststart'],
+        webm: ['-c:v','libvpx-vp9','-crf','16','-b:v','0','-c:a','libopus','-b:a','192k','-deadline','realtime'],
+        mkv:  ['-c:v','libx264','-crf','16','-preset','veryfast','-c:a','aac','-b:a','192k'],
+        avi:  ['-c:v','mpeg4','-q:v','2','-c:a','mp3','-b:a','192k'],
+        mov:  ['-c:v','libx264','-crf','16','-preset','veryfast','-c:a','aac','-b:a','192k'],
+        gif:  ['-vf','fps=12,scale=640:-1:flags=lanczos','-pix_fmt','rgb24'],
       };
       if(out === 'gif'){ args.push(...vPresets.gif, 'out.gif'); }
       else{
@@ -1150,13 +1260,10 @@ function audioBufferToWav(buffer){
         if(vExts.includes(out)) args.push(...vPresets[out], 'out.'+out);
         else{
           const aup = {
-            mp3:  ['-vn','-c:a','libmp3lame','-b:a',String(Math.round(64 + quality*192))+'k'],
+            mp3:  ['-vn','-c:a','libmp3lame','-b:a','320k'],
             wav:  ['-vn','-c:a','pcm_s16le'],
-            ogg:  ['-vn','-c:a','libvorbis','-q:a',String(2 + Math.round(quality*8))],
-            flac: ['-vn','-c:a','flac'],
-            aac:  ['-vn','-c:a','aac','-b:a',String(Math.round(64 + quality*192))+'k'],
-            m4a:  ['-vn','-c:a','aac','-b:a',String(Math.round(64 + quality*192))+'k','-movflags','+faststart'],
-            opus: ['-vn','-c:a','libopus','-b:a',String(Math.round(48 + quality*192))+'k'],
+            ogg:  ['-vn','-c:a','libvorbis','-q:a','10'],
+            m4a:  ['-vn','-c:a','aac','-b:a','320k','-movflags','+faststart'],
           };
           args.push(...(aup[out]||aup.mp3), 'out.'+out);
         }
@@ -1167,7 +1274,6 @@ function audioBufferToWav(buffer){
 
   async function runMediaConvert(){
     const out = outFmt.value;
-    const quality = cmqSlider.value / 100;
     let blob = null;
     try{
       setProg('Memuat engine FFmpeg (sekitar 25 MB, hanya sekali)...', 3);
@@ -1182,7 +1288,7 @@ function audioBufferToWav(buffer){
       ffState.onProgress = p => setProg('Mengonversi...', 5 + p*85);
       const inExt = extOf(currentFile.name) || 'in';
       ffWrite('in.'+inExt, new Uint8Array(await currentFile.arrayBuffer()));
-      const args = ffArgsFor(out, inExt, quality);
+      const args = ffArgsFor(out, inExt);
       setProg('Mengonversi...', 10);
       await ffmpegRun(args);
       setProg('Menyelesaikan...', 95);
@@ -1212,6 +1318,7 @@ function audioBufferToWav(buffer){
   resetBtn.addEventListener('click', ()=>{
     currentFile = null; imgEl = null;
     controls.style.display='none'; resultEl.innerHTML=''; input.value='';
+    previewEl.innerHTML = '';
     setProg(null);
     dropText.textContent = 'Seret file ke sini, atau klik untuk pilih';
   });
@@ -1222,27 +1329,26 @@ function audioBufferToWav(buffer){
     controls.style.display = 'block';
     resultEl.innerHTML = '';
     setProg(null);
+    previewEl.innerHTML = '';
+    previewEl.appendChild(filePreviewEl(file));
     const isMedia = mediaKind(file) === 'video' || mediaKind(file) === 'audio';
     if(isMedia){
       mode = 'media';
-      modeSeg.querySelectorAll('button').forEach(x=> x.classList.toggle('active', x.dataset.mode==='media'));
       imgControls.style.display = 'none';
       mediaControls.style.display = 'flex';
       fillOutFmts();
     }else{
       mode = 'img';
-      modeSeg.querySelectorAll('button').forEach(x=> x.classList.toggle('active', x.dataset.mode==='img'));
       imgControls.style.display = 'flex';
       mediaControls.style.display = 'none';
       imgEl = new Image();
-      imgEl.onload = ()=>{};
       imgEl.src = URL.createObjectURL(file);
     }
   });
 })();
 
 /* ============================================================
-   3) PALET WARNA
+   4) PALET WARNA
    ============================================================ */
 (function(){
   const drop = document.getElementById('paletDrop');
@@ -1440,7 +1546,7 @@ function audioBufferToWav(buffer){
 })();
 
 /* ============================================================
-   4) QR CODE
+   5) QR CODE
    ============================================================ */
 (function(){
   const preview = document.getElementById('qrPreview');
@@ -1453,20 +1559,12 @@ function audioBufferToWav(buffer){
   const transparent = document.getElementById('qrTransparent');
   const margin = document.getElementById('qrMargin');
   const logoInput = document.getElementById('qrLogo');
-  const presetsRow = document.getElementById('qrPresets');
+  const logoSizeSlider = document.getElementById('qrLogoSize');
+  const logoSizeVal = document.getElementById('qrLogoSizeVal');
   const dlPng = document.getElementById('qrDownloadPng');
   const dlSvg = document.getElementById('qrDownloadSvg');
 
-  const PRESET_COLORS = ['#12172A','#000000','#C9A54D','#E2552E','#42A399','#1C1810'];
-  presetsRow.innerHTML = PRESET_COLORS.map(c=>`<button style="background:${c}" data-c="${c}" title="${c}"></button>`).join('');
-  presetsRow.addEventListener('click', e=>{
-    const b = e.target.closest('button'); if(!b) return;
-    dark.value = b.dataset.c;
-    render();
-  });
-
-  let level = 'M', style = 'square', logoImg = null, logoDataUrl = null, debounceT;
-  const levels = {L:'L', M:'M', Q:'Q', H:'H'};
+  let level = 'M', style = 'square', logoImg = null, logoDataUrl = null, debounceT, logoPct = 22;
 
   levelSeg.addEventListener('click', e=>{
     const b = e.target.closest('button'); if(!b) return;
@@ -1483,6 +1581,12 @@ function audioBufferToWav(buffer){
     render();
   });
   [transparent, margin].forEach(el=> el.addEventListener('change', render));
+
+  logoSizeSlider.addEventListener('input', ()=>{
+    logoPct = parseInt(logoSizeSlider.value);
+    logoSizeVal.textContent = logoPct;
+    render();
+  });
 
   logoInput.addEventListener('change', ()=>{
     const f = logoInput.files[0]; if(!f) return;
@@ -1547,7 +1651,7 @@ function audioBufferToWav(buffer){
       }
     });
     if(logoImg){
-      const box = dim*0.22;
+      const box = dim*logoPct/100;
       const pad = box*0.1;
       ctx.fillStyle = transparent.checked ? 'rgba(255,255,255,0.92)' : light.value;
       ctx.fillRect(dim/2-box/2-pad, dim/2-box/2-pad, box+pad*2, box+pad*2);
@@ -1569,7 +1673,7 @@ function audioBufferToWav(buffer){
       darkCells.forEach(([r2,c2])=> s += `<rect x="${c2*px}" y="${r2*px}" width="${px}" height="${px}" rx="${r}" fill="${dark.value}"/>`);
     }
     if(logoDataUrl){
-      const box = dim*0.22;
+      const box = dim*logoPct/100;
       s += `<rect x="${dim/2-box/2}" y="${dim/2-box/2}" width="${box}" height="${box}" fill="${transparent.checked ? '#ffffff' : light.value}"/><image href="${logoDataUrl}" x="${dim/2-box/2}" y="${dim/2-box/2}" width="${box}" height="${box}"/>`;
     }
     s += '</svg>';
@@ -1604,13 +1708,15 @@ function audioBufferToWav(buffer){
 })();
 
 /* ============================================================
-   5) WEBCAM
+   6) WEBCAM — hand tracking real-time (MediaPipe WASM)
    ============================================================ */
 (function(){
   const stage = document.getElementById('camStage');
   const video = document.getElementById('camVideo');
   const canvas = document.getElementById('camCanvas');
   const placeholder = document.getElementById('camPlaceholder');
+  const placeholderText = document.getElementById('camPlaceholderText');
+  const badge = document.getElementById('camBadge');
   const startBtn = document.getElementById('camStart');
   const stopBtn = document.getElementById('camStop');
   const snapBtn = document.getElementById('camSnap');
@@ -1619,8 +1725,20 @@ function audioBufferToWav(buffer){
 
   const ctx = canvas.getContext('2d');
   let stream = null, rafId = null, activeFx = 'none';
-  let frozenData = null;
-  let crackLines = [];
+  let frozenData = null, crackLines = [], handsDet = null;
+  let handLandmarks = [], modelFailed = false;
+  const POTES = 21;
+
+  if(!('mediaDevices' in navigator)){
+    startBtn.disabled = true;
+    placeholderText.textContent = 'Kamera tidak didukung browser ini';
+  }
+
+  function setBadge(html, warn){
+    badge.style.display = 'block';
+    badge.classList.toggle('warn', !!warn);
+    badge.innerHTML = html;
+  }
 
   function genCrack(w,h){
     const lines = [];
@@ -1637,23 +1755,145 @@ function audioBufferToWav(buffer){
     return lines;
   }
 
+  async function loadHands(){
+    if(window.HandLandmarker) return;
+    placeholderText.textContent = 'Memuat model tangan (sekali saja)...';
+    await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.js');
+    if(!window.FilesetResolver) throw new Error('MediaPipe gagal dimuat');
+    const vision = window;
+    const opts = {
+      baseOptions: {
+        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+        delegate: 'GPU',
+      },
+      runningMode: 'VIDEO',
+      numHands: 2,
+    };
+    try{
+      handsDet = await vision.HandLandmarker.createFromOptions(vision.FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+      ), opts);
+    }catch(err){
+      opts.baseOptions.delegate = 'CPU';
+      handsDet = await vision.HandLandmarker.createFromOptions(vision.FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+      ), opts);
+    }
+  }
+
+  function pinchOf(lm){
+    const d = Math.hypot(lm[8].x-lm[4].x, lm[8].y-lm[4].y, lm[8].z-lm[4].z);
+    if(d < 0.05) return true;
+    if(d < 0.09){
+      const folded = lm[8].y > lm[6].y && lm[6].y > lm[5].y;
+      return folded;
+    }
+    return false;
+  }
+  function peaceOf(lm){
+    const indexUp = lm[8].y < lm[6].y && lm[6].y < lm[5].y;
+    const middleUp = lm[12].y < lm[10].y && lm[10].y < lm[9].y;
+    const ringDown = lm[16].y > lm[14].y;
+    const pinkyDown = lm[20].y > lm[18].y;
+    const sep = Math.hypot(lm[8].x-lm[4].x, lm[8].y-lm[4].y) > 0.15;
+    return indexUp && middleUp && ringDown && pinkyDown && sep;
+  }
+
+  function drawHud(){
+    ctx.strokeStyle = '#99f0e6';
+    ctx.lineWidth = 2.4;
+    for(const lm of handLandmarks){
+      for(let i=0;i<POTES;i++){
+        const a = lm[i], b = lm[(i+1)%POTES];
+        ctx.beginPath();
+        ctx.moveTo(a.x*canvas.width, a.y*canvas.height);
+        ctx.lineTo(b.x*canvas.width, b.y*canvas.height);
+        ctx.stroke();
+      }
+      const pinch = pinchOf(lm), peace = peaceOf(lm);
+      ctx.fillStyle = (pinch || peace) ? '#ffc46b' : '#42a399';
+      [4, 8].forEach(pi=>{
+        ctx.beginPath();
+        ctx.arc(lm[pi].x*canvas.width, lm[pi].y*canvas.height, 5, 0, Math.PI*2);
+        ctx.fill();
+      });
+    }
+  }
+
+  const FX_LABELS = {blur:'Blur', invert:'Invert', glitch:'Glitch', distort:'Distorsi', crack:'Retak Kaca', freeze:'Freeze'};
+  let fxOn = false, latchT = 0, peaceOn = false, peaceShownT = 0, lastBadgeT = 0;
+
   function draw(){
     const w = canvas.width, h = canvas.height;
+
+    if(handsDet){
+      try{
+        handLandmarks = handsDet.detectForVideo(video, performance.now()).landmarks || [];
+      }catch(err){
+        handLandmarks = [];
+      }
+    }
+
+    const land = handLandmarks;
+    const pinch = land.some(pinchOf);
+    const peace = land.some(peaceOf);
+
+    if(pinch){
+      if(latchT === 0) latchT = performance.now();
+      if(performance.now() - latchT > 180 && !fxOn){
+        fxOn = true;
+        if(activeFx !== 'none'){
+          const lb = FX_LABELS[activeFx];
+          if(lb) showToast(`${lb} aktif — lepas gesture untuk normal`);
+        }
+      }
+    }else{
+      latchT = 0;
+      fxOn = false;
+    }
+    if(peace){
+      peaceOn = true;
+      if(performance.now() - peaceShownT > 4000){
+        peaceShownT = performance.now();
+        showToast('✌ Peace sign — blur otomatis');
+      }
+    }else{
+      peaceOn = false;
+    }
+
+    if(performance.now() - lastBadgeT > 300){
+      lastBadgeT = performance.now();
+      if(!handsDet) setBadge(modelFailed ? 'Model gagal dimuat' : 'Memuat model…', true);
+      else if(!land.length) setBadge('Tangan: 0');
+      else{
+        const tags = [];
+        if(pinch) tags.push('PINCH');
+        if(peace) tags.push('PEACE');
+        setBadge(`Tangan: ${land.length}${tags.length ? ' · ' + tags.join(' · ') : ''}`);
+      }
+    }
+
     ctx.save();
     ctx.translate(w,0); ctx.scale(-1,1);
 
-    if(activeFx === 'freeze'){
-      if(!frozenData){ ctx.filter='none'; ctx.drawImage(video,0,0,w,h); frozenData = ctx.getImageData(0,0,w,h); }
-      else { ctx.restore(); ctx.putImageData(frozenData,0,0); rafId = requestAnimationFrame(draw); return; }
+    const eff = peaceOn ? 'blur' : (fxOn ? activeFx : 'none');
+
+    if(eff === 'freeze'){
+      if(!frozenData){
+        ctx.filter = 'none';
+        ctx.drawImage(video,0,0,w,h);
+        frozenData = ctx.getImageData(0,0,w,h);
+      }
       ctx.restore();
+      if(frozenData) ctx.putImageData(frozenData,0,0);
       rafId = requestAnimationFrame(draw);
       return;
     }
     frozenData = null;
 
-    if(activeFx === 'blur'){ ctx.filter = 'blur(8px)'; ctx.drawImage(video,0,0,w,h); }
-    else if(activeFx === 'invert'){ ctx.filter = 'invert(1)'; ctx.drawImage(video,0,0,w,h); }
-    else if(activeFx === 'glitch'){
+    if(eff === 'blur'){ ctx.filter = 'blur(8px)'; ctx.drawImage(video,0,0,w,h); }
+    else if(eff === 'invert'){ ctx.filter = 'invert(1)'; ctx.drawImage(video,0,0,w,h); }
+    else if(eff === 'glitch'){
       ctx.filter = 'none'; ctx.drawImage(video,0,0,w,h);
       for(let i=0;i<5;i++){
         const bh = 6 + Math.random()*22;
@@ -1664,11 +1904,10 @@ function audioBufferToWav(buffer){
       ctx.globalCompositeOperation = 'lighter';
       ctx.filter = 'opacity(0.25)';
       ctx.drawImage(video, 2, 0, w, h);
-      ctx.filter = 'opacity(0.25)';
       ctx.drawImage(video, -2, 0, w, h);
       ctx.globalCompositeOperation = 'source-over';
     }
-    else if(activeFx === 'distort'){
+    else if(eff === 'distort'){
       ctx.filter = 'none';
       const t = performance.now()/250;
       const bands = 44, bandH = h/bands;
@@ -1678,7 +1917,7 @@ function audioBufferToWav(buffer){
         ctx.drawImage(video, 0, y, w, bandH+1, shift, y, w, bandH+1);
       }
     }
-    else if(activeFx === 'crack'){
+    else if(eff === 'crack'){
       ctx.filter = 'none'; ctx.drawImage(video,0,0,w,h);
       ctx.strokeStyle = 'rgba(235,245,255,0.85)';
       ctx.lineWidth = 1.2;
@@ -1694,6 +1933,8 @@ function audioBufferToWav(buffer){
       ctx.drawImage(video,0,0,w,h);
     }
     ctx.filter = 'none';
+
+    if(peaceOn || fxOn) drawHud();
     ctx.restore();
     rafId = requestAnimationFrame(draw);
   }
@@ -1704,7 +1945,7 @@ function audioBufferToWav(buffer){
     b.classList.add('active');
     activeFx = b.dataset.fx;
     frozenData = null;
-    if(activeFx === 'crack') crackLines = genCrack(canvas.width, canvas.height);
+    if(activeFx === 'crack' && canvas.width) crackLines = genCrack(canvas.width, canvas.height);
   });
 
   startBtn.addEventListener('click', async ()=>{
@@ -1716,9 +1957,21 @@ function audioBufferToWav(buffer){
       placeholder.style.display = 'none';
       startBtn.disabled = true; stopBtn.disabled = false; snapBtn.disabled = false;
       fxRow.querySelectorAll('button').forEach(b=> b.disabled = false);
+      setBadge('Menyalakan model…', true);
+      try{
+        await loadHands();
+      }catch(err){
+        console.error(err);
+        handsDet = null;
+        modelFailed = true;
+        setBadge('Model gagal dimuat — cek koneksi', true);
+      }
+      setBadge('Tangan: 0');
       draw();
     }catch(err){
+      console.error(err);
       showToast('Tidak bisa mengakses kamera — cek izin browser.');
+      badge.style.display = 'none';
     }
   });
 
@@ -1727,8 +1980,10 @@ function audioBufferToWav(buffer){
     cancelAnimationFrame(rafId);
     ctx.clearRect(0,0,canvas.width,canvas.height);
     placeholder.style.display = 'flex';
+    badge.style.display = 'none';
     startBtn.disabled = false; stopBtn.disabled = true; snapBtn.disabled = true;
     fxRow.querySelectorAll('button').forEach(b=> b.disabled = true);
+    handLandmarks = []; fxOn = false; latchT = 0; peaceOn = false;
   });
 
   snapBtn.addEventListener('click', ()=>{

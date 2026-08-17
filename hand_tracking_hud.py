@@ -7,7 +7,7 @@ visual saat gesture tertentu terdeteksi.
 
 Gesture:
   - Pinch (ujung jempol menyentuh ujung telunjuk) -> efek yang sedang dipilih aktif,
-    kembali normal begitu jari dilepas.
+    kembali normal begitu jari dilepas. Ada toleransi anti-blinking (latch) supershort.
   - Peace sign (telunjuk + jari tengah terangkat, dua jari lain turun) -> blur otomatis.
 
 Kontrol keyboard:
@@ -34,6 +34,8 @@ mp_hands = mp.solutions.hands
 
 EFFECTS = ["blur", "crack", "invert", "glitch", "distort", "freeze"]
 PINCH_THRESHOLD_PX = 35
+N_START_FRAMES = 2   # frame berturut-turut sebelum pinch "terkunci"
+N_RELEASE_FRAMES = 6 # frame tanpa pinch sebelum dilepas (anti-blinking)
 
 
 class HandHUD:
@@ -50,6 +52,8 @@ class HandHUD:
         self.active_effect_index = 0
         self.frozen_frame = None
         self.prev_time = time.time()
+        self.pinch_frames = 0
+        self.release_frames = 0
 
     # ---------- helpers ----------
 
@@ -194,9 +198,18 @@ class HandHUD:
             else:
                 self.frozen_frame = None
 
+            if pinch_active:
+                self.pinch_frames += 1
+                self.release_frames = 0
+            else:
+                self.release_frames += 1
+                if self.release_frames > N_RELEASE_FRAMES:
+                    self.pinch_frames = 0
+            pinch_locked = self.pinch_frames >= N_START_FRAMES
+
             if peace_active:
                 frame = self.apply_effect(frame, "blur")
-            elif pinch_active:
+            elif pinch_locked:
                 frame = self.apply_effect(frame, EFFECTS[self.active_effect_index])
             else:
                 self.frozen_frame = None
@@ -207,10 +220,10 @@ class HandHUD:
             status = f"FPS {fps:.0f}  EFEK[{self.active_effect_index + 1}] {EFFECTS[self.active_effect_index].upper()}"
             cv2.putText(frame, status, (16, h - 16), cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, (0, 255, 200), 1, cv2.LINE_AA)
-            if pinch_active or peace_active:
-                gesture_tag = "PINCH" if pinch_active else "PEACE"
+            if pinch_locked or peace_active:
+                gesture_tag = "PINCH" if pinch_locked else "PEACE"
                 cv2.putText(frame, gesture_tag, (16, 32), cv2.FONT_HERSHEY_SIMPLEX,
-                            0.8, (255, 200, 0) if pinch_active else (0, 255, 200), 2, cv2.LINE_AA)
+                            0.8, (255, 200, 0) if pinch_locked else (0, 255, 200), 2, cv2.LINE_AA)
 
             cv2.imshow("Hand Tracking HUD", frame)
             key = cv2.waitKey(1) & 0xFF
