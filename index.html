@@ -75,7 +75,7 @@
 
   /* ---------- TOOL NAV (icon tiles) ---------- */
   .tool-nav{max-width:1080px; margin:0 auto; padding:8px 28px 36px;}
-  .tile-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:12px;}
+  .tile-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px;}
   @media (max-width:720px){.tile-grid{grid-template-columns:repeat(3,1fr);}}
   @media (max-width:440px){.tile-grid{grid-template-columns:repeat(2,1fr);}}
   .tile{
@@ -217,6 +217,23 @@
     position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:10px; color:#9a9a9a; background:#0d0d0d;
   }
+
+  .musik-row{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:14px;}
+  .musik-row .musik-url{flex:1; min-width:180px; background:#141210; border:1px solid rgba(28,24,16,0.35); border-radius:8px; padding:9px 12px; font-size:13px; color:var(--text); outline:none;}
+  .musik-row .musik-url:focus{border-color:var(--brass);}
+  .musik-select{background:#141210; border:1px solid rgba(28,24,16,0.35); border-radius:8px; padding:9px 12px; font-size:13px; color:var(--text); cursor:pointer;}
+  .piano-wrap{position:relative; height:180px; margin-top:14px; user-select:none; touch-action:none;}
+  .pkey{position:absolute; bottom:0; border:1px solid #2a2620; border-radius:0 0 4px 4px; box-sizing:border-box; cursor:pointer;}
+  .pkey.white{width:30px; height:100%; background:linear-gradient(#fbf8ee, #e9e3d0); color:#5a5340; font-size:10.5px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:6px;}
+  .pkey.black{width:19px; height:62%; background:linear-gradient(#3a3731, #141311); color:#cfc7a8; font-size:9.5px; display:flex; align-items:center; justify-content:center; z-index:2; border-radius:0 0 3px 3px;}
+  .pkey.white.active{background:linear-gradient(#ffd400, #f0b90a); color:#4a3d00;}
+  .pkey.black.active{background:linear-gradient(#ffd400, #d9a306); color:#4a3d00;}
+  .drum-pads{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px;}
+  @media (max-width:520px){.drum-pads{grid-template-columns:repeat(2,1fr);}}
+  .dpad{aspect-ratio:1.7; border-radius:12px; border:1px solid rgba(28,24,16,0.35); background:#171512; color:#cfc7a8; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px; font-size:13px; transition:transform .05s;}
+  .dpad small{font-family:'IBM Plex Mono',monospace; font-size:10.5px; opacity:.7;}
+  .dpad.active{background:var(--orange); color:#fff; border-color:var(--orange); transform:scale(.96);}
+  .musik-status{margin-top:12px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--brass);}
 
   footer{border-top:1px solid var(--line); padding:26px 28px; text-align:center;}
   footer p{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#8f8973; margin:0;}
@@ -557,6 +574,29 @@
 
     <p class="hint"><b>Cara pakai:</b> buka <b>portal</b> dengan 2 tangan — ujung jempol + telunjuk kedua tangan jadi 4 titik membentuk bangun datar; di dalamnya efek filter mengikuti gerakan. <b>Pinch kanan</b> (jempol+telunjuk tangan kanan) = efek berikutnya, <b>pinch kiri</b> = efek sebelumnya (MONO → DUAL-TONE → PIXELATE → INVERT → SEPIA → BLUR → THERMAL → SKETCH → GLITCH → NEON → GALAXY). <b>Sentuh jempol &amp; kelingking</b> = simpan foto area portal. <b>Peace sign</b> = blur otomatis. Portal tidak menampilkan skeleton; butuh internet sekali untuk memuat model.</p>
   </div>
+
+  <div class="panel" data-panel="musik">
+    <div class="panel-head">
+      <div class="ic-wrap"><svg class="icon" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+      <div><h2>Alat Musik</h2><p>Main dengan keyboard, atau autoplay mengikuti audio.</p></div>
+    </div>
+
+    <div class="musik-row">
+      <select id="musikInst" class="musik-select">
+        <option value="piano">🎹 Piano</option>
+        <option value="drum">🥁 Drum</option>
+      </select>
+      <button class="btn btn-primary" id="musikFileBtn">🎵 Autoplay: Pilih Audio/Video</button>
+      <input type="file" id="musikFile" accept="audio/*,video/*" hidden>
+      <input type="text" id="musikUrl" class="musik-url" placeholder="Atau tempel URL audio/video…">
+      <button class="btn btn-ghost" id="musikUrlBtn">Muat URL</button>
+      <button class="btn btn-ghost" id="musikStop" disabled>Stop</button>
+    </div>
+
+    <div class="musik-stage" id="musikStage"></div>
+    <div class="musik-status" id="musikStatus" style="display:none"></div>
+    <p class="hint" id="musikHint"><b>Piano:</b> mainkan seperti keyboard piano — baris bawah <span class="mono">Z X C V B N M , . /</span> = C3–E4, baris atas <span class="mono">Q W E R T Y U I O P</span> = C4–E5, tombol hitam <span class="mono">S D G H J</span> &amp; <span class="mono">2 3 5 6 7</span>. <b>Drum:</b> <span class="mono">1</span> kick, <span class="mono">2</span> snare, <span class="mono">3</span> hi-hat, <span class="mono">4</span> crash, <span class="mono">5/6/7</span> tom. <b>Autoplay:</b> mainkan audio/video lalu alat musik bermain sendiri mengikuti musik — Piano mengikuti nada, Drum mengikuti ketukan. URL harus CORS-friendly (kalau ditolak, unduh filenya lalu pilih dari tombol).</p>
+  </div>
 </div>
 
 <footer><p>PERKAKAS — dibangun bertahap, tool baru menyusul.</p></footer>
@@ -586,6 +626,7 @@ const TOOLS = [
   {key:'palet', label:'Palet Warna', icon:'<path d="M12 21a9 9 0 110-18 7 7 0 017 7c0 1.7-1.3 3-3 3h-1.5a1.5 1.5 0 000 3H15a2 2 0 010 4c-1 0-2-.5-3 0z"/><circle cx="8" cy="11" r="1"/><circle cx="12" cy="8" r="1"/><circle cx="16" cy="11" r="1"/>'},
   {key:'qr', label:'Kode QR', icon:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM18 18h3v3h-3z"/>'},
   {key:'webcam', label:'Webcam', icon:'<rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/>'},
+  {key:'musik', label:'Alat Musik', icon:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'},
 ];
 const tileGrid = document.getElementById('tileGrid');
 tileGrid.innerHTML = TOOLS.map(t=>`
@@ -1777,6 +1818,7 @@ function audioBufferToWav(buffer){
   let pxSrc = null, pxHalf = null, pxOut = null, pxFx = '', pxLast = 0, pxSmall = null;
   let pxBX = 0, pxBY = 0, pxBW = 0, pxBH = 0;
   function pxBBox(quad){
+    if(!quad) return null;
     let mx1 = 1e9, my1 = 1e9, mx2 = -1, my2 = -1;
     for(const p of quad){
       const px = p[0]*canvas.width, py = p[1]*canvas.height;
@@ -1784,11 +1826,11 @@ function audioBufferToWav(buffer){
       if(py<my1) my1=py; if(py>my2) my2=py;
     }
     const x = Math.max(0, Math.floor(mx1)), y = Math.max(0, Math.floor(my1));
-    return {
-      x, y,
-      bw: Math.min(canvas.width, Math.ceil(mx2)) - x,
-      bh: Math.min(canvas.height, Math.ceil(my2)) - y,
-    };
+    let bw = Math.min(canvas.width, Math.ceil(mx2)) - x;
+    let bh = Math.min(canvas.height, Math.ceil(my2)) - y;
+    if(bw < 4) bw = Math.min(4, canvas.width);
+    if(bh < 4) bh = Math.min(4, canvas.height);
+    return {x, y, bw, bh};
   }
   function pxDualTone(d){
     for(let i=0;i<d.length;i+=4){
@@ -1919,7 +1961,7 @@ function audioBufferToWav(buffer){
   }
   function pxProcess(quad, fx, now){
     const b = pxBBox(quad);
-    if(b.bw <= 2 || b.bh <= 2) return null;
+    if(!b) return null;
     if(!pxSrc){ pxSrc = document.createElement('canvas'); pxSrc.width = canvas.width; pxSrc.height = canvas.height; }
     const c = pxSrc.getContext('2d');
     c.save();
@@ -2080,20 +2122,20 @@ function audioBufferToWav(buffer){
       case 'GLITCH': {
         c.filter = 'none';
         c.drawImage(video,0,0,w,h);
-        const shift = Math.max(4, w>>5);
-        for(let i=0;i<3;i++){
+        const shift = Math.max(3, w>>5);
+        for(let i=0;i<2;i++){
           const sw = (w - shift*2)|0;
           if(sw <= 0) break;
           const sx = (Math.random()*(w-sw))|0;
           const sy = (Math.random()*h)|0;
-          const sh = Math.min(h>>3, h - sy);
+          const sh = Math.min(h>>4, h - sy);
           const dir = Math.random()<0.5 ? shift : -shift;
           c.drawImage(video, sx, sy, sw, sh, sx+dir, sy, sw, sh);
         }
         c.globalCompositeOperation = 'lighter';
-        c.filter = 'opacity(0.3)';
-        c.drawImage(video, 3, 0, w, h);
-        c.drawImage(video, -3, 0, w, h);
+        c.filter = 'opacity(0.15)';
+        c.drawImage(video, 4, 0, w, h);
+        c.drawImage(video, -4, 0, w, h);
         c.filter = 'none';
         c.globalCompositeOperation = 'source-over';
         break;
@@ -2108,7 +2150,9 @@ function audioBufferToWav(buffer){
   }
 
   function takePortalPhoto(quad, now){
+    if(!quad) return;
     const b = pxBBox(quad);
+    if(!b) return;
     if(b.bw < 6 || b.bh < 6) return;
     flashT = now;
     const cv = document.createElement('canvas');
@@ -2137,7 +2181,8 @@ function audioBufferToWav(buffer){
       return;
     }
 
-    if(handsDet && video.readyState >= 2 && now - lastDetT > 40){
+    try{
+      if(handsDet && video.readyState >= 2 && now - lastDetT > 40){
       lastDetT = now;
       try{
         const res = handsDet.detectForVideo(video, now);
@@ -2165,7 +2210,7 @@ function audioBufferToWav(buffer){
     }
     wasPinch = dir;
 
-    if(photo && !wasPhoto && now - lastPhotoT > 900){
+    if(photo && quad && !wasPhoto && now - lastPhotoT > 900){
       lastPhotoT = now;
       takePortalPhoto(quad, now);
     }
@@ -2270,6 +2315,7 @@ function audioBufferToWav(buffer){
       ctx.fillStyle = 'rgba(255,255,255,' + (0.55*(1-(now-flashT)/140)).toFixed(3) + ')';
       ctx.fillRect(0,0,w,h);
     }
+    }catch(err){ console.error('draw:', err); }
 
     ctx.restore();
     rafId = requestAnimationFrame(draw);
@@ -2318,6 +2364,302 @@ function audioBufferToWav(buffer){
     a.href = canvas.toDataURL('image/png');
     a.click();
   });
+})();
+
+/* ============================================================
+   7) ALAT MUSIK — synth Web Audio + autoplay mengikuti audio
+   ============================================================ */
+(function(){
+  const instSel = document.getElementById('musikInst');
+  const stage = document.getElementById('musikStage');
+  const statusEl = document.getElementById('musikStatus');
+  const fileBtn = document.getElementById('musikFileBtn');
+  const fileInput = document.getElementById('musikFile');
+  const urlInput = document.getElementById('musikUrl');
+  const urlBtn = document.getElementById('musikUrlBtn');
+  const stopBtn = document.getElementById('musikStop');
+
+  let actx = null;
+  function ac(){
+    if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if(actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+
+  function noteFreq(n){ return 440*Math.pow(2,(n-69)/12); }
+  const NOTE_NAME = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  function noteName(m){ return NOTE_NAME[m%12] + (Math.floor(m/12)-1); }
+
+  function playNote(midi, vel, dur){
+    const a = ac(), t = a.currentTime;
+    const g = a.createGain();
+    const lp = a.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 3400;
+    const o1 = a.createOscillator(); o1.type = 'sine'; o1.frequency.value = noteFreq(midi);
+    const o2 = a.createOscillator(); o2.type = 'triangle'; o2.frequency.value = noteFreq(midi)*2;
+    const g2 = a.createGain(); g2.gain.value = 0.35;
+    const len = dur || 0.4;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.5*vel, t+0.008);
+    g.gain.exponentialRampToValueAtTime(0.001, t+len);
+    o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(lp); lp.connect(a.destination);
+    o1.start(t); o2.start(t); o1.stop(t+len+0.05); o2.stop(t+len+0.05);
+  }
+
+  let noiseBufCache = null;
+  function noiseBuf(){
+    const a = ac();
+    if(!noiseBufCache){
+      noiseBufCache = a.createBuffer(1, a.sampleRate, a.sampleRate);
+      const d = noiseBufCache.getChannelData(0);
+      for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+    }
+    return noiseBufCache;
+  }
+  function playDrum(kind, vel){
+    const a = ac(), t = a.currentTime;
+    const g = a.createGain();
+    g.connect(a.destination);
+    if(kind === 'kick'){
+      const o = a.createOscillator(); o.type = 'sine';
+      o.frequency.setValueAtTime(165, t);
+      o.frequency.exponentialRampToValueAtTime(45, t+0.09);
+      g.gain.setValueAtTime(vel, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t+0.28);
+      o.connect(g); o.start(t); o.stop(t+0.3);
+    }else if(kind === 'snare'){
+      const o = a.createOscillator(); o.type = 'triangle'; o.frequency.value = 195;
+      const g2 = a.createGain(); g2.gain.value = 0.45;
+      const n = a.createBufferSource(); n.buffer = noiseBuf();
+      const bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 0.8;
+      g.gain.setValueAtTime(0.9*vel, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t+0.2);
+      o.connect(g2); g2.connect(g); n.connect(bp); bp.connect(g);
+      o.start(t); o.stop(t+0.22); n.start(t); n.stop(t+0.22);
+    }else if(kind === 'hat'){
+      const n = a.createBufferSource(); n.buffer = noiseBuf();
+      const hp = a.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 7000;
+      g.gain.setValueAtTime(0.5*vel, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t+0.07);
+      n.connect(hp); hp.connect(g); n.start(t); n.stop(t+0.1);
+    }else if(kind === 'crash'){
+      const n = a.createBufferSource(); n.buffer = noiseBuf();
+      const hp = a.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 5000;
+      g.gain.setValueAtTime(0.7*vel, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t+1.5);
+      n.connect(hp); hp.connect(g); n.start(t); n.stop(t+1.6);
+    }else{
+      const o = a.createOscillator(); o.type = 'sine';
+      const base = kind === 'tomL' ? 110 : kind === 'tomM' ? 150 : 200;
+      o.frequency.setValueAtTime(base*1.4, t);
+      o.frequency.exponentialRampToValueAtTime(base, t+0.09);
+      g.gain.setValueAtTime(0.9*vel, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t+0.32);
+      o.connect(g); o.start(t); o.stop(t+0.35);
+    }
+  }
+
+  const KEY_MIDI = {};
+  const KEY_CHAR = {};
+  ['z','x','c','v','b','n','m',',','.','/'].forEach((ch,i)=> KEY_MIDI[ch] = 48+i);
+  ['q','w','e','r','t','y','u','i','o','p'].forEach((ch,i)=> KEY_MIDI[ch] = 60+i);
+  [[49,'s'],[51,'d'],[54,'g'],[56,'h'],[58,'j']].forEach(([m,ch])=> KEY_MIDI[ch] = m);
+  [[61,'2'],[63,'3'],[66,'5'],[68,'6'],[70,'7']].forEach(([m,ch])=> KEY_MIDI[ch] = m);
+  for(const k in KEY_MIDI) KEY_CHAR[KEY_MIDI[k]] = k;
+
+  const WHITE_PC = [0,2,4,5,7,9,11];
+  let held = {}, midiEl = {};
+  let autoSrc = null, autoRaf = 0, padEls = {};
+
+  function flashEl(el){
+    if(!el) return;
+    el.classList.add('active');
+    setTimeout(()=> el.classList.remove('active'), 90);
+  }
+  function pressNote(midi, vel){
+    playNote(midi, vel||0.9, 0.45);
+    flashEl(midiEl[midi]);
+  }
+
+  function renderStage(){
+    stage.innerHTML = '';
+    midiEl = {};
+    if(instSel.value === 'piano'){
+      const wrap = document.createElement('div');
+      wrap.className = 'piano-wrap';
+      let wi = 0;
+      for(let m=48;m<=84;m++){
+        const pc = m%12;
+        const k = document.createElement('div');
+        k.dataset.note = m;
+        if(WHITE_PC.includes(pc)){
+          k.className = 'pkey white';
+          k.style.left = (wi*30)+'px';
+          k.innerHTML = '<span>' + (KEY_CHAR[m] ? KEY_CHAR[m] : '') + '</span><small style="font-size:8.5px;opacity:.6">' + noteName(m) + '</small>';
+          wi++;
+        }else{
+          k.className = 'pkey black';
+          k.style.left = ((wi-1)*30 + 30 - 9.5)+'px';
+          k.textContent = KEY_CHAR[m] || '';
+        }
+        k.addEventListener('pointerdown', e=>{ e.preventDefault(); pressNote(m); });
+        k.addEventListener('pointerup', ()=> k.classList.remove('active'));
+        k.addEventListener('pointerleave', ()=> k.classList.remove('active'));
+        midiEl[m] = k;
+        wrap.appendChild(k);
+      }
+      stage.appendChild(wrap);
+    }else{
+      const grid = document.createElement('div');
+      grid.className = 'drum-pads';
+      const pads = [
+        ['kick','1','KICK'],
+        ['snare','2','SNARE'],
+        ['hat','3','HI-HAT'],
+        ['crash','4','CRASH'],
+        ['tomL','5','TOM LOW'],
+        ['tomM','6','TOM MID'],
+        ['tomH','7','TOM HIGH'],
+      ];
+      for(const [name,key,label] of pads){
+        const d = document.createElement('div');
+        d.className = 'dpad';
+        d.dataset.pad = name;
+        d.innerHTML = label + '<small>Tombol ' + key + '</small>';
+        d.addEventListener('pointerdown', e=>{ e.preventDefault(); playDrum(name, 0.9); flashEl(d); });
+        padEls[name] = d;
+        grid.appendChild(d);
+      }
+      stage.appendChild(grid);
+    }
+  }
+  function flashPad(name){ flashEl(padEls[name]); }
+
+  instSel.addEventListener('change', renderStage);
+  renderStage();
+
+  window.addEventListener('keydown', e=>{
+    if(e.repeat) return;
+    const t = e.target;
+    if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+    const ch = e.key.toLowerCase();
+    if(instSel.value === 'piano'){
+      const m = KEY_MIDI[ch];
+      if(m && !held[m]){ held[m] = true; pressNote(m); }
+    }else{
+      const map = {'1':'kick','2':'snare','3':'hat','4':'crash','5':'tomL','6':'tomM','7':'tomH'};
+      const name = map[ch];
+      if(name){ playDrum(name, 0.9); flashPad(name); }
+    }
+  });
+  window.addEventListener('keyup', e=>{
+    const ch = e.key.toLowerCase();
+    const m = KEY_MIDI[ch];
+    if(m){ held[m] = false; const el = midiEl[m]; if(el) el.classList.remove('active'); }
+  });
+
+  function autoCorr(buf, sr){
+    let best = 0, bestV = 0;
+    for(let lag=40;lag<700;lag+=2){
+      let s = 0;
+      for(let i=0;i<600;i++) s += buf[i]*buf[i+lag];
+      if(s > bestV){ bestV = s; best = lag; }
+    }
+    if(bestV < 0.05) return 0;
+    let fine = best, fineV = -1;
+    for(let lag=Math.max(40,best-3); lag<=Math.min(700,best+3); lag++){
+      let s = 0;
+      for(let i=0;i<600;i++) s += buf[i]*buf[i+lag];
+      if(s > fineV){ fineV = s; fine = lag; }
+    }
+    return sr/fine;
+  }
+
+  function stopAuto(){
+    if(autoSrc){ try{ autoSrc.stop(); }catch(e){} autoSrc.disconnect(); autoSrc = null; }
+    if(autoRaf){ cancelAnimationFrame(autoRaf); autoRaf = 0; }
+    statusEl.style.display = 'none';
+    stopBtn.disabled = true;
+  }
+
+  async function loadAuto(input){
+    stopAuto();
+    const a = ac();
+    let buf;
+    try{
+      if(input instanceof File){
+        buf = await a.decodeAudioData(await input.arrayBuffer());
+      }else{
+        const r = await fetch(input, {mode:'cors'});
+        if(!r.ok) throw new Error('HTTP ' + r.status);
+        buf = await a.decodeAudioData(await r.arrayBuffer());
+      }
+    }catch(e){
+      showToast('Autoplay gagal: ' + e.message);
+      return;
+    }
+    const src = a.createBufferSource();
+    src.buffer = buf;
+    const an = a.createAnalyser();
+    an.fftSize = 2048; an.smoothingTimeConstant = 0.6;
+    src.connect(an); an.connect(a.destination);
+    src.start();
+    autoSrc = src;
+    stopBtn.disabled = false;
+    statusEl.style.display = 'block';
+    const td = new Float32Array(an.fftSize);
+    const fd = new Uint8Array(an.frequencyBinCount);
+    const binHz = a.sampleRate / an.fftSize;
+    let lastRMS = 0.01, lastNote = 0, lastHit = 0, lastTick = 0;
+    const band = (f0,f1)=>{ let s=0; const i0=(f0/binHz)|0, i1=Math.min(fd.length,(f1/binHz)|0); for(let i=i0;i<i1;i++) s+=fd[i]; return s/(i1-i0||1); };
+    function tick(now){
+      if(!autoSrc){ return; }
+      an.getFloatTimeDomainData(td);
+      an.getByteFrequencyData(fd);
+      let sum = 0;
+      for(let i=0;i<td.length;i++) sum += td[i]*td[i];
+      const rms = Math.sqrt(sum/td.length);
+      const low = band(40,150), mid = band(150,1800), high = band(4000,12000);
+      if(instSel.value === 'drum'){
+        if(rms > 0.05 && rms > lastRMS*1.3 && now-lastHit > 80){
+          lastHit = now;
+          let pad = 'snare';
+          if(high > mid*1.4 && high > low*1.4) pad = 'hat';
+          else if(low > mid*1.3 && low > high*1.5) pad = 'kick';
+          playDrum(pad, Math.min(1, rms*3));
+          flashPad(pad);
+        }
+      }else{
+        const f = autoCorr(td, a.sampleRate);
+        if(f > 60 && f < 1200 && rms > 0.03 && now-lastNote > 130){
+          const midi = Math.round(69 + 12*Math.log2(f/440));
+          if(midi >= 40 && midi <= 84){
+            lastNote = now;
+            playNote(midi, Math.min(1, rms*3.5), 0.35);
+            flashEl(midiEl[midi]);
+          }
+        }
+      }
+      lastRMS = rms*0.7 + lastRMS*0.3;
+      if(now-lastTick > 500){
+        lastTick = now;
+        statusEl.textContent = '🎧 Autoplay aktif — ' + (instSel.value === 'piano' ? 'Piano mengikuti nada' : 'Drum mengikuti ketukan') + ' · level ' + (rms*100|0) + '%';
+      }
+      autoRaf = requestAnimationFrame(tick);
+    }
+    autoRaf = requestAnimationFrame(tick);
+  }
+
+  fileBtn.addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', ()=>{
+    if(fileInput.files && fileInput.files[0]) loadAuto(fileInput.files[0]);
+  });
+  urlBtn.addEventListener('click', ()=>{
+    const u = urlInput.value.trim();
+    if(u) loadAuto(u);
+  });
+  urlInput.addEventListener('keydown', e=>{ if(e.key === 'Enter' && urlInput.value.trim()) loadAuto(urlInput.value.trim()); });
+  stopBtn.addEventListener('click', stopAuto);
 })();
 </script>
 
