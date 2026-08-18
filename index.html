@@ -555,7 +555,7 @@
       <button class="btn btn-ghost" id="camStop" disabled>Matikan</button>
     </div>
 
-    <p class="hint"><b>Cara pakai:</b> buka <b>portal</b> dengan 2 tangan — ujung jempol + telunjuk kedua tangan jadi 4 titik membentuk bangun datar; di dalamnya efek filter mengikuti gerakan. <b>Sentuh jempol &amp; telunjuk</b> = ganti efek (MONO → DUAL-TONE → PIXELATE → INVERT → SEPIA → BLUR → THERMAL → SKETCH → GLITCH → NEON → GALAXY). <b>Sentuh jempol &amp; kelingking</b> = simpan foto area portal. <b>Peace sign</b> = blur otomatis. Portal tidak menampilkan skeleton; butuh internet sekali untuk memuat model.</p>
+    <p class="hint"><b>Cara pakai:</b> buka <b>portal</b> dengan 2 tangan — ujung jempol + telunjuk kedua tangan jadi 4 titik membentuk bangun datar; di dalamnya efek filter mengikuti gerakan. <b>Pinch kanan</b> (jempol+telunjuk tangan kanan) = efek berikutnya, <b>pinch kiri</b> = efek sebelumnya (MONO → DUAL-TONE → PIXELATE → INVERT → SEPIA → BLUR → THERMAL → SKETCH → GLITCH → NEON → GALAXY). <b>Sentuh jempol &amp; kelingking</b> = simpan foto area portal. <b>Peace sign</b> = blur otomatis. Portal tidak menampilkan skeleton; butuh internet sekali untuk memuat model.</p>
   </div>
 </div>
 
@@ -1727,7 +1727,7 @@ function audioBufferToWav(buffer){
   const ctx = canvas.getContext('2d');
   let stream = null, rafId = null;
   let handsDet = null;
-  let handLandmarks = [], modelFailed = false;
+  let handLandmarks = [], handSides = [], modelFailed = false;
 
   if(!('mediaDevices' in navigator)){
     startBtn.disabled = true;
@@ -1774,7 +1774,8 @@ function audioBufferToWav(buffer){
     return {cv, data: c.getImageData(0,0,cv.width,cv.height).data};
   })();
 
-  let pxSrc = null, pxOut = null, pxFx = '', pxLast = 0, pxSmall = null;
+  let pxSrc = null, pxHalf = null, pxOut = null, pxFx = '', pxLast = 0, pxSmall = null;
+  let pxBX = 0, pxBY = 0, pxBW = 0, pxBH = 0;
   function pxBBox(quad){
     let mx1 = 1e9, my1 = 1e9, mx2 = -1, my2 = -1;
     for(const p of quad){
@@ -1854,7 +1855,7 @@ function audioBufferToWav(buffer){
     }
   }
 
-  let segDet = null, segFailed = false, segMask = null;
+  let segDet = null, segFailed = false, segMask = null, segLast = 0;
   async function ensureSeg(){
     if(segDet || segFailed || !window.__mpVision || !window.__mpVision.ImageSegmenter) return;
     const {FilesetResolver, ImageSegmenter} = window.__mpVision;
@@ -1889,23 +1890,27 @@ function audioBufferToWav(buffer){
   }
   function grabSegMask(now){
     if(!segDet) return null;
+    if(now - segLast < 120) return segMask;
+    segLast = now;
     try{
       const res = segDet.segmentForVideo(video, now);
       if(res && res.categoryMask) segMask = res.categoryMask.getAsUint8Array();
     }catch(e){}
     return segMask;
   }
-  function pxGalaxy(d, bw, bh, b, now){
+  function pxGalaxy(d, bw, bh, b, now, ss){
     const mask = grabSegMask(now);
     const w = canvas.width, h = canvas.height;
+    const step = ss || 1;
     for(let j=0;j<bh;j++){
-      const my = Math.min(h-1, b.y+j);
-      const sy = Math.min(star.cv.height-1, ((b.y+j)/h*star.cv.height|0));
+      const my = Math.min(h-1, b.y + j*step);
+      const sy = Math.min(star.cv.height-1, ((b.y+j*step)/h*star.cv.height|0));
       for(let i=0;i<bw;i++){
-        const mx = Math.min(w-1, w-1-(b.x+i));
+        const sx0 = b.x + i*step;
+        const mx = Math.min(w-1, w-1-sx0);
         const o = (j*bw+i)*4;
         if(mask && mask[my*w+mx] !== 0) continue;
-        const sx = Math.min(star.cv.width-1, ((w-1-(b.x+i))/w*star.cv.width|0));
+        const sx = Math.min(star.cv.width-1, ((w-1-sx0)/w*star.cv.width|0));
         const so = (sy*star.cv.width+sx)*4;
         d[o] = star.data[so]; d[o+1] = star.data[so+1]; d[o+2] = star.data[so+2];
         d[o+3] = 255;
@@ -1913,26 +1918,49 @@ function audioBufferToWav(buffer){
     }
   }
   function pxProcess(quad, fx, now){
-    if(fx === pxFx && now - pxLast < 64 && pxOut) return pxOut;
     const b = pxBBox(quad);
     if(b.bw <= 2 || b.bh <= 2) return null;
-    pxFx = fx; pxLast = now;
     if(!pxSrc){ pxSrc = document.createElement('canvas'); pxSrc.width = canvas.width; pxSrc.height = canvas.height; }
     const c = pxSrc.getContext('2d');
     c.save();
     c.setTransform(-1,0,0,1,canvas.width,0);
     c.drawImage(video,0,0,canvas.width,canvas.height);
     c.restore();
-    const id = c.getImageData(b.x,b.y,b.bw,b.bh);
-    const d = id.data;
-    if(fx === 'DUAL-TONE') pxDualTone(d);
-    else if(fx === 'THERMAL') pxThermal(d);
-    else if(fx === 'SKETCH') pxSketch(d,b.bw,b.bh);
-    else if(fx === 'NEON') pxNeon(d,b.bw,b.bh);
-    else if(fx === 'GALAXY') pxGalaxy(d,b.bw,b.bh,b,now);
-    c.putImageData(id,b.x,b.y);
-    pxOut = {cv: pxSrc, x:b.x, y:b.y, bw:b.bw, bh:b.bh};
-    return pxOut;
+    const big = b.bw*b.bh > 300000;
+    const ox = big ? (b.bw/2)|0 : b.bw;
+    const oy = big ? (b.bh/2)|0 : b.bh;
+    const moved = Math.abs(b.x-pxBX)+Math.abs(b.y-pxBY)+Math.abs(b.bw-pxBW)+Math.abs(b.bh-pxBH);
+    const cool = (fx === 'SKETCH') ? 60 : 0;
+    if(fx === pxFx && now - pxLast < cool && moved < 8 && pxOut) return pxOut;
+    pxFx = fx; pxLast = now; pxBX = b.x; pxBY = b.y; pxBW = b.bw; pxBH = b.bh;
+    let out;
+    if(big){
+      if(!pxHalf){ pxHalf = document.createElement('canvas'); }
+      pxHalf.width = ox; pxHalf.height = oy;
+      const hc = pxHalf.getContext('2d');
+      hc.drawImage(pxSrc, b.x, b.y, b.bw, b.bh, 0, 0, ox, oy);
+      const hid = hc.getImageData(0,0,ox,oy);
+      const hd = hid.data;
+      if(fx === 'DUAL-TONE') pxDualTone(hd);
+      else if(fx === 'THERMAL') pxThermal(hd);
+      else if(fx === 'SKETCH') pxSketch(hd,ox,oy);
+      else if(fx === 'NEON') pxNeon(hd,ox,oy);
+      else if(fx === 'GALAXY') pxGalaxy(hd,ox,oy,b,now,2);
+      hc.putImageData(hid,0,0);
+      out = {cv: pxHalf, x:b.x, y:b.y, bw:b.bw, bh:b.bh};
+    }else{
+      const id = c.getImageData(b.x,b.y,b.bw,b.bh);
+      const d = id.data;
+      if(fx === 'DUAL-TONE') pxDualTone(d);
+      else if(fx === 'THERMAL') pxThermal(d);
+      else if(fx === 'SKETCH') pxSketch(d,b.bw,b.bh);
+      else if(fx === 'NEON') pxNeon(d,b.bw,b.bh);
+      else if(fx === 'GALAXY') pxGalaxy(d,b.bw,b.bh,b,now,1);
+      c.putImageData(id,b.x,b.y);
+      out = {cv: pxSrc, x:b.x, y:b.y, bw:b.bw, bh:b.bh};
+    }
+    pxOut = out;
+    return out;
   }
 
   async function loadHands(){
@@ -2104,27 +2132,38 @@ function audioBufferToWav(buffer){
     const w = canvas.width, h = canvas.height;
     const now = performance.now();
 
+    if(video.readyState < 2){
+      rafId = requestAnimationFrame(draw);
+      return;
+    }
+
     if(handsDet && video.readyState >= 2 && now - lastDetT > 40){
       lastDetT = now;
       try{
-        handLandmarks = handsDet.detectForVideo(video, now).landmarks || [];
+        const res = handsDet.detectForVideo(video, now);
+        handLandmarks = res.landmarks || [];
+        handSides = (res.handedness || []).map(h => (h && h[0]) ? h[0].categoryName : '');
       }catch(err){
         handLandmarks = [];
+        handSides = [];
       }
     }
 
     const land = handLandmarks;
-    const pinch = land.some(pinchOf);
     const photo = land.some(photoGestOf);
     const peace = land.some(peaceOf);
     const quad = quadFromHands(land);
 
-    if(pinch && !wasPinch && now - lastFxT > 450){
-      lastFxT = now;
-      fxIdx = (fxIdx + 1) % FXS.length;
-      showToast('Efek: ' + FX_LABELS[FXS[fxIdx]]);
+    let dir = 0;
+    for(let i=0;i<land.length;i++){
+      if(pinchOf(land[i])){ dir = handSides[i] === 'Right' ? 1 : -1; break; }
     }
-    wasPinch = pinch;
+    if(dir && !wasPinch && now - lastFxT > 450){
+      lastFxT = now;
+      fxIdx = ((fxIdx + dir) % FXS.length + FXS.length) % FXS.length;
+      showToast('Efek: ' + FX_LABELS[FXS[fxIdx]] + (dir > 0 ? ' →' : ' ←'));
+    }
+    wasPinch = dir;
 
     if(photo && !wasPhoto && now - lastPhotoT > 900){
       lastPhotoT = now;
@@ -2148,7 +2187,7 @@ function audioBufferToWav(buffer){
       else if(!land.length) setBadge('Tangan: 0');
       else{
         const tags = [];
-        if(pinch) tags.push('PINCH');
+        if(dir) tags.push('PINCH' + (dir > 0 ? '→' : '←'));
         if(photo) tags.push('FOTO');
         if(peace) tags.push('PEACE');
         let b = `Tangan: ${land.length}`;
@@ -2186,15 +2225,15 @@ function audioBufferToWav(buffer){
       ctx.beginPath();
       quad.forEach((p,i)=> i ? ctx.lineTo(p[0]*w,p[1]*h) : ctx.moveTo(p[0]*w,p[1]*h));
       ctx.closePath();
-      ctx.strokeStyle = pinch ? '#ffd400' : '#ffffff';
-      ctx.lineWidth = pinch ? 3 : 2;
+      ctx.strokeStyle = dir ? '#ffd400' : '#ffffff';
+      ctx.lineWidth = dir ? 3 : 2;
       ctx.shadowColor = 'rgba(255,255,255,0.9)';
       ctx.shadowBlur = 8;
       ctx.stroke();
       ctx.shadowBlur = 0;
       ctx.restore();
 
-      ctx.fillStyle = pinch ? '#ffd400' : '#ffe600';
+      ctx.fillStyle = dir ? '#ffd400' : '#ffe600';
       for(const p of quad){
         ctx.beginPath();
         ctx.arc(p[0]*w, p[1]*h, 8, 0, Math.PI*2);
@@ -2269,8 +2308,8 @@ function audioBufferToWav(buffer){
     placeholder.style.display = 'flex';
     badge.style.display = 'none';
     startBtn.disabled = false; stopBtn.disabled = true; snapBtn.disabled = true;
-    handLandmarks = []; wasPinch = false; wasPhoto = false; peaceOn = false;
-    pxOut = null; pxFx = ''; flashT = 0; fxIdx = 0;
+    handLandmarks = []; handSides = []; wasPinch = false; wasPhoto = false; peaceOn = false;
+    pxOut = null; pxFx = ''; pxBX = 0; pxBY = 0; pxBW = 0; pxBH = 0; flashT = 0; fxIdx = 0;
   });
 
   snapBtn.addEventListener('click', ()=>{
