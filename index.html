@@ -75,27 +75,33 @@
 
   /* ---------- TOOL NAV (icon tiles) ---------- */
   .tool-nav{max-width:1080px; margin:0 auto; padding:8px 28px 36px;}
-  .tile-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px;}
-  @media (max-width:720px){.tile-grid{grid-template-columns:repeat(3,1fr);}}
+  .tile-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px;}
+  @media (max-width:720px){.tile-grid{grid-template-columns:repeat(2,1fr);}}
   @media (max-width:440px){.tile-grid{grid-template-columns:repeat(2,1fr);}}
   .tile{
-    display:flex; flex-direction:column; align-items:center; gap:9px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
     background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
-    padding:20px 8px; cursor:pointer; color:var(--text-light);
+    padding:32px 14px; cursor:pointer; color:var(--text-light);
     transition:border-color .15s ease, transform .15s ease, background .15s ease;
   }
-  .tile:hover{transform:translateY(-3px); border-color:rgba(201,165,77,0.4);}
-  .tile.active{background:var(--brass); border-color:var(--brass); color:var(--ink);}
-  .tile span{font-size:12.5px; font-weight:600;}
+  .tile .icon{width:36px;height:36px;}
+  .tile .tile-label{font-size:17px; font-weight:700;}
+  .tile .tile-desc{font-size:12px; color:var(--text-dim); text-align:center; line-height:1.45;}
+  .tile:hover{transform:translateY(-3px); border-color:rgba(201,165,77,0.5);}
 
   /* ---------- PANEL ---------- */
-  .panel-wrap{background:var(--ink-2); border-top:1px solid var(--line); padding:40px 28px 70px;}
-  .panel{max-width:820px; margin:0 auto; background:var(--paper); color:var(--text-dark); border-radius:16px; padding:32px; display:none;}
-  .panel.active{display:block;}
-  .panel-head{display:flex; align-items:center; gap:12px; margin-bottom:22px;}
-  .panel-head .ic-wrap{width:42px;height:42px; border-radius:10px; background:var(--ink); color:var(--brass); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-  .panel-head h2{font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:0.02em; margin:0;}
-  .panel-head p{margin:2px 0 0; font-size:12.5px; color:var(--text-dim);}
+  .panel-wrap{display:none;}
+  .tool-view{background:var(--ink-2); border-top:1px solid var(--line); min-height:calc(100vh - 64px); padding:0 28px 90px;}
+  .tool-bar{max-width:1180px; margin:0 auto; padding:24px 0 4px; display:flex; align-items:flex-start; gap:18px;}
+  .tool-bar .tool-title h2{font-family:'Bebas Neue',sans-serif; font-size:30px; letter-spacing:0.03em; margin:0; color:var(--text-light);}
+  .tool-bar .tool-title small{font-size:13px; color:var(--text-dim); display:block; margin-top:3px;}
+  .tool-body{max-width:1180px; margin:0 auto; padding-top:18px;}
+  .panel{max-width:1180px; margin:0 auto; background:var(--paper); color:var(--text-dark); border-radius:18px; padding:36px; box-shadow:0 18px 50px rgba(0,0,0,0.28);}
+  .panel-head{display:flex; align-items:center; gap:14px; margin-bottom:24px;}
+  .panel-head .ic-wrap{width:52px;height:52px; border-radius:12px; background:var(--ink); color:var(--brass); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .panel-head .ic-wrap .icon{width:26px;height:26px;}
+  .panel-head h2{font-family:'Bebas Neue',sans-serif; font-size:31px; letter-spacing:0.02em; margin:0;}
+  .panel-head p{margin:2px 0 0; font-size:13.5px; color:var(--text-dim);}
 
   .drop{
     border:2px dashed rgba(28,24,16,0.2); border-radius:12px; padding:28px 16px;
@@ -121,8 +127,8 @@
   input[type=checkbox]{accent-color:var(--orange); width:16px; height:16px;}
 
   .btn{
-    border:none; border-radius:8px; padding:10px 18px; font-size:13px; font-weight:700;
-    cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:transform .12s ease, opacity .12s;
+    border:none; border-radius:9px; padding:12px 22px; font-size:14px; font-weight:700;
+    cursor:pointer; display:inline-flex; align-items:center; gap:8px; transition:transform .12s ease, opacity .12s;
   }
   .btn:disabled{opacity:0.4; cursor:not-allowed;}
   .btn:not(:disabled):hover{transform:translateY(-1px);}
@@ -151,7 +157,7 @@
   .segmented button.active{background:var(--ink); color:var(--text-light); border-color:var(--ink);}
   .segmented button:disabled{opacity:0.4; cursor:not-allowed;}
 
-  .hint{font-size:11.5px; color:var(--text-dim); margin-top:10px;}
+  .hint{font-size:13px; color:var(--text-dim); margin-top:12px; line-height:1.6;}
   .progress{height:10px; background:var(--paper-2); border-radius:100px; overflow:hidden; margin-top:16px;}
   .progress i{display:block; height:100%; width:0%; background:var(--teal); transition:width .25s ease;}
   .prog-label{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-dim); margin-top:10px; min-height:16px;}
@@ -219,18 +225,18 @@
   }
 
   .musik-row{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:14px;}
-  .musik-row .musik-url{flex:1; min-width:180px; background:#141210; border:1px solid rgba(28,24,16,0.35); border-radius:8px; padding:9px 12px; font-size:13px; color:var(--text); outline:none;}
+  .musik-row .musik-url{flex:1; min-width:220px; background:#141210; border:1px solid rgba(28,24,16,0.35); border-radius:9px; padding:11px 14px; font-size:14px; color:var(--text); outline:none;}
   .musik-row .musik-url:focus{border-color:var(--brass);}
-  .musik-select{background:#141210; border:1px solid rgba(28,24,16,0.35); border-radius:8px; padding:9px 12px; font-size:13px; color:var(--text); cursor:pointer;}
-  .piano-wrap{position:relative; height:180px; margin-top:14px; user-select:none; touch-action:none;}
-  .pkey{position:absolute; bottom:0; border:1px solid #2a2620; border-radius:0 0 4px 4px; box-sizing:border-box; cursor:pointer;}
-  .pkey.white{width:30px; height:100%; background:linear-gradient(#fbf8ee, #e9e3d0); color:#5a5340; font-size:10.5px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:6px;}
-  .pkey.black{width:19px; height:62%; background:linear-gradient(#3a3731, #141311); color:#cfc7a8; font-size:9.5px; display:flex; align-items:center; justify-content:center; z-index:2; border-radius:0 0 3px 3px;}
+  .musik-select{background:#141210; border:1px solid rgba(28,24,16,0.35); border-radius:9px; padding:11px 15px; font-size:14px; color:var(--text); cursor:pointer;}
+  .piano-wrap{position:relative; height:230px; margin-top:16px; user-select:none; touch-action:none;}
+  .pkey{position:absolute; bottom:0; border:1px solid #2a2620; border-radius:0 0 5px 5px; box-sizing:border-box; cursor:pointer;}
+  .pkey.white{width:52px; height:100%; background:linear-gradient(#fbf8ee, #e9e3d0); color:#5a5340; font-size:14px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:9px;}
+  .pkey.black{width:32px; height:62%; background:linear-gradient(#3a3731, #141311); color:#cfc7a8; font-size:11.5px; display:flex; align-items:center; justify-content:center; z-index:2; border-radius:0 0 4px 4px;}
   .pkey.white.active{background:linear-gradient(#ffd400, #f0b90a); color:#4a3d00;}
   .pkey.black.active{background:linear-gradient(#ffd400, #d9a306); color:#4a3d00;}
-  .drum-pads{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px;}
+  .drum-pads{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:16px;}
   @media (max-width:520px){.drum-pads{grid-template-columns:repeat(2,1fr);}}
-  .dpad{aspect-ratio:1.7; border-radius:12px; border:1px solid rgba(28,24,16,0.35); background:#171512; color:#cfc7a8; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px; font-size:13px; transition:transform .05s;}
+  .dpad{aspect-ratio:1.7; border-radius:14px; border:1px solid rgba(28,24,16,0.35); background:#171512; color:#cfc7a8; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px; font-size:23px; transition:transform .05s;}
   .dpad small{font-family:'IBM Plex Mono',monospace; font-size:10.5px; opacity:.7;}
   .dpad.active{background:var(--orange); color:#fff; border-color:var(--orange); transform:scale(.96);}
   .musik-status{margin-top:12px; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--brass);}
@@ -254,28 +260,44 @@
 
 <header>
   <div class="nav-inner">
-    <div class="logo"><span class="bolt"></span>PERKAKAS</div>
-    <a href="#tools">Tools</a>
+    <a class="logo" href="#/" title="Beranda"><span class="bolt"></span>PERKAKAS</a>
+    <a href="#/">Pilih Tool</a>
   </div>
 </header>
 
+<div id="homeView">
 <section class="hero">
   <div class="hero-inner">
     <span class="kicker mono">Gratis · Tanpa Login</span>
     <h1 class="display">Tools Digital<br><span class="accent">Siap Pakai</span></h1>
-    <p>6 alat harian, langsung jalan di browser.</p>
-    <button class="cta" onclick="document.getElementById('tools').scrollIntoView({behavior:'smooth'})">
+    <p>7 alat harian, langsung jalan di browser.</p>
+    <button class="cta" onclick="document.getElementById('homeGrid').scrollIntoView({behavior:'smooth'})">
       Mulai Pakai
       <svg class="icon" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
     </button>
   </div>
 </section>
 
-<section class="tool-nav" id="tools">
+<section class="tool-nav" id="homeGrid">
   <div class="tile-grid" id="tileGrid"></div>
 </section>
+</div>
 
-<div class="panel-wrap">
+<section class="tool-view" id="toolView" hidden>
+  <div class="tool-bar">
+    <button class="btn btn-dark" id="backBtn">
+      <svg class="icon" style="width:15px;height:15px" viewBox="0 0 24 24"><path d="M19 12H5m6-6l-6 6 6 6"/></svg>
+      Beranda
+    </button>
+    <div class="tool-title">
+      <h2 id="toolTitle">Tool</h2>
+      <small id="toolSub"></small>
+    </div>
+  </div>
+  <div class="tool-body" id="toolBody"></div>
+</section>
+
+<div class="panel-wrap" id="panelStore" hidden>
   <!-- KOMPRESOR -->
   <div class="panel" data-panel="kompres">
     <div class="panel-head">
@@ -599,7 +621,7 @@
 
     <div class="musik-stage" id="musikStage"></div>
     <div class="musik-status" id="musikStatus" style="display:none"></div>
-    <p class="hint" id="musikHint"><b>Melodi</b> (Piano/Gitar/Bass/Organ/Flute): baris bawah <span class="mono">Z X C V B N M , . /</span> = C3–E4, baris atas <span class="mono">Q W E R T Y U I O P</span> = C4–E5, tombol hitam <span class="mono">S D G H J</span> &amp; <span class="mono">2 3 5 6 7</span>. <b>Drum:</b> <span class="mono">1</span> kick, <span class="mono">2</span> snare, <span class="mono">3</span> hi-hat, <span class="mono">4</span> crash, <span class="mono">5/6/7</span> tom. <b>Autoplay:</b> pilih file audio/video atau tempel <b>link YouTube</b> — alat musik bermain sendiri mengikuti musiknya (audio asli tidak ikut diputar). Instrumen melodi mengikuti nada, Drum mengikuti ketukan. Klik di area instrumen dulu jika keyboard tidak merespons.</p>
+    <p class="hint" id="musikHint"><b>Melodi</b> (Piano/Gitar/Bass/Organ/Flute): baris bawah <span class="mono">Z X C V B N M , . /</span> = C3–E4, baris atas <span class="mono">Q W E R T Y U I O P</span> = C4–E5, tombol hitam <span class="mono">S D G H J</span> &amp; <span class="mono">2 3 5 6 7</span>. <b>Shift + tombol</b> = 1 oktaf lebih tinggi (works di semua layout keyboard). <b>Drum:</b> <span class="mono">1</span> kick, <span class="mono">2</span> snare, <span class="mono">3</span> hi-hat, <span class="mono">4</span> crash, <span class="mono">5/6/7</span> tom. <b>Autoplay:</b> pilih file audio/video atau tempel <b>link YouTube</b> — alat musik bermain sendiri mengikuti musiknya (audio asli tidak ikut diputar). Instrumen melodi mengikuti nada, Drum mengikuti ketukan. Klik di area instrumen dulu jika keyboard tidak merespons.</p>
   </div>
 </div>
 
@@ -624,33 +646,89 @@ function fmtBytes(b){
 
 /* ============ TOOL NAV ============ */
 const TOOLS = [
-  {key:'kompres', label:'Kompres', icon:'<path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>'},
-  {key:'resize', label:'Resize', icon:'<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>'},
-  {key:'konversi', label:'Ubah Format', icon:'<path d="M4 7h13l-3-3m3 3l-3 3"/><path d="M20 17H7l3 3m-3-3l3-3"/>'},
-  {key:'palet', label:'Palet Warna', icon:'<path d="M12 21a9 9 0 110-18 7 7 0 017 7c0 1.7-1.3 3-3 3h-1.5a1.5 1.5 0 000 3H15a2 2 0 010 4c-1 0-2-.5-3 0z"/><circle cx="8" cy="11" r="1"/><circle cx="12" cy="8" r="1"/><circle cx="16" cy="11" r="1"/>'},
-  {key:'qr', label:'Kode QR', icon:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM18 18h3v3h-3z"/>'},
-  {key:'webcam', label:'Webcam', icon:'<rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/>'},
-  {key:'musik', label:'Alat Musik', icon:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'},
+  {key:'kompres', label:'Kompres', desc:'Perkecil ukuran file, atur sendiri kualitasnya.', icon:'<path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>'},
+  {key:'resize', label:'Resize', desc:'Ubah dimensi gambar & video dengan cepat.', icon:'<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>'},
+  {key:'konversi', label:'Ubah Format', desc:'Konversi audio/video ke format lain.', icon:'<path d="M4 7h13l-3-3m3 3l-3 3"/><path d="M20 17H7l3 3m-3-3l3-3"/>'},
+  {key:'palet', label:'Palet Warna', desc:'Ambil warna dari gambar atau jelajahi palet.', icon:'<path d="M12 21a9 9 0 110-18 7 7 0 017 7c0 1.7-1.3 3-3 3h-1.5a1.5 1.5 0 000 3H15a2 2 0 010 4c-1 0-2-.5-3 0z"/><circle cx="8" cy="11" r="1"/><circle cx="12" cy="8" r="1"/><circle cx="16" cy="11" r="1"/>'},
+  {key:'qr', label:'Kode QR', desc:'Buat kode QR dari teks atau link.', icon:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM18 18h3v3h-3z"/>'},
+  {key:'webcam', label:'Webcam', desc:'Efek visual real-time lewat kamera + gestur tangan.', icon:'<rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/>'},
+  {key:'musik', label:'Alat Musik', desc:'Main piano, gitar, drum, atau autoplay mengikuti audio.', icon:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'},
 ];
 const tileGrid = document.getElementById('tileGrid');
 tileGrid.innerHTML = TOOLS.map(t=>`
   <button class="tile" data-key="${t.key}">
     <svg class="icon" viewBox="0 0 24 24">${t.icon}</svg>
-    <span>${t.label}</span>
+    <span class="tile-label">${t.label}</span>
+    <span class="tile-desc">${t.desc}</span>
   </button>
 `).join('');
 
-function setActiveTool(key){
-  document.querySelectorAll('.tile').forEach(el=> el.classList.toggle('active', el.dataset.key===key));
-  document.querySelectorAll('.panel').forEach(el=> el.classList.toggle('active', el.dataset.panel===key));
+const homeView = document.getElementById('homeView');
+const toolView = document.getElementById('toolView');
+const toolBody = document.getElementById('toolBody');
+const panelStore = document.getElementById('panelStore');
+const toolTitle = document.getElementById('toolTitle');
+const toolSub = document.getElementById('toolSub');
+let currentTool = null;
+
+function hideToolHooks(key){
+  if(key === 'webcam' && window.__camStop) window.__camStop();
+  else if(key === 'musik' && window.__musikStop) window.__musikStop();
 }
+function showToolHooks(key){
+  if(key === 'webcam' && window.__camShow) window.__camShow();
+}
+
+function showTool(key){
+  const t = TOOLS.find(x=>x.key===key);
+  if(!t) return showHome();
+  homeView.hidden = true;
+  toolView.hidden = false;
+  toolTitle.textContent = t.label;
+  toolSub.textContent = t.desc;
+  document.title = t.label + ' — PERKAKAS';
+  if(currentTool === key){
+    window.scrollTo(0,0);
+    return;
+  }
+  if(currentTool){
+    const old = panelStore.querySelector('.panel[data-panel="'+currentTool+'"]');
+    if(old) panelStore.appendChild(old);
+    hideToolHooks(currentTool);
+  }
+  const panel = panelStore.querySelector('.panel[data-panel="'+key+'"]');
+  if(panel) toolBody.appendChild(panel);
+  currentTool = key;
+  showToolHooks(key);
+  window.scrollTo(0,0);
+}
+
+function showHome(){
+  toolView.hidden = true;
+  homeView.hidden = false;
+  document.title = 'PERKAKAS';
+  if(currentTool){
+    const old = toolBody.querySelector('.panel');
+    if(old) panelStore.appendChild(old);
+    hideToolHooks(currentTool);
+    currentTool = null;
+  }
+  window.scrollTo(0,0);
+}
+
+function route(){
+  const m = (location.hash || '').match(/^#?\/?tool\/([\w-]+)$/);
+  if(m && TOOLS.some(t=>t.key===m[1])) showTool(m[1]);
+  else showHome();
+}
+window.addEventListener('hashchange', route);
 tileGrid.addEventListener('click', e=>{
   const btn = e.target.closest('.tile');
   if(!btn) return;
-  setActiveTool(btn.dataset.key);
-  document.querySelector('.panel-wrap').scrollIntoView({behavior:'smooth', block:'start'});
+  location.hash = 'tool/' + btn.dataset.key;
 });
-setActiveTool('kompres');
+document.getElementById('backBtn').addEventListener('click', ()=> location.hash = '#/');
+route();
 
 /* ============ DROPZONE HELPER ============ */
 function wireDrop(dropEl, inputEl, onFile){
@@ -1963,10 +2041,11 @@ function audioBufferToWav(buffer){
       }
     }
   }
-  function pxProcess(quad, fx, now){
+function pxProcess(quad, fx, now){
     const b = pxBBox(quad);
     if(!b) return null;
-    if(!pxSrc){ pxSrc = document.createElement('canvas'); pxSrc.width = canvas.width; pxSrc.height = canvas.height; }
+    if(!pxSrc){ pxSrc = document.createElement('canvas'); }
+    pxSrc.width = canvas.width; pxSrc.height = canvas.height;
     const c = pxSrc.getContext('2d');
     c.save();
     c.setTransform(-1,0,0,1,canvas.width,0);
@@ -1976,8 +2055,16 @@ function audioBufferToWav(buffer){
     const ox = big ? (b.bw/2)|0 : b.bw;
     const oy = big ? (b.bh/2)|0 : b.bh;
     const moved = Math.abs(b.x-pxBX)+Math.abs(b.y-pxBY)+Math.abs(b.bw-pxBW)+Math.abs(b.bh-pxBH);
-    const cool = (fx === 'SKETCH') ? 60 : 0;
-    if(fx === pxFx && now - pxLast < cool && moved < 8 && pxOut) return pxOut;
+    const cool = (fx === 'SKETCH' || fx === 'NEON') ? 60 : (fx === 'GALAXY' ? 120 : 0);
+    if(fx === pxFx && now - pxLast < cool && moved < 8 && pxOut && (!big || pxHalf)){
+      // re-anchor hasil lama ke bbox saat ini: efek selalu penuh + menempel portal (tanpa kedut)
+      if(!big){
+        const old = c.getImageData(pxBX,pxBY,pxBW,pxBH);
+        c.putImageData(old, b.x, b.y);
+        return {cv: pxSrc, x: b.x, y: b.y, bw: b.bw, bh: b.bh};
+      }
+      return {cv: pxHalf, x: b.x, y: b.y, bw: b.bw, bh: b.bh};
+    }
     pxFx = fx; pxLast = now; pxBX = b.x; pxBY = b.y; pxBW = b.bw; pxBH = b.bh;
     let out;
     if(big){
@@ -1993,7 +2080,7 @@ function audioBufferToWav(buffer){
       else if(fx === 'NEON') pxNeon(hd,ox,oy);
       else if(fx === 'GALAXY') pxGalaxy(hd,ox,oy,b,now,2);
       hc.putImageData(hid,0,0);
-      out = {cv: pxHalf, x:b.x, y:b.y, bw:b.bw, bh:b.bh};
+      out = {cv: pxHalf, x: b.x, y: b.y, bw: b.bw, bh: b.bh};
     }else{
       const id = c.getImageData(b.x,b.y,b.bw,b.bh);
       const d = id.data;
@@ -2003,7 +2090,7 @@ function audioBufferToWav(buffer){
       else if(fx === 'NEON') pxNeon(d,b.bw,b.bh);
       else if(fx === 'GALAXY') pxGalaxy(d,b.bw,b.bh,b,now,1);
       c.putImageData(id,b.x,b.y);
-      out = {cv: pxSrc, x:b.x, y:b.y, bw:b.bw, bh:b.bh};
+      out = {cv: pxSrc, x: b.x, y: b.y, bw: b.bw, bh: b.bh};
     }
     pxOut = out;
     return out;
@@ -2367,6 +2454,7 @@ function audioBufferToWav(buffer){
     handLandmarks = []; handSides = []; wasPinch = false; wasPhoto = false; peaceOn = false;
     pxOut = null; pxFx = ''; pxBX = 0; pxBY = 0; pxBW = 0; pxBH = 0; flashT = 0; fxIdx = 0;
   });
+  window.__camStop = ()=> stopBtn.click();
 
   snapBtn.addEventListener('click', ()=>{
     const a = document.createElement('a');
@@ -2417,17 +2505,29 @@ function audioBufferToWav(buffer){
   }
   function playGitar(midi, vel){
     const a = ac(), t = a.currentTime;
-    const f = noteFreq(midi), dur = 1/f;
-    const delay = a.createDelay(1); delay.delayTime.value = dur;
-    const fb = a.createGain(); fb.gain.value = 0.9;
-    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400;
+    const f = noteFreq(midi), period = 1/f;
+    const delay = a.createDelay(2); delay.delayTime.value = period;
+    const fb = a.createGain(); fb.gain.value = 0.96;
+    delay.connect(fb); fb.connect(delay);
     const g = a.createGain();
-    delay.connect(fb); fb.connect(lp); lp.connect(delay); delay.connect(g); g.connect(a.destination);
+    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = Math.min(3600, f*7);
+    delay.connect(lp); lp.connect(g); g.connect(a.destination);
     const n = a.createBufferSource(); n.buffer = noiseBuf();
-    const ng = a.createGain(); ng.gain.setValueAtTime(0.8*vel, t); ng.gain.exponentialRampToValueAtTime(0.001, t+0.006);
+    const ng = a.createGain();
+    ng.gain.setValueAtTime(1.1*vel, t);
+    ng.gain.linearRampToValueAtTime(0.35*vel, t+0.012);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t+0.06);
     ng.connect(delay);
-    n.start(t); n.stop(t+0.01);
-    g.gain.setValueAtTime(0.55*vel, t); g.gain.exponentialRampToValueAtTime(0.001, t+1.6);
+    n.start(t); n.stop(t+0.06);
+    const o = a.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+    const og = a.createGain();
+    og.gain.setValueAtTime(0, t);
+    og.gain.linearRampToValueAtTime(0.24*vel, t+0.004);
+    og.gain.exponentialRampToValueAtTime(0.0001, t+0.14);
+    o.connect(og); og.connect(lp);
+    o.start(t); o.stop(t+0.16);
+    g.gain.setValueAtTime(0.5*vel, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+2.4);
   }
   function playBass(midi, vel, dur){
     const a = ac(), t = a.currentTime;
@@ -2545,13 +2645,17 @@ function audioBufferToWav(buffer){
     }
   }
 
-  const KEY_MIDI = {};
-  const KEY_CHAR = {};
-  ['z','x','c','v','b','n','m',',','.','/'].forEach((ch,i)=> KEY_MIDI[ch] = 48+i);
-  ['q','w','e','r','t','y','u','i','o','p'].forEach((ch,i)=> KEY_MIDI[ch] = 60+i);
-  [[49,'s'],[51,'d'],[54,'g'],[56,'h'],[58,'j']].forEach(([m,ch])=> KEY_MIDI[ch] = m);
-  [[61,'2'],[63,'3'],[66,'5'],[68,'6'],[70,'7']].forEach(([m,ch])=> KEY_MIDI[ch] = m);
-  for(const k in KEY_MIDI) KEY_CHAR[KEY_MIDI[k]] = k;
+  const KEY_MIDI = {};   // e.code tanpa shift -> MIDI
+  const SHIFT_MIDI = {}; // e.code + shift -> MIDI (1 oktaf naik)
+  const CODE_BASE = {
+    KeyZ:48, KeyX:50, KeyC:52, KeyV:53, KeyB:55, KeyN:57, KeyM:59, Comma:60, Period:62, Slash:64,
+    KeyQ:60, KeyW:62, KeyE:64, KeyR:65, KeyT:67, KeyY:69, KeyU:71, KeyI:72, KeyO:74, KeyP:76,
+    KeyS:49, KeyD:51, KeyG:54, KeyH:56, KeyJ:58,
+    Digit2:61, Digit3:63, Digit5:66, Digit6:68, Digit7:70,
+  };
+  for(const code in CODE_BASE){ KEY_MIDI[code] = CODE_BASE[code]; SHIFT_MIDI[code] = CODE_BASE[code]+12; }
+  const KEY_CHAR = {48:'z',50:'x',52:'c',53:'v',55:'b',57:'n',59:'m',60:'q',62:'w',64:'e',65:'r',67:'t',69:'y',71:'u',72:'i',74:'o',76:'p',49:'s',51:'d',54:'g',56:'h',58:'j',61:'2',63:'3',66:'5',68:'6',70:'7'};
+  const DRUM_CODE = {Digit1:'kick', Digit2:'snare', Digit3:'hat', Digit4:'crash', Digit5:'tomL', Digit6:'tomM', Digit7:'tomH'};
 
   const WHITE_PC = [0,2,4,5,7,9,11];
   let held = {}, midiEl = {};
@@ -2586,12 +2690,12 @@ function audioBufferToWav(buffer){
         k.dataset.note = m;
         if(WHITE_PC.includes(pc)){
           k.className = 'pkey white';
-          k.style.left = (wi*30)+'px';
-          k.innerHTML = '<span>' + (KEY_CHAR[m] ? KEY_CHAR[m] : '') + '</span><small style="font-size:8.5px;opacity:.6">' + noteName(m) + '</small>';
+          k.style.left = (wi*52)+'px';
+          k.innerHTML = '<span>' + (KEY_CHAR[m] ? KEY_CHAR[m] : '') + '</span><small style="font-size:10.5px;opacity:.6">' + noteName(m) + '</small>';
           wi++;
         }else{
           k.className = 'pkey black';
-          k.style.left = ((wi-1)*30 + 30 - 9.5)+'px';
+          k.style.left = ((wi-1)*52 + 52 - 16)+'px';
           k.textContent = KEY_CHAR[m] || '';
         }
         k.addEventListener('pointerdown', e=>{ e.preventDefault(); blurFocus(); pressNote(m); });
@@ -2634,19 +2738,21 @@ function audioBufferToWav(buffer){
     if(e.repeat) return;
     const t = e.target;
     if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
-    const ch = e.key.toLowerCase();
     if(instSel.value === 'drum'){
-      const map = {'1':'kick','2':'snare','3':'hat','4':'crash','5':'tomL','6':'tomM','7':'tomH'};
-      const name = map[ch];
+      const name = DRUM_CODE[e.code];
       if(name){ playDrum(name, 0.9); flashPad(name); }
       return;
     }
-    const m = KEY_MIDI[ch];
-    if(m && !held[m]){ held[m] = true; pressNote(m); }
+    const m = e.shiftKey ? SHIFT_MIDI[e.code] : KEY_MIDI[e.code];
+    if(m !== undefined && !held[m]){ held[m] = true; pressNote(m); }
   });
   window.addEventListener('keyup', e=>{
-    const m = KEY_MIDI[e.key.toLowerCase()];
-    if(m){ held[m] = false; const el = midiEl[m]; if(el) el.classList.remove('active'); }
+    for(const m of [KEY_MIDI[e.code], SHIFT_MIDI[e.code]]){
+      if(m === undefined) continue;
+      held[m] = false;
+      const el = midiEl[m];
+      if(el) el.classList.remove('active');
+    }
   });
 
   function autoCorr(buf, sr){
@@ -2677,7 +2783,13 @@ function audioBufferToWav(buffer){
     'https://api.allorigins.win/raw?url=',
     'https://api.codetabs.com/v1/proxy?quest=',
   ];
-  async function proxyFetch(u){
+  async function fetchVia(u, directFirst){
+    if(directFirst){
+      try{
+        const r = await fetch(u, {mode:'cors'});
+        if(r.ok) return r;
+      }catch(e){}
+    }
     let lastErr;
     for(const pr of PROXIES){
       try{
@@ -2685,18 +2797,49 @@ function audioBufferToWav(buffer){
         if(r.ok) return r;
       }catch(e){ lastErr = e; }
     }
-    throw lastErr || new Error('Semua proxy CORS gagal');
+    throw lastErr || new Error('Semua sumber & proxy CORS gagal');
+  }
+  function extractBalanced(html, needle){
+    const i = html.indexOf(needle);
+    if(i < 0) return null;
+    const brace = html.indexOf('{', i);
+    if(brace < 0) return null;
+    let depth = 0, inStr = false, esc = false;
+    for(let p = brace; p < html.length; p++){
+      const ch = html[p];
+      if(inStr){
+        if(esc) esc = false;
+        else if(ch === '\\') esc = true;
+        else if(ch === '"') inStr = false;
+        continue;
+      }
+      if(ch === '"') inStr = true;
+      else if(ch === '{') depth++;
+      else if(ch === '}'){
+        depth--;
+        if(depth === 0) return html.slice(brace, p+1);
+      }
+    }
+    return null;
   }
   function ytId(u){
     const m = u.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
     return m ? m[1] : null;
   }
   async function ytStreamUrl(id){
-    const html = await (await proxyFetch('https://www.youtube.com/watch?v=' + id)).text();
-    const m = html.match(/"adaptiveFormats":(\[[\s\S]*?\]),\s*"expiresInSeconds"/);
-    if(!m) throw new Error('Audio YouTube tidak ditemukan di halaman (video mungkin dilindungi)');
-    const fmts = JSON.parse(m[1]).filter(f=>!/\/video\//.test(f.mimeType || '')).sort((a,b)=>(b.bitrate||0)-(a.bitrate||0));
-    if(!fmts.length) throw new Error('Tidak ada stream audio dari video ini');
+    const html = await (await fetchVia('https://www.youtube.com/watch?v=' + id)).text();
+    let pr = null, err = null;
+    try{ pr = JSON.parse(extractBalanced(html, 'ytInitialPlayerResponse')); }catch(e){ err = e; }
+    if(!pr || !pr.streamingData){
+      try{ pr = {streamingData: JSON.parse(extractBalanced(html, '"streamingData"'))}; }catch(e){ err = e; }
+    }
+    if(!pr || !pr.streamingData || !pr.streamingData.adaptiveFormats || !pr.streamingData.adaptiveFormats.length){
+      throw new Error(err ? 'Parse respons YouTube gagal' : 'Video tidak punya audio (dilindungi?)');
+    }
+    const fmts = pr.streamingData.adaptiveFormats
+      .filter(f=>f && f.mimeType && !/\/video\//.test(f.mimeType) && f.url)
+      .sort((a,b)=>(b.bitrate||0)-(a.bitrate||0));
+    if(!fmts.length) throw new Error('Tidak ada stream audio pada video ini');
     return fmts[0].url;
   }
 
@@ -2710,11 +2853,12 @@ function audioBufferToWav(buffer){
       }else if(/^https?:\/\//.test(input)){
         const id = ytId(input);
         if(id){
+          showToast('Mengambil audio YouTube…');
           const su = await ytStreamUrl(id);
-          const data = await (await proxyFetch(su)).arrayBuffer();
+          const data = await (await fetchVia(su, true)).arrayBuffer();
           buf = await a.decodeAudioData(data);
         }else{
-          const data = await (await proxyFetch(input)).arrayBuffer();
+          const data = await (await fetchVia(input, true)).arrayBuffer();
           buf = await a.decodeAudioData(data);
         }
       }else{
@@ -2795,6 +2939,7 @@ function audioBufferToWav(buffer){
   });
   stage.addEventListener('pointerdown', blurFocus);
   stopBtn.addEventListener('click', stopAuto);
+  window.__musikStop = stopAuto;
 })();
 </script>
 
