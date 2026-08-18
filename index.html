@@ -274,7 +274,8 @@
   #tripMap{height:460px; border-radius:14px; border:1px solid rgba(28,24,16,0.18); margin-top:12px; z-index:0;}
   #tripMap .leaflet-container{font-family:inherit;}
   #tripMap .leaflet-div-icon{background:none; border:none;}
-  .car-ico{font-size:28px; line-height:1; transform-origin:50% 50%; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.55));}
+  .veh3d{line-height:1; transform-origin:50% 50%; will-change:transform; filter:drop-shadow(0 4px 5px rgba(0,0,0,0.4));}
+  .busy{opacity:.55; pointer-events:none;}
   .plock-list{display:flex; flex-direction:column; gap:7px; margin-top:10px;}
   .plock-item{display:flex; align-items:center; gap:10px; background:#1a1713; border:1px solid rgba(255,255,255,0.07); border-radius:9px; padding:8px 12px; font-size:12.5px; color:#e8e2d0;}
   .plock-item .mono{color:#e3b955;}
@@ -760,6 +761,7 @@
     <div class="row">
       <button class="btn btn-primary" id="edtRec">● Rekam</button>
       <button class="btn btn-ghost" id="edtStop" disabled>■ Stop &amp; Unduh</button>
+      <button class="btn btn-dark" id="edtRender">⬇ Unduh Hasil</button>
       <button class="btn btn-ghost" id="edtClips" disabled>✂ Potong Klip Penting</button>
       <span class="mono" id="edtTime">00:00</span>
       <span class="mono" id="edtRms"></span>
@@ -770,7 +772,7 @@
       <div class="edt-stage-msg" id="edtMsg">Pilih video untuk mulai — pelacakan orang dimuat otomatis</div>
     </div>
     <div class="plock-list" id="edtClipsBox" style="display:none"></div>
-    <p class="hint"><b>Cara pakai:</b> pilih video, pilih <b>rasio</b> (9:16, 1:1, dst), mode <b>track</b> menentukan orang yang diikuti — "paling aktif" mengikuti yang bergerak/bicara, klik <b>chip orang</b> untuk mengunci ke yang kamu mau. Hasil crop mengikuti orang secara halus (dengan <b>kotak pelacakan</b> opsional). <b>Subtitle:</b> aktifkan mikrofon, lalu bacakan/ucapkan — teks terbakar langsung ke video hasil rekam. <b>Klip penting:</b> saat merekam, bagian yang berenergi (teriak, tepuk, ramai) dicatat; setelah Stop, tombol <b>✂ Potong Klip Penting</b> memotongnya jadi beberapa file terpisah (butuh koneksi internet sekali saja untuk engine FFmpeg, dan halaman harus dibuka via http/https). <b>Auto klip butuh suara video</b> — pastikan videonya ada audionya.</p>
+    <p class="hint"><b>Cara pakai:</b> pilih video, pilih <b>rasio</b> (9:16, 1:1, dst), mode <b>track</b> menentukan orang yang diikuti — "paling aktif" mengikuti yang bergerak/bicara, klik <b>chip orang</b> untuk mengunci ke yang kamu mau. Hasil crop mengikuti orang secara halus (dengan <b>kotak pelacakan</b> opsional). <b>Unduh Hasil</b> = render video utuh dari awal sampai akhir (crop, subtitle, semua efek) langsung jadi file WebM — tanpa tombol rekam; video diputar sekali secara otomatis dan hasilnya terunduh sendiri. <b>Subtitle:</b> aktifkan mikrofon, lalu bacakan/ucapkan — teks terbakar langsung ke video hasil. <b>Klip penting:</b> saat merekam, bagian yang berenergi (teriak, tepuk, ramai) dicatat; setelah Stop, tombol <b>✂ Potong Klip Penting</b> memotongnya jadi beberapa file terpisah (butuh koneksi internet sekali saja untuk engine FFmpeg, dan halaman harus dibuka via http/https). <b>Auto klip butuh suara video</b> — pastikan videonya ada audionya.</p>
   </div>
 
   <!-- VISUALIZER -->
@@ -818,14 +820,15 @@
         <div class="edt-card-title">Rekam</div>
         <div class="row">
           <button class="btn btn-primary" id="vizRec">● Rekam Video</button>
+          <button class="btn btn-dark" id="vizExport">⬇ Unduh Hasil</button>
           <button class="btn btn-ghost" id="vizSnap">📷 PNG</button>
         </div>
-        <p class="hint" style="margin-top:8px">Rekaman mengikuti visual real-time (tanpa audio). Cuplikan PNG juga tersedia.</p>
+        <p class="hint" style="margin-top:8px"><b>Unduh Hasil</b> = render visual 12 detik tanpa tombol stop (rekam manual tetap tersedia). Hasil WebM tanpa audio.</p>
       </div>
     </div>
 
     <canvas class="viz-canvas" id="vizCanvas" width="1024" height="576"></canvas>
-    <p class="hint"><b>Cara pakai:</b> sumber audio dari <b>file</b>, <b>link YouTube</b>, atau <b>mikrofon</b>. Atur gaya, jumlah batang, warna (A/B), putaran pelangi, sensitivitas, dan cermin sesukamu. Tekan <b>● Rekam Video</b> untuk merekam visualnya dalam format WebM.</p>
+    <p class="hint"><b>Cara pakai:</b> sumber audio dari <b>file</b>, <b>link YouTube</b>, atau <b>mikrofon</b>. Atur gaya, jumlah batang, warna (A/B), putaran pelangi, sensitivitas, dan cermin sesukamu. <b>⬇ Unduh Hasil</b> merender visual 12 detik langsung jadi file WebM tanpa tombol stop; <b>● Rekam Video</b> tetap tersedia untuk merekam manual.</p>
   </div>
 
   <!-- TRIP -->
@@ -843,6 +846,14 @@
     </div>
     <div class="row">
       <button class="btn btn-dark" id="tripPlay" disabled>▶ Putar</button>
+      <label class="hint" style="margin:0; display:flex; align-items:center; gap:6px; white-space:nowrap">🚘 Kendaraan
+        <select id="tripVehicle" class="musik-select" title="Jenis kendaraan">
+          <option value="mobil" selected>Mobil</option>
+          <option value="bus">Bus</option>
+          <option value="motor">Motor</option>
+          <option value="pesawat">Pesawat</option>
+        </select>
+      </label>
       <select id="tripSpeed" class="musik-select" title="Kecepatan replay">
         <option value="0.5">0.5×</option>
         <option value="1" selected>1×</option>
@@ -853,9 +864,13 @@
       <input type="range" id="tripProg" min="0" max="1000" value="0" style="flex:1" title="Geser progres perjalanan">
       <span class="mono edt-outinfo" id="tripTime">00:00 / 00:00</span>
     </div>
-    <div class="mono edt-outinfo" id="tripInfo"></div>
+    <div class="row">
+      <span class="mono edt-outinfo" id="tripInfo" style="flex:1"></span>
+      <button class="btn btn-dark" id="tripSnap">🖼 Unduh Gambar</button>
+      <button class="btn btn-primary" id="tripVid">⬇ Unduh Video</button>
+    </div>
     <div id="tripMap"></div>
-    <p class="hint"><b>Cara pakai:</b> ketik tempat <b>asal</b> dan <b>tujuan</b> (mis. "Surabaya" dan "Bali") lalu <b>Cari Rute</b> — peta menampilkan rute berkendara (OpenStreetMap + OSRM). Tekan <b>▶ Putar</b> untuk melihat mobil 🚗 berjalan dari asal ke tujuan; atur kecepatan 0.5×–8× atau seret slider untuk melompat. <b>Atau klik langsung di peta:</b> klik pertama = asal, klik kedua = tujuan. Tekan <b>⇄</b> untuk menukar arah. Butuh koneksi internet untuk peta & pencarian tempat.</p>
+    <p class="hint"><b>Cara pakai:</b> ketik tempat <b>asal</b> dan <b>tujuan</b> (mis. "Surabaya" dan "Bali") lalu <b>Cari Rute</b> — peta menampilkan rute berkendara (OpenStreetMap + OSRM). Pilih kendaraan (mobil / bus / motor / pesawat), tekan <b>▶ Putar</b> untuk melihatnya berjalan dari asal ke tujuan; atur kecepatan 0.5×–8× atau seret slider untuk melompat. <b>Atau klik langsung di peta:</b> klik pertama = asal, klik kedua = tujuan. Tekan <b>⇄</b> untuk menukar arah, <b>Unduh Video</b> untuk menyimpan replay, <b>Unduh Gambar</b> untuk snapshot peta. Butuh koneksi internet untuk peta & pencarian tempat.</p>
   </div>
 
   <!-- PROTECT -->
@@ -3401,7 +3416,7 @@ async function ytStreamUrl(id){
     const el = {
       file: $('File'), pick: $('Pick'), url: $('Url'), load: $('Load'),
       mic: $('Mic'), stop: $('Stop'), badge: $('Badge'),
-      canvas: $('Canvas'), rec: $('Rec'), snap: $('Snap'),
+      canvas: $('Canvas'), rec: $('Rec'), snap: $('Snap'), exp: $('Export'),
     };
     const W = 1024, H = 576;
     const cv = el.canvas.getContext('2d');
@@ -3509,11 +3524,21 @@ async function ytStreamUrl(id){
         if(blob.size) downloadBlob(blob, prefix.toLowerCase() + '-' + Date.now() + '.webm');
         recOn = false;
         if(el.rec) el.rec.textContent = '● Rekam Video';
+        if(el.exp){ el.exp.classList.remove('busy'); el.exp.textContent = '⬇ Unduh Hasil'; }
         showToast('Video tersimpan');
       };
       recorder.start(500);
       if(el.rec) el.rec.textContent = '■ Stop';
     }
+    if(el.exp) el.exp.addEventListener('click', ()=>{
+      if(!running || !analyser){ showToast('Putar audio dulu (file / YouTube / mikrofon)'); return; }
+      if(el.exp.classList.contains('busy')) return;
+      if(recOn){ showToast('Stop rekaman manual dulu'); return; }
+      el.exp.classList.add('busy');
+      el.exp.textContent = '⏳ Merender 12 dtk…';
+      toggleRec();
+      setTimeout(()=>{ if(recorder && recorder.state !== 'inactive') recorder.stop(); }, 12000);
+    });
     if(el.pick) el.pick.addEventListener('click', ()=> el.file.click());
     if(el.file) el.file.addEventListener('change', ()=>{ if(el.file.files[0]) loadSrc(el.file.files[0]); });
     if(el.load) el.load.addEventListener('click', ()=>{ const u = el.url.value.trim(); if(u) loadSrc(u); });
@@ -3653,15 +3678,40 @@ async function ytStreamUrl(id){
   const goBtn = document.getElementById('tripGo');
   const playBtn = document.getElementById('tripPlay');
   const speedSel = document.getElementById('tripSpeed');
+  const vehSel = document.getElementById('tripVehicle');
   const progEl = document.getElementById('tripProg');
   const timeEl = document.getElementById('tripTime');
   const infoEl = document.getElementById('tripInfo');
+  const snapBtn = document.getElementById('tripSnap');
+  const vidBtn = document.getElementById('tripVid');
   const mapDiv = document.getElementById('tripMap');
 
-  let map = null, routeLine = null, aMark = null, bMark = null, carMark = null, carEl = null;
-  let coords = [], cum = [], routeDur = 0, routeDist = 0;
-  let prog = 0, animDur = 60, playing = false, raf = 0, lastT = 0;
+  let map = null, routeLine = null, aMark = null, bMark = null, vehMark = null, vehEl = null;
+  let coords = [], spl = [], cum = [], routeDur = 0, routeDist = 0;
+  let prog = 0, animDur = 60, playing = false, raf = 0, lastT = 0, hSmooth = 0;
   let ptA = null, ptB = null;
+
+  const VEHICLES = {
+    mobil: {label:'Mobil', speed:1, size:52,
+      svg:'<svg viewBox="0 0 96 96" width="52" height="52"><defs><linearGradient id="tvm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbbf24"/><stop offset="1" stop-color="#b45309"/></linearGradient></defs><ellipse cx="48" cy="54" rx="33" ry="21" fill="rgba(0,0,0,.32)"/><path d="M20 36 Q24 22 40 21 L56 21 Q72 22 76 36 L78 56 Q76 72 60 75 L36 75 Q20 72 18 56 Z" fill="url(#tvm)" stroke="#7c2d12" stroke-width="1.6"/><rect x="23" y="25" width="8" height="17" rx="3" fill="#1a1a1a"/><rect x="65" y="25" width="8" height="17" rx="3" fill="#1a1a1a"/><rect x="23" y="52" width="8" height="17" rx="3" fill="#1a1a1a"/><rect x="65" y="52" width="8" height="17" rx="3" fill="#1a1a1a"/><path d="M34 24 L39 24 L36 34 L29 34 Z" fill="#bfe9ff"/><path d="M28 40 L68 40 L68 60 L28 60 Z" fill="#c2570c"/><path d="M31 42 L65 42 L65 47 L31 47 Z" fill="rgba(255,255,255,.4)"/><rect x="25" y="36" width="6" height="4" rx="1" fill="#bfe9ff"/><rect x="65" y="36" width="6" height="4" rx="1" fill="#bfe9ff"/><rect x="26" y="63" width="6" height="7" rx="2" fill="#ff8a8a"/><rect x="64" y="63" width="6" height="7" rx="2" fill="#ff8a8a"/></svg>'},
+    bus: {label:'Bus', speed:0.75, size:56,
+      svg:'<svg viewBox="0 0 96 96" width="56" height="56"><defs><linearGradient id="tvb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><ellipse cx="48" cy="54" rx="34" ry="22" fill="rgba(0,0,0,.32)"/><path d="M22 30 Q23 20 38 19 L58 19 Q73 20 74 30 L76 62 Q75 76 58 77 L38 77 Q21 76 20 62 Z" fill="url(#tvb)" stroke="#7c2d12" stroke-width="1.6"/><rect x="25" y="24" width="8" height="15" rx="3" fill="#1a1a1a"/><rect x="63" y="24" width="8" height="15" rx="3" fill="#1a1a1a"/><rect x="25" y="57" width="8" height="15" rx="3" fill="#1a1a1a"/><rect x="63" y="57" width="8" height="15" rx="3" fill="#1a1a1a"/><path d="M30 22 L36 22 L34 32 L27 32 Z" fill="#bfe9ff"/><rect x="22" y="39" width="7" height="15" rx="2" fill="#bfe9ff"/><rect x="31" y="39" width="7" height="15" rx="2" fill="#bfe9ff"/><rect x="62" y="39" width="7" height="15" rx="2" fill="#bfe9ff"/><rect x="71" y="39" width="7" height="15" rx="2" fill="#bfe9ff"/><rect x="52" y="37" width="9" height="22" rx="2" fill="#bfe9ff" stroke="#7c2d12"/><rect x="42" y="62" width="14" height="8" rx="2" fill="#92400e"/><rect x="22" y="66" width="7" height="6" rx="2" fill="#ff8a8a"/><rect x="67" y="66" width="7" height="6" rx="2" fill="#ff8a8a"/></svg>'},
+    motor: {label:'Motor', speed:1.25, size:46,
+      svg:'<svg viewBox="0 0 96 96" width="46" height="46"><ellipse cx="48" cy="54" rx="26" ry="24" fill="rgba(0,0,0,.3)"/><circle cx="48" cy="27" r="9" fill="#1a1a1a" stroke="#444" stroke-width="2"/><circle cx="48" cy="67" r="9" fill="#1a1a1a" stroke="#444" stroke-width="2"/><path d="M47 34 L47 52 L34 60" stroke="#374151" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M50 52 L61 60" stroke="#374151" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M36 44 Q48 38 60 44" stroke="#111" stroke-width="3" fill="none"/><path d="M45 27 L45 20 L51 20 L51 27" fill="#111"/><circle cx="48" cy="48" r="9" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1.5"/><path d="M41 45 Q48 55 55 45" stroke="#6b7280" stroke-width="5" fill="none" stroke-linecap="round"/></svg>'},
+    pesawat: {label:'Pesawat', speed:5, size:56,
+      svg:'<svg viewBox="0 0 96 96" width="56" height="56"><defs><linearGradient id="tvp" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#94a3b8"/></linearGradient></defs><ellipse cx="48" cy="52" rx="38" ry="34" fill="rgba(0,0,0,.28)"/><path d="M44 18 L52 18 L52 40 L82 34 L82 42 L52 50 L52 68 L64 76 L64 82 L52 78 L48 78 L32 82 L32 76 L44 68 L44 50 L14 42 L14 34 Z" fill="url(#tvp)" stroke="#64748b" stroke-width="1.4"/><path d="M46 22 L50 22 L50 34 L46 34 Z" fill="#0f172a"/><rect x="45" y="52" width="6" height="11" rx="2" fill="#e2e8f0" stroke="#64748b"/><rect x="43" y="34" width="10" height="4" rx="1.5" fill="#e2e8f0" stroke="#64748b"/></svg>'}
+  };
+  const vehImgCache = {};
+  function vehImg(){
+    const t = vehSel.value;
+    if(!vehImgCache[t]){
+      const img = new Image();
+      img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(VEHICLES[t].svg);
+      vehImgCache[t] = img;
+    }
+    return vehImgCache[t];
+  }
+  const veh = ()=> VEHICLES[vehSel.value] || VEHICLES.mobil;
 
   function loadLeaflet(){
     if(window.L) return Promise.resolve(window.L);
@@ -3724,8 +3774,8 @@ async function ytStreamUrl(id){
   function haversine(a, b){
     const R = 6371000;
     const toR = d => d*Math.PI/180;
-    const dLat = toR(b[1]-a[1]), dLon = toR(b[0]-a[0]);
-    const la = toR(a[1]), lb = toR(b[1]);
+    const dLat = toR(b[0]-a[0]), dLon = toR(b[1]-a[1]);
+    const la = toR(a[0]), lb = toR(b[0]);
     const h = Math.sin(dLat/2)**2 + Math.cos(la)*Math.cos(lb)*Math.sin(dLon/2)**2;
     return 2*R*Math.asin(Math.sqrt(h));
   }
@@ -3735,36 +3785,94 @@ async function ytStreamUrl(id){
     return String(Math.floor(t/60)).padStart(2,'0') + ':' + String(t%60).padStart(2,'0');
   }
 
+  function resample(pts, n){
+    const c = [0];
+    for(let i=1;i<pts.length;i++) c.push(c[i-1] + haversine(pts[i-1], pts[i]));
+    const total = c[c.length-1] || 1, out = [];
+    for(let i=0;i<=n;i++){
+      const t = total*i/n;
+      let j = 0;
+      while(j < c.length-2 && c[j+1] < t) j++;
+      const s = c[j+1]-c[j] || 1, f = Math.max(0, Math.min(1, (t-c[j])/s));
+      out.push([pts[j][0] + (pts[j+1][0]-pts[j][0])*f, pts[j][1] + (pts[j+1][1]-pts[j][1])*f]);
+    }
+    return out;
+  }
+
+  function gcircleSamples(n){
+    const rad = d=>d*Math.PI/180, deg = d=>d*180/Math.PI;
+    const mk = p => [Math.cos(rad(p[0]))*Math.cos(rad(p[1])), Math.cos(rad(p[0]))*Math.sin(rad(p[1])), Math.sin(rad(p[0]))];
+    const ca = mk(ptA), cb = mk(ptB);
+    const dot = ca[0]*cb[0]+ca[1]*cb[1]+ca[2]*cb[2];
+    const om = Math.acos(Math.max(-1, Math.min(1, dot)));
+    const out = [];
+    for(let i=0;i<=n;i++){
+      const t = i/n;
+      if(om < 1e-9){ out.push([ptA[0]+(ptB[0]-ptA[0])*t, ptA[1]+(ptB[1]-ptA[1])*t]); continue; }
+      const sa = Math.sin((1-t)*om)/Math.sin(om), sb = Math.sin(t*om)/Math.sin(om);
+      const p = [sa*ca[0]+sb*cb[0], sa*ca[1]+sb*cb[1], sa*ca[2]+sb*cb[2]];
+      out.push([deg(Math.asin(p[2])), deg(Math.atan2(p[1], p[0]))]);
+    }
+    return out;
+  }
+
+  function rebuildSamples(){
+    if(!coords.length || !ptA || !ptB) return;
+    if(vehSel.value === 'pesawat'){
+      spl = gcircleSamples(600);
+      routeDist = haversine(ptA, ptB);
+      routeDur = routeDist/222;
+    } else {
+      spl = resample(coords.map(c=>[c[1], c[0]]), 600);
+      routeDist = routeDur = 0;
+    }
+    cum = [0];
+    for(let i=1;i<spl.length;i++) cum.push(cum[i-1] + haversine(spl[i-1], spl[i]));
+  }
+
   function drawRoute(){
     if(routeLine) routeLine.remove();
-    if(carMark) carMark.remove();
-    const latlngs = coords.map(c=>L.latLng(c[1], c[0]));
-    routeLine = L.polyline(latlngs, {color:'#d98a21', weight: 5, opacity: 0.9}).addTo(map);
+    if(vehMark) vehMark.remove();
+    const latlngs = spl.map(s=>L.latLng(s[0], s[1]));
+    routeLine = L.polyline(latlngs, vehSel.value === 'pesawat'
+      ? {color:'#60a5fa', weight: 4, opacity: 0.9, dashArray: '10 12'}
+      : {color:'#d98a21', weight: 5, opacity: 0.9}).addTo(map);
     map.fitBounds(L.latLngBounds(latlngs), {padding: [40, 40]});
-    carMark = L.marker(L.latLng(latlngs[0]), {
-      icon: L.divIcon({className: '', html: '<div class="car-ico">🚗</div>', iconSize: [0, 0]}),
+    const v = veh();
+    vehMark = L.marker(L.latLng(latlngs[0].lat, latlngs[0].lng), {
+      icon: L.divIcon({className: '', html: '<div class="veh3d">' + v.svg + '</div>', iconSize: [v.size, v.size], iconAnchor: [v.size/2, v.size/2]}),
     }).addTo(map);
-    carEl = carMark.getElement().querySelector('.car-ico');
+    vehEl = vehMark.getElement().querySelector('.veh3d');
+    hSmooth = 0;
   }
 
   function posAt(f){
-    const total = cum[cum.length-1];
-    const target = f*total;
+    const total = cum[cum.length-1] || 1;
+    const target = Math.max(0, Math.min(total, f*total));
     let i = 0;
     while(i < cum.length-2 && cum[i+1] < target) i++;
     const seg = cum[i+1] - cum[i] || 1;
-    const t = Math.max(0, Math.min(1, (target - cum[i])/seg));
-    const a = coords[i], bn = coords[i+1] || a;
-    const lat = a[1] + (bn[1]-a[1])*t;
-    const lon = a[0] + (bn[0]-a[0])*t;
-    const deg = Math.atan2((bn[0]-a[0])*Math.cos(a[1]*Math.PI/180), bn[1]-a[1])*180/Math.PI;
+    const u = Math.max(0, Math.min(1, (target - cum[i])/seg));
+    const p0 = spl[i-1] || spl[0], p1 = spl[i], p2 = spl[i+1] || spl[spl.length-1], p3 = spl[i+2] || p2;
+    const cr = (t, k)=>{
+      return 0.5*((2*p1[k]) + (-p0[k]+p2[k])*t + (2*p0[k]-5*p1[k]+4*p2[k]-p3[k])*t*t + (-p0[k]+3*p1[k]-3*p2[k]+p3[k])*t*t*t);
+    };
+    const lat = cr(u,0), lon = cr(u,1);
+    const um = Math.max(0, u-0.02), up = Math.min(1, u+0.02);
+    const deg = Math.atan2((cr(up,1)-cr(um,1))*Math.cos(lat*Math.PI/180), cr(up,0)-cr(um,0))*180/Math.PI;
     return {lat, lon, deg};
   }
+
+  const ease = t => -(Math.cos(Math.PI*t)-1)/2;
+  function ef(f){ return vehSel.value === 'pesawat' ? f : ease(f); }
+
   function updateMarker(){
-    if(!carMark || !coords.length) return;
-    const p = posAt(Math.max(0, Math.min(1, prog)));
-    carMark.setLatLng(L.latLng(p.lat, p.lon));
-    if(carEl) carEl.style.transform = 'rotate(' + (p.deg+90) + 'deg)';
+    if(!vehMark || !spl.length) return;
+    const p = posAt(ef(Math.max(0, Math.min(1, prog))));
+    vehMark.setLatLng(L.latLng(p.lat, p.lon));
+    let d = (p.deg - hSmooth + 540) % 360 - 180;
+    hSmooth += d*0.16;
+    if(vehEl) vehEl.style.transform = 'rotate(' + (hSmooth+90) + 'deg)';
     map.panTo(L.latLng(p.lat, p.lon), {animate: false, noMoveStart: true});
   }
 
@@ -3776,7 +3884,7 @@ async function ytStreamUrl(id){
 
   function relDur(){
     const sp = Math.max(0.25, parseFloat(speedSel.value) || 1);
-    return animDur/sp;
+    return animDur/sp/veh().speed;
   }
 
   async function runRoute(){
@@ -3794,16 +3902,17 @@ async function ytStreamUrl(id){
       coords = rt.geometry.coordinates;
       routeDist = rt.distance;
       routeDur = rt.duration;
-      cum = [0];
-      for(let i=1;i<coords.length;i++) cum.push(cum[i-1] + haversine(coords[i-1], coords[i]));
+      rebuildSamples();
       drawRoute();
-      animDur = Math.max(12, Math.min(240, routeDur));
+      const spd = vehSel.value === 'pesawat' ? 0.35 : 1;
+      animDur = Math.max(12, Math.min(240, routeDur*spd));
       prog = 0;
       progEl.value = 0;
       timeEl.textContent = '00:00 / ' + fmtDur(relDur());
       const dk = (routeDist/1000).toFixed(1);
       const hh = Math.floor(routeDur/3600), mm = Math.round((routeDur%3600)/60);
-      infoEl.textContent = '🚗 Rute: ' + dk + ' km · ±' + (hh ? hh + ' j ' : '') + mm + ' mnt · replay ' + animDur + 's @1× — tekan ▶ Putar';
+      infoEl.textContent = vehSel.value === 'pesawat' ? '✈️ Penerbangan: ' : '🚗 Rute: '
+        + dk + ' km · ±' + (hh ? hh + ' j ' : '') + mm + ' mnt · replay ' + animDur + 's @1× — tekan ▶ Putar';
       playBtn.disabled = false;
     }catch(e){
       infoEl.textContent = '❌ ' + String(e.message||e).slice(0,100);
@@ -3813,8 +3922,20 @@ async function ytStreamUrl(id){
     }
   }
 
+  vehSel.addEventListener('change', ()=>{
+    if(!coords.length && !ptA) return;
+    if(ptA && ptB){
+      rebuildSamples();
+      drawRoute();
+      animDur = Math.max(12, Math.min(240, routeDur*(vehSel.value === 'pesawat' ? 0.35 : 1)));
+      prog = 0; progEl.value = 0;
+      updateMarker();
+      timeEl.textContent = '00:00 / ' + fmtDur(relDur());
+    }
+  });
+
   playBtn.addEventListener('click', ()=>{
-    if(!coords.length) return;
+    if(!spl.length) return;
     if(playing){
       resetAnim();
       return;
@@ -3843,13 +3964,13 @@ async function ytStreamUrl(id){
     raf = requestAnimationFrame(step);
   });
   progEl.addEventListener('input', ()=>{
-    if(!coords.length) return;
+    if(!spl.length) return;
     prog = progEl.value/1000;
     updateMarker();
     timeEl.textContent = fmtDur(prog*relDur()) + ' / ' + fmtDur(relDur());
   });
   speedSel.addEventListener('change', ()=>{
-    if(!coords.length) return;
+    if(!spl.length) return;
     if(!playing) progEl.dispatchEvent(new Event('input'));
   });
 
@@ -3873,6 +3994,182 @@ async function ytStreamUrl(id){
     if(ptA && ptB){ const t = ptA; ptA = ptB; ptB = t; runRoute(); }
   });
 
+  const REC_W = 1280, REC_H = 720, REC_FPS = 30, REC_SEC = 12;
+  let recBusy = false;
+  const tileCache = new Map();
+  const tileImg = new Map();
+  function tileUrl(x, y, z){ return 'https://tile.openstreetmap.org/' + z + '/' + x + '/' + y + '.png'; }
+  function loadTile(url){
+    if(tileCache.has(url)) return tileCache.get(url);
+    const p = fetch(url).then(r=>r.ok ? r.blob() : null).then(b=> b ? createImageBitmap(b) : null).then(im=>{ if(im) tileImg.set(url, im); return im; }).catch(()=>null);
+    tileCache.set(url, p);
+    return p;
+  }
+  function drawRecFrame(ctx, z, f){
+    const q = posAt(ef(f));
+    const cam = L.CRS.EPSG3857.latLngToPoint(L.latLng(q.lat, q.lon), z);
+    const x0 = cam.x - REC_W/2, y0 = cam.y - REC_H/2, x1 = x0 + REC_W, y1 = y0 + REC_H;
+    ctx.fillStyle = '#e8e4dc';
+    ctx.fillRect(0, 0, REC_W, REC_H);
+    for(let ty = Math.floor(y0/256); ty*256 <= y1; ty++){
+      for(let tx = Math.floor(x0/256); tx*256 <= x1; tx++){
+        const im = tileImg.get(tileUrl(tx, ty, z));
+        if(im) ctx.drawImage(im, tx*256 - x0, ty*256 - y0);
+      }
+    }
+    const wpt = p => {
+      const w = L.CRS.EPSG3857.latLngToPoint(L.latLng(p[0], p[1]), z);
+      return [w.x - x0, w.y - y0];
+    };
+    const trail = spl.map(s=>wpt(s));
+    ctx.lineWidth = 8;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(0,0,0,.25)';
+    ctx.beginPath();
+    trail.forEach((p,i)=> i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+    ctx.stroke();
+    ctx.strokeStyle = vehSel.value === 'pesawat' ? '#60a5fa' : '#d98a21';
+    ctx.lineWidth = 5;
+    const traveled = Math.max(2, Math.floor(ef(f)*trail.length));
+    ctx.beginPath();
+    trail.slice(0, traveled).forEach((p,i)=> i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+    ctx.stroke();
+    ctx.beginPath();
+    trail.slice(traveled).forEach((p,i)=> i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+    ctx.strokeStyle = 'rgba(255,255,255,.55)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    const drawPin = (p, color, label)=>{
+      const xy = wpt(p);
+      ctx.beginPath();
+      ctx.arc(xy[0], xy[1], 15, 0, Math.PI*2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(xy[0], xy[1], 12, 0, Math.PI*2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, xy[0], xy[1] + 0.5);
+    };
+    drawPin(ptA, '#e03131', 'A');
+    drawPin(ptB, '#2f9e44', 'B');
+    const vp = wpt([q.lat, q.lon]);
+    const img = vehImg();
+    ctx.save();
+    ctx.translate(vp[0], vp[1]);
+    ctx.rotate(q.deg*Math.PI/180);
+    const sz = vehSel.value === 'pesawat' ? 76 : 68;
+    ctx.drawImage(img, -sz/2, -sz/2, sz, sz);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('© OpenStreetMap · PERKAKAS Trip Replay', REC_W - 12, REC_H - 10);
+    ctx.textAlign = 'center';
+    ctx.fillText(veh().label.toUpperCase(), REC_W/2, 22);
+  }
+  async function recVideo(){
+    if(!spl.length || !ptA || !ptB){ showToast('Buat rute dulu'); return; }
+    if(recBusy) return;
+    recBusy = true;
+    vidBtn.disabled = true;
+    snapBtn.disabled = true;
+    resetAnim();
+    try{
+      const cv = document.createElement('canvas');
+      cv.width = REC_W; cv.height = REC_H;
+      const ctx = cv.getContext('2d');
+      const z = Math.max(12, Math.min(15, map.getZoom()));
+      infoEl.textContent = 'Memuat peta (tile)…';
+      const seen = new Set();
+      const jobs = [];
+      const f0 = ef(0), f1 = ef(1);
+      const stepF = (f1 - f0)/(REC_FPS*REC_SEC - 1);
+      for(let i = 0; i < REC_FPS*REC_SEC; i++){
+        const q = posAt(f0 + stepF*i);
+        const cam = L.CRS.EPSG3857.latLngToPoint(L.latLng(q.lat, q.lon), z);
+        const x0 = cam.x - REC_W/2, y0 = cam.y - REC_H/2;
+        for(let ty = Math.floor(y0/256); ty*256 <= y0 + REC_H; ty++){
+          for(let tx = Math.floor(x0/256); tx*256 <= x0 + REC_W; tx++){
+            const u = tileUrl(tx, ty, z);
+            if(!seen.has(u)){ seen.add(u); jobs.push(loadTile(u)); }
+          }
+        }
+      }
+      await Promise.all(jobs);
+      infoEl.textContent = 'Merender video (12 dtk, 1280×720)…';
+      const stream = cv.captureStream(REC_FPS);
+      const rec = new MediaRecorder(stream, {mimeType: 'video/webm;codecs=vp9'});
+      const chunks = [];
+      rec.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
+      const done = new Promise(r => rec.onstop = r);
+      rec.start(200);
+      const t0 = performance.now();
+      const total = REC_FPS*REC_SEC;
+      for(let i = 0; i < total; i++){
+        drawRecFrame(ctx, z, f0 + stepF*i);
+        const wait = t0 + (i+1)*(1000/REC_FPS) - performance.now();
+        if(wait > 0) await new Promise(r => setTimeout(r, wait));
+      }
+      rec.stop();
+      await done;
+      downloadBlob(new Blob(chunks, {type: 'video/webm'}), 'trip-replay.webm');
+      showToast('Video replay diunduh ✅');
+    }catch(e){
+      showToast('Render gagal: ' + String(e.message||e).slice(0, 80));
+    }finally{
+      recBusy = false;
+      vidBtn.disabled = false;
+      snapBtn.disabled = false;
+      infoEl.textContent = '';
+    }
+  }
+  async function recSnap(){
+    if(!spl.length || !ptA || !ptB){ showToast('Buat rute dulu'); return; }
+    if(recBusy) return;
+    recBusy = true;
+    snapBtn.disabled = true;
+    vidBtn.disabled = true;
+    try{
+      const cv = document.createElement('canvas');
+      cv.width = REC_W; cv.height = REC_H;
+      const ctx = cv.getContext('2d');
+      const z = Math.max(12, Math.min(15, map.getZoom()));
+      const f = Math.max(0, Math.min(1, prog || 0.5));
+      const q = posAt(ef(f));
+      const cam = L.CRS.EPSG3857.latLngToPoint(L.latLng(q.lat, q.lon), z);
+      const x0 = cam.x - REC_W/2, y0 = cam.y - REC_H/2;
+      ctx.fillStyle = '#e8e4dc';
+      ctx.fillRect(0, 0, REC_W, REC_H);
+      const seen = new Set();
+      const jobs = [];
+      for(let ty = Math.floor(y0/256); ty*256 <= y0 + REC_H; ty++){
+        for(let tx = Math.floor(x0/256); tx*256 <= x0 + REC_W; tx++){
+          const u = tileUrl(tx, ty, z);
+          if(!seen.has(u)){ seen.add(u); jobs.push(loadTile(u)); }
+        }
+      }
+      await Promise.all(jobs);
+      drawRecFrame(ctx, z, ef(f));
+      const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+      downloadBlob(blob, 'trip-map.png');
+      showToast('Snapshot diunduh 🖼');
+    }catch(e){
+      showToast('Snapshot gagal: ' + String(e.message||e).slice(0, 80));
+    }finally{
+      recBusy = false;
+      snapBtn.disabled = false;
+      vidBtn.disabled = false;
+    }
+  }
+  vidBtn.addEventListener('click', recVideo);
+  snapBtn.addEventListener('click', recSnap);
+
   window.__tripStop = ()=>{ resetAnim(); };
   window.__tripShow = ()=>{
     loadLeaflet().then(()=>{
@@ -3881,6 +4178,8 @@ async function ytStreamUrl(id){
     }).catch(e=> showToast('Peta gagal dimuat: ' + (e.message||e)));
   };
 })();
+
+
 
 /* ============================================================
    11) EDITOR VIDEO — auto-track orang + subtitle + klip penting
@@ -3892,7 +4191,7 @@ async function ytStreamUrl(id){
   const trackEl = $('edtTrack'), trackModeEl = $('edtTrackMode'), tracksEl = $('edtTracks'), trackInfoEl = $('edtTrackInfo');
   const subEl = $('edtSub'), subPosEl = $('edtSubPos'), subSizeEl = $('edtSubSize'), subSizeValEl = $('edtSubSizeVal'), subBgEl = $('edtSubBg');
   const clipEl = $('edtClip'), sensEl = $('edtSens'), sensValEl = $('edtSensVal'), preEl = $('edtPre'), preValEl = $('edtPreVal'), postEl = $('edtPost'), postValEl = $('edtPostVal');
-  const recBtn = $('edtRec'), stopBtn = $('edtStop'), clipsBtn = $('edtClips'), timeEl = $('edtTime'), rmsEl = $('edtRms');
+  const recBtn = $('edtRec'), stopBtn = $('edtStop'), clipsBtn = $('edtClips'), renderBtn = $('edtRender'), timeEl = $('edtTime'), rmsEl = $('edtRms');
   const canvas = $('edtCanvas'), cv = canvas.getContext('2d');
   const msgEl = $('edtMsg'), clipsBoxEl = $('edtClipsBox');
 
@@ -4225,6 +4524,37 @@ async function ytStreamUrl(id){
   function stopRecorder(){
     if(recorder && recorder.state !== 'inactive') recorder.stop();
   }
+  let rendering = false;
+  renderBtn.addEventListener('click', async ()=>{
+    if(!videoEl.videoWidth) return showToast('Pilih video dulu');
+    if(rendering) return;
+    if(recOn){ showToast('Stop rekaman manual dulu'); return; }
+    rendering = true;
+    renderBtn.disabled = true;
+    recBtn.disabled = true;
+    stopBtn.disabled = true;
+    if(ctx && ctx.state === 'suspended') ctx.resume();
+    videoEl.muted = true;
+    chunks = [];
+    energyLog = [];
+    videoEl.currentTime = 0;
+    fRecord();
+    videoEl.play().catch(()=>{});
+    const tick = setInterval(()=>{
+      const d = videoEl.duration || 0;
+      renderBtn.textContent = d > 0 ? '⏳ Render ' + Math.round(videoEl.currentTime/d*100) + '%…' : '⏳ Render…';
+    }, 250);
+    await new Promise(res => { videoEl.onended = res; });
+    clearInterval(tick);
+    stopRecorder();
+    videoEl.onended = null;
+    videoEl.muted = false;
+    rendering = false;
+    renderBtn.disabled = false;
+    recBtn.disabled = false;
+    stopBtn.disabled = false;
+    renderBtn.textContent = '⬇ Unduh Hasil';
+  });
   stopBtn.addEventListener('click', ()=>{
     if(recorder && recorder.state !== 'inactive') recorder.stop();
     else showToast('Tidak ada rekaman berjalan');
