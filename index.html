@@ -7,7 +7,295 @@
 <meta name="description" content="Kompresor, konverter, palet warna, kode QR, dan webcam efektif — gratis, tanpa login, semua jalan di browser.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js">/* ============================================================
+   12) DOWNLOADER MEDIA — YouTube + TikTok + IG Reels (kualitas terbaik)
+   ============================================================ */
+(function(){
+  const tabs = document.querySelectorAll('.dl-tab');
+  const secs = {yt: document.getElementById('dlSecYt'), tk: document.getElementById('dlSecTk'), ig: document.getElementById('dlSecIg')};
+  const infos = {
+    yt: document.getElementById('dlYtInfo'),
+    tk: document.getElementById('dlTkInfo'),
+    ig: document.getElementById('dlIgInfo'),
+  };
+  const inputs = {
+    yt: document.getElementById('dlYtUrl'),
+    tk: document.getElementById('dlTkUrl'),
+    ig: document.getElementById('dlIgUrl'),
+  };
+  const gos = {
+    yt: document.getElementById('dlYtGo'),
+    tk: document.getElementById('dlTkGo'),
+    ig: document.getElementById('dlIgGo'),
+  };
+  let cur = 'yt';
+  tabs.forEach(b=> b.addEventListener('click', ()=>{
+    cur = b.dataset.dltab;
+    tabs.forEach(x=> x.classList.toggle('active', x === b));
+    Object.keys(secs).forEach(k=> secs[k].style.display = k === cur ? '' : 'none');
+  }));
+
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function fmtT(t){ t = Math.max(0, Math.round(t||0)); return String(Math.floor(t/60)).padStart(2,'0') + ':' + String(t%60).padStart(2,'0'); }
+  function fname(s, ext){ const b = String(s||'video').replace(/[^\w\- ]+/g,'').replace(/\s+/g,' ').trim().slice(0,70); return (b || 'video') + ext; }
+
+  async function fetchProgress(url, pcb){
+    let r = null, err = null;
+    try{ r = await fetch(url); }catch(e){ err = e; }
+    if(!r || !r.ok){
+      const proxied = await fetchVia(url, true);
+      if(!proxied || !proxied.ok) throw new Error('Gagal mengunduh stream');
+      r = proxied;
+    }
+    const total = +r.headers.get('content-length') || 0;
+    const reader = r.body.getReader();
+    const chunks = [];
+    let got = 0;
+    for(;;){
+      const {done, value} = await reader.read();
+      if(done) break;
+      chunks.push(value);
+      got += value.length;
+      if(total && pcb) pcb(got/total);
+    }
+    return new Blob(chunks);
+  }
+
+  function card(infoEl, opts){
+    infoEl.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'dl-info';
+    if(opts.thumb) card.innerHTML = '<img class="thumb" src="' + esc(opts.thumb) + '" alt="">';
+    const meta = document.createElement('div');
+    meta.className = 'dl-meta';
+    const t = document.createElement('div'); t.className = 'dl-title'; t.textContent = opts.title || 'Video';
+    const s = document.createElement('div'); s.className = 'dl-sub'; s.textContent = (opts.author ? opts.author + ' · ' : '') + (opts.duration ? fmtT(opts.duration) + ' · ' : '') + opts.sub;
+    meta.appendChild(t); meta.appendChild(s);
+    const rowsBox = document.createElement('div');
+    opts.rows.forEach(ro =>{
+      const row = document.createElement('div');
+      row.className = 'dl-row';
+      const lab = document.createElement('span'); lab.className = 'dl-quality'; lab.textContent = ro.label;
+      row.appendChild(lab);
+      ro.buttons.forEach(bd =>{
+        const b = document.createElement('button');
+        b.className = bd.primary ? 'btn btn-primary' : 'btn btn-dark';
+        b.textContent = bd.text;
+        b.addEventListener('click', ()=>{ runDl(opts.onStart, bd, row, b); });
+        row.appendChild(b);
+      });
+      if(ro.fileName && ro.extra) row.appendChild(extra);
+      rowsBox.appendChild(row);
+    });
+    meta.appendChild(rowsBox);
+    const prog = document.createElement('div');
+    prog.className = 'dl-progress';
+    prog.innerHTML = '<i></i>';
+    meta.appendChild(prog);
+    card.appendChild(meta);
+    infoEl.appendChild(card);
+    return {prog, meta};
+  }
+
+  async function runDl(onStart, bd, row, btn){
+    if(btn.disabled) return;
+    btn.disabled = true;
+    const old = btn.textContent;
+    const prog = row.parentElement.querySelector('.dl-progress');
+    let last = 0;
+    prog.classList.add('on');
+    prog.querySelector('i').style.width = '2%';
+    const setP = p =>{ if(p - last > 0.02){ last = p; prog.querySelector('i').style.width = Math.round(p*100) + '%'; } };
+    try{
+      const info = await onStart(bd, setP);
+      if(info == null){ prog.querySelector('i').style.width = '100%'; setTimeout(()=>{ prog.classList.remove('on'); }, 900); return; }
+      const res = await fetchVia(Array.isArray(info) ? info[0] : info.url || info, true);
+      if(!res || !res.ok) throw new Error('Unduhan gagal');
+      const blob = await res.blob();
+      downloadBlob(blob, (Array.isArray(info) ? info[1] : info.name) || fname(bd.fileName || 'video', bd.ext || '.mp4'));
+      prog.querySelector('i').style.width = '100%';
+      showToast('⬇ Unduhan selesai');
+    }catch(e){
+      console.error(e);
+      showToast('❌ ' + String(e.message||e).slice(0,90));
+    }finally{
+      btn.disabled = false;
+      btn.textContent = old;
+      setTimeout(()=>{ prog.classList.remove('on'); }, 900);
+    }
+  }
+
+  // ---------- YouTube ----------
+  gos.yt.addEventListener('click', async ()=>{
+    const u = inputs.yt.value.trim();
+    if(!u) return showToast('Tempel link YouTube dulu');
+    infos.yt.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">Menganalisis video…</div></div>';
+    gos.yt.disabled = true;
+    try{
+      const id = ytId(u);
+      if(!id) throw new Error('Link YouTube tidak dikenali');
+      const info = await ytFullInfo(id);
+      card(infos.yt, {
+        thumb: info.thumb, title: info.title, author: info.author, duration: info.duration, sub: 'YouTube',
+        onStart: (bd, setP)=> bd.task(setP),
+        rows: [
+          {label: 'Metode',
+           buttons: [
+             {text: '⬇ Unduh Terbaik (video + audio)', primary: true, ext:'.mp4', fileName: info.title, task: async setP => {
+               const n = fname(info.title, '.mp4');
+               if(!info.videoUrl || !info.audioUrl) throw new Error('Stream terbaik tidak tersedia');
+               try{
+                 await ensureFfmpeg();
+                 const vl = info.videoLabel, al = info.audioLabel;
+                 let pc = 0;
+                 ffState.onProgress = p =>{ if(Math.abs(p - pc) > 0.05){ pc = p; setP(0.75 + p*0.25); } };
+                 const vb = await fetchProgress(info.videoUrl, p=> setP(p*0.6));
+                 const ab = await fetchProgress(info.audioUrl, p=> setP(0.6 + p*0.15));
+                 await ffState.ffmpeg.writeFile('v.mp4', new Uint8Array(await vb.arrayBuffer()));
+                 await ffState.ffmpeg.writeFile('a.m4a', new Uint8Array(await ab.arrayBuffer()));
+                 try{
+                   await ffState.ffmpeg.exec(['-i','v.mp4','-i','a.m4a','-c:v','copy','-c:a','aac','-movflags','+faststart','-y','out.mp4']);
+                 }catch(e){
+                   await ffState.ffmpeg.exec(['-i','v.mp4','-i','a.m4a','-c:v','libx264','-crf','23','-preset','veryfast','-c:a','aac','-movflags','+faststart','-y','out.mp4']);
+                 }
+                 const out = await ffState.ffmpeg.readFile('out.mp4');
+                 downloadBlob(new Blob([new Uint8Array(out)], {type:'video/mp4'}), n);
+                 showToast('✅ ' + vl + ' + ' + al + ' digabung (FFmpeg)');
+                 return null; // already downloaded
+               }catch(e){
+                 if(info.combinedUrl){
+                   showToast('FFmpeg gagal — fallback ' + info.combinedLabel);
+                   const b = await (await fetchVia(info.combinedUrl, true)).blob();
+                   downloadBlob(b, n);
+                   return null;
+                 }
+                 throw e;
+               }finally{
+                 ffState.onProgress = null;
+                 try{ await ffState.ffmpeg.deleteFile('v.mp4'); await ffState.ffmpeg.deleteFile('a.m4a'); await ffState.ffmpeg.deleteFile('out.mp4'); }catch(e){}
+               }
+             }},
+             {text: '720p satu file', ext:'.mp4', fileName: info.title, task: async setP => {
+               if(!info.combinedUrl) throw new Error('Tidak ada format satu file');
+               const b = await (await fetchVia(info.combinedUrl, true)).blob();
+               downloadBlob(b, fname(info.title, '.mp4'));
+               return null;
+             }},
+             {text: '♪ Hanya audio', ext:'.m4a', fileName: info.title, task: async setP => {
+               if(!info.audioUrl) throw new Error('Tidak ada stream audio');
+               const b = await (await fetchVia(info.audioUrl, true)).blob();
+               downloadBlob(b, fname(info.title, '.m4a'));
+               return null;
+             }},
+           ]},
+        ],
+      });
+    }catch(e){
+      infos.yt.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">❌ ' + esc(String(e.message||e).slice(0,100)) + '</div></div>';
+    }finally{
+      gos.yt.disabled = false;
+    }
+  });
+  inputs.yt.addEventListener('keydown', e=>{ if(e.key === 'Enter') gos.yt.click(); });
+
+  // ---------- TikTok ----------
+  gos.tk.addEventListener('click', async ()=>{
+    const u = inputs.tk.value.trim();
+    if(!u) return showToast('Tempel link TikTok dulu');
+    infos.tk.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">Menganalisis video…</div></div>';
+    gos.tk.disabled = true;
+    try{
+      let j;
+      const r = await fetchVia('https://www.tikwm.com/api/?url=' + encodeURIComponent(u), true);
+      j = await r.json();
+      if(j.code !== 0 || !j.data) throw new Error(j.msg || 'Video tidak ditemukan / TikTok menolak');
+      const d = j.data;
+      card(infos.tk, {
+        thumb: d.cover || d.origin_cover, title: d.title || 'TikTok', author: d.author || d.nickname, duration: d.duration, sub: 'TikTok',
+        onStart: (bd, setP)=> bd.task(setP),
+        rows: [
+          {label: 'Kualitas',
+           buttons: [
+             {text: d.hdplay ? '⬇ HD tanpa watermark' : '⬇ Tanpa watermark', primary: true, ext:'.mp4', fileName: fname(d.title, '') + (d.hdplay ? '-HD' : ''), task: v => Promise.resolve([d.hdplay || d.play, fname((d.title||'tiktok') + (d.hdplay ? '-HD' : ''), '.mp4')])},
+             {text: '⬇ Dengan watermark', ext:'.mp4', fileName: d.title, task: v => Promise.resolve([d.wmplay || d.watermark_play || d.play, fname((d.title||'tiktok') + '-wm', '.mp4')])},
+             {text: '♪ Audio saja', ext:'.mp3', fileName: d.title, task: v => Promise.resolve([d.music, fname((d.title||'tiktok') + '-audio', '.mp3')])},
+           ]},
+        ],
+      });
+    }catch(e){
+      infos.tk.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">❌ ' + esc(String(e.message||e).slice(0,100)) + '</div></div>';
+    }finally{
+      gos.tk.disabled = false;
+    }
+  });
+  inputs.tk.addEventListener('keydown', e=>{ if(e.key === 'Enter') gos.tk.click(); });
+
+  // ---------- Instagram ----------
+  function igParse(html){
+    const unE = s => String(s||'').replace(/&quot;/g,'"').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+    const block = html.match(/"video_versions":\[([^\]]*)\]/);
+    if(!block || !block[1].includes('.mp4')) return null;
+    const vv = JSON.parse('[' + block[1] + ']');
+    const best = vv.find(v=> v && v.url && v.url.includes('.mp4'));
+    if(!best) return null;
+    const cap = html.match(/"caption":\{"text":"((?:[^"\\]|\\.)*)"/s);
+    const capText = cap ? JSON.parse('"' + cap[1] + '"').slice(0, 140) : '';
+    const ogT = html.match(/"og:title" content="([^"]*)"/);
+    const ogD = html.match(/"og:description" content="([^"]*)"/);
+    const desc = unE(ogD ? ogD[1] : '');
+    const author = (desc.match(/^[^\-]*?-\s*([a-z0-9_.]+)\s+on\s+/i) || [,''])[1] || (html.match(/"username":"([^"]+)"/) || [,''])[1] || '';
+    const ogI = html.match(/"og:image" content="([^"]*)"/);
+    return {
+      title: capText || unE(ogT ? ogT[1] : '').replace(/^.+? on Instagram:\s*/i, '') || 'Instagram Reel',
+      author: author || 'instagram',
+      duration: 0,
+      thumb: ogI ? ogI[1] : '',
+      url: best.url,
+    };
+  }
+
+  gos.ig.addEventListener('click', async ()=>{
+    const u = inputs.ig.value.trim();
+    if(!u) return showToast('Tempel link Reels Instagram dulu');
+    infos.ig.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">Menganalisis video…</div></div>';
+    gos.ig.disabled = true;
+    try{
+      let m = u.match(/\/(?:reel[s]?|p|tv)\/([A-Za-z0-9_-]+)/);
+      if(!m && /^[A-Za-z0-9_-]{5,15}$/.test(u)) m = [,u];
+      const code = m && m[1];
+      if(!code) throw new Error('Link Instagram tidak dikenali (butuh /reel/…, /p/…, atau kode Reels)');
+      const pageUrl = 'https://www.instagram.com/reel/' + code + '/';
+      let html = null;
+      try{
+        const r = await fetch('https://r.jina.ai/' + pageUrl, {headers: {'X-Return-Format': 'html'}});
+        if(r.ok) html = await r.text();
+      }catch(e){}
+      if(!html || !html.includes('video_versions')) throw new Error('Instagram menolak akses anonim saat ini (atau batas permintaan tercapai). Pastikan Reel publik & link benar, lalu coba lagi nanti.');
+      const info = igParse(html);
+      if(!info) throw new Error('Video tidak ditemukan di halaman (akun privat / Reel dihapus?)');
+      card(infos.ig, {
+        thumb: info.thumb, title: info.title, author: info.author, duration: info.duration, sub: 'IG Reels · halaman Instagram',
+        onStart: (bd, setP)=> bd.task(setP),
+        rows: [
+          {label: 'Kualitas',
+           buttons: [
+             {text: '⬇ Unduh Video (terbaik)', primary: true, ext:'.mp4', fileName: info.title, task: v => Promise.resolve([info.url, fname(info.title || 'reels-' + code, '.mp4')])},
+           ]},
+        ],
+      });
+    }catch(e){
+      infos.ig.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">❌ ' + esc(String(e.message||e).slice(0,120)) + '</div></div>';
+    }finally{
+      gos.ig.disabled = false;
+    }
+  });
+  inputs.ig.addEventListener('keydown', e=>{ if(e.key === 'Enter') gos.ig.click(); });
+
+  window.__downStop = ()=>{};
+})();
+
+
+</script>
 <style>
   :root{
     --ink:#12172A;
@@ -272,6 +560,18 @@
   .edt-stage-msg{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#8f866f; font-size:14px; pointer-events:none;}
   .viz-canvas{display:block; width:100%; background:#000; border-radius:14px; border:1px solid rgba(255,255,255,0.08); margin-top:14px;}
   #tripMap{height:460px; border-radius:14px; border:1px solid rgba(28,24,16,0.18); margin-top:12px; z-index:0;}
+  .dl-tab{font-size:13px;}
+  .dl-tab.active{background:#eab308; color:#14100b; border-color:transparent;}
+  .dl-info{display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.09); border-radius:14px; padding:16px; margin-top:12px;}
+  .dl-info img.thumb{width:190px; max-width:42%; border-radius:10px; display:block;}
+  .dl-meta{flex:1; min-width:230px;}
+  .dl-title{font-weight:700; font-size:15px; margin-bottom:4px;}
+  .dl-sub{color:#8f866f; font-size:12.5px; margin-bottom:8px;}
+  .dl-row{display:flex; align-items:center; gap:12px; margin-top:9px; flex-wrap:wrap;}
+  .dl-quality{display:flex; align-items:center; gap:7px; font-size:12.5px;}
+  .dl-progress{width:100%; height:6px; background:rgba(255,255,255,.1); border-radius:4px; overflow:hidden; margin-top:11px; display:none;}
+  .dl-progress.on{display:block;}
+  .dl-progress i{display:block; height:100%; width:0%; background:#eab308; transition:width .2s;}
   #tripMap .leaflet-container{font-family:inherit;}
   #tripMap .leaflet-div-icon{background:none; border:none;}
   .veh3d{line-height:1; transform-origin:50% 50%; will-change:transform; filter:drop-shadow(0 4px 5px rgba(0,0,0,0.4));}
@@ -767,6 +1067,25 @@
       <span class="mono" id="edtRms"></span>
     </div>
 
+    <div class="edt-card" style="margin-top:12px">
+      <div class="edt-card-title">✂ Clip Tool — potong video jadi beberapa klip pendek</div>
+      <div class="row">
+        <span class="mono" style="min-width:auto">Mulai</span>
+        <input type="range" id="clipA" min="0" max="1000" value="0" style="flex:1" title="Awal klip">
+        <span class="mono" id="clipATxt" style="min-width:48px; text-align:right">00:00</span>
+        <span class="mono" style="min-width:auto">Selesai</span>
+        <input type="range" id="clipB" min="0" max="1000" value="1000" style="flex:1" title="Akhir klip">
+        <span class="mono" id="clipBTxt" style="min-width:48px; text-align:right">00:00</span>
+      </div>
+      <div class="row">
+        <button class="btn btn-ghost" id="clipPrev">▶ Preview Segmen</button>
+        <button class="btn btn-dark" id="clipAdd">➕ Tambah Klip</button>
+        <button class="btn btn-primary" id="clipCut" disabled>✂ Potong &amp; Unduh Klip</button>
+        <button class="btn btn-ghost" id="clipClear" disabled>🗑 Bersihkan</button>
+      </div>
+      <div class="plock-list" id="clipList"></div>
+    </div>
+
     <div class="edt-stage">
       <canvas id="edtCanvas"></canvas>
       <div class="edt-stage-msg" id="edtMsg">Pilih video untuk mulai — pelacakan orang dimuat otomatis</div>
@@ -829,6 +1148,44 @@
 
     <canvas class="viz-canvas" id="vizCanvas" width="1024" height="576"></canvas>
     <p class="hint"><b>Cara pakai:</b> sumber audio dari <b>file</b>, <b>link YouTube</b>, atau <b>mikrofon</b>. Atur gaya, jumlah batang, warna (A/B), putaran pelangi, sensitivitas, dan cermin sesukamu. <b>⬇ Unduh Hasil</b> merender visual 12 detik langsung jadi file WebM tanpa tombol stop; <b>● Rekam Video</b> tetap tersedia untuk merekam manual.</p>
+  </div>
+
+  <!-- DOWNLOADER -->
+  <div class="panel" data-panel="down">
+    <div class="panel-head">
+      <div class="ic-wrap"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3v11m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></div>
+      <div><h2>Downloader</h2><p>Unduh video dari YouTube, TikTok &amp; Instagram Reels — kualitas terbaik, sepenuhnya di browser.</p></div>
+    </div>
+
+    <div class="row">
+      <button class="btn btn-dark dl-tab active" data-dltab="yt">▶ YouTube</button>
+      <button class="btn btn-dark dl-tab" data-dltab="tk">♪ TikTok</button>
+      <button class="btn btn-dark dl-tab" data-dltab="ig">◈ IG Reels</button>
+    </div>
+
+    <section class="dl-sec" id="dlSecYt">
+      <div class="row">
+        <input type="text" id="dlYtUrl" class="musik-url" placeholder="https://www.youtube.com/watch?v=…" style="flex:1">
+        <button class="btn btn-primary" id="dlYtGo">Analisis</button>
+      </div>
+      <div class="dl-info" id="dlYtInfo"></div>
+    </section>
+    <section class="dl-sec" id="dlSecTk" style="display:none">
+      <div class="row">
+        <input type="text" id="dlTkUrl" class="musik-url" placeholder="https://www.tiktok.com/@user/video/…" style="flex:1">
+        <button class="btn btn-primary" id="dlTkGo">Analisis</button>
+      </div>
+      <div class="dl-info" id="dlTkInfo"></div>
+    </section>
+    <section class="dl-sec" id="dlSecIg" style="display:none">
+      <div class="row">
+        <input type="text" id="dlIgUrl" class="musik-url" placeholder="https://www.instagram.com/reel/…" style="flex:1">
+        <button class="btn btn-primary" id="dlIgGo">Analisis</button>
+      </div>
+      <div class="dl-info" id="dlIgInfo"></div>
+    </section>
+
+    <p class="hint"><b>Cara pakai:</b> tempel link video (YouTube / TikTok / Reels) → <b>Analisis</b> → pilih kualitas → <b>⬇ Unduh</b>. YouTube: gabungan video+audio terbaik (butuh koneksi internet & halaman via http/https; jika gagal, otomatis pakai format 720p satu file). TikTok: tanpa watermark (HD bila tersedia). Instagram: langsung ambil dari halaman publik. Semua diproses di browser — tidak ada server, file tidak disimpan di mana pun.</p>
   </div>
 
   <!-- TRIP -->
@@ -933,6 +1290,7 @@ const TOOLS = [
   {key:'musik', label:'Alat Musik', desc:'Main piano, gitar, drum, atau autoplay mengikuti audio.', icon:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'},
   {key:'editor', label:'Editor Video', desc:'Auto-track orang, subtitle otomatis, potong klip momen penting.', icon:'<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/><path d="M6 12h3v2H6z"/>'},
   {key:'viz', label:'Audio Visualizer', desc:'Visual audio custom: batang, radial, gelombang, orbit.', icon:'<path d="M5 20V10M10 20V4M15 20v-7M20 20V7"/><path d="M3 20h18"/>'},
+  {key:'down', label:'Downloader', desc:'Unduh video YouTube, TikTok & IG Reels — kualitas terbaik.', icon:'<path d="M12 3v11m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>'},
   {key:'trip', label:'Trip Replay', desc:'Replay perjalanan di peta: geocode tempat, rute mobil, animasi 🚗.', icon:'<path d="M12 21a9 9 0 110-18"/><path d="M12 17a5 5 0 110-10"/><circle cx="12" cy="12" r="1.5"/>'},
   {key:'protect', label:'Proteksi File', desc:'Kunci file apa pun dengan password (AES-256-GCM).', icon:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/><circle cx="12" cy="15.5" r="1.4"/>'},
 ];
@@ -2700,6 +3058,45 @@ async function ytStreamUrl(id){
   if(!fmts.length) throw new Error('Tidak ada stream audio pada video ini');
   return fmts[0].url;
 }
+async function ytFullInfo(id){
+  const html = await (await fetchVia('https://www.youtube.com/watch?v=' + id)).text();
+  let pr = null, err = null;
+  try{ pr = JSON.parse(extractBalanced(html, 'ytInitialPlayerResponse')); }catch(e){ err = e; }
+  if(!pr || !pr.streamingData){
+    try{ pr = {streamingData: JSON.parse(extractBalanced(html, '"streamingData"'))}; }catch(e){ err = e; }
+  }
+  if(!pr || !pr.streamingData || !pr.streamingData.formats){
+    throw new Error(err ? 'Parse respons YouTube gagal' : 'Video tidak punya stream (dilindungi?)');
+  }
+  const vd = pr.videoDetails || {};
+  const af = pr.streamingData.adaptiveFormats || [];
+  const cf = pr.streamingData.formats || [];
+  const isAudio = f => f && f.mimeType && !/\/video\//.test(f.mimeType) && f.url;
+  const isVideo = f => f && f.mimeType && /\/video\//.test(f.mimeType) && f.url && !f.bitrateAud && (f.audioChannels == null || f.audioChannels === 0);
+  const hasAudio = f => f && f.mimeType && /\/video\//.test(f.mimeType) && f.audioChannels > 0 && f.url;
+  const audio = af.filter(isAudio).sort((a,b)=>(b.bitrate||0)-(a.bitrate||0))[0] || null;
+  const vOnly = af.filter(isVideo)
+    .filter(f=>f.mimeType.indexOf('video/mp4') >= 0)
+    .sort((a,b)=>((b.width||0)*(b.height||0))-((a.width||0)*(a.height||0)))[0]
+    || af.filter(isVideo).sort((a,b)=>((b.width||0)*(b.height||0))-((a.width||0)*(a.height||0)))[0];
+  const combined = cf.filter(hasAudio)
+    .filter(f=>f.mimeType.indexOf('video/mp4') >= 0)
+    .sort((a,b)=>((b.width||0)*(b.height||0))-((a.width||0)*(a.height||0)))[0] || null;
+  return {
+    title: vd.title || 'Video YouTube',
+    author: (vd.author || '').replace(/-+$/,'') || 'YouTube',
+    duration: +vd.lengthSeconds || 0,
+    thumb: vd.thumbnail && vd.thumbnail.thumbnails && vd.thumbnail.thumbnails.length
+      ? vd.thumbnail.thumbnails[vd.thumbnail.thumbnails.length-1].url : '',
+    audioUrl: audio ? audio.url : null,
+    audioLabel: audio ? ((audio.bitrate||0)/1000).toFixed(0) + ' kbps' : null,
+    videoUrl: vOnly ? vOnly.url : null,
+    videoLabel: vOnly ? (vOnly.qualityLabel || (vOnly.height + 'p')) : null,
+    videoH: vOnly ? (vOnly.height||0) : 0,
+    combinedUrl: combined ? combined.url : null,
+    combinedLabel: combined ? (combined.qualityLabel || (combined.height + 'p')) : null,
+  };
+}
 
 /* ============================================================
    7) ALAT MUSIK — synth Web Audio + autoplay mengikuti audio
@@ -3692,15 +4089,16 @@ async function ytStreamUrl(id){
   let ptA = null, ptB = null;
 
   const VEHICLES = {
-    mobil: {label:'Mobil', speed:1, size:52,
-      svg:'<svg viewBox="0 0 96 96" width="52" height="52"><defs><linearGradient id="tvm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbbf24"/><stop offset="1" stop-color="#b45309"/></linearGradient></defs><ellipse cx="48" cy="54" rx="33" ry="21" fill="rgba(0,0,0,.32)"/><path d="M20 36 Q24 22 40 21 L56 21 Q72 22 76 36 L78 56 Q76 72 60 75 L36 75 Q20 72 18 56 Z" fill="url(#tvm)" stroke="#7c2d12" stroke-width="1.6"/><rect x="23" y="25" width="8" height="17" rx="3" fill="#1a1a1a"/><rect x="65" y="25" width="8" height="17" rx="3" fill="#1a1a1a"/><rect x="23" y="52" width="8" height="17" rx="3" fill="#1a1a1a"/><rect x="65" y="52" width="8" height="17" rx="3" fill="#1a1a1a"/><path d="M34 24 L39 24 L36 34 L29 34 Z" fill="#bfe9ff"/><path d="M28 40 L68 40 L68 60 L28 60 Z" fill="#c2570c"/><path d="M31 42 L65 42 L65 47 L31 47 Z" fill="rgba(255,255,255,.4)"/><rect x="25" y="36" width="6" height="4" rx="1" fill="#bfe9ff"/><rect x="65" y="36" width="6" height="4" rx="1" fill="#bfe9ff"/><rect x="26" y="63" width="6" height="7" rx="2" fill="#ff8a8a"/><rect x="64" y="63" width="6" height="7" rx="2" fill="#ff8a8a"/></svg>'},
-    bus: {label:'Bus', speed:0.75, size:56,
-      svg:'<svg viewBox="0 0 96 96" width="56" height="56"><defs><linearGradient id="tvb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#d97706"/></linearGradient></defs><ellipse cx="48" cy="54" rx="34" ry="22" fill="rgba(0,0,0,.32)"/><path d="M22 30 Q23 20 38 19 L58 19 Q73 20 74 30 L76 62 Q75 76 58 77 L38 77 Q21 76 20 62 Z" fill="url(#tvb)" stroke="#7c2d12" stroke-width="1.6"/><rect x="25" y="24" width="8" height="15" rx="3" fill="#1a1a1a"/><rect x="63" y="24" width="8" height="15" rx="3" fill="#1a1a1a"/><rect x="25" y="57" width="8" height="15" rx="3" fill="#1a1a1a"/><rect x="63" y="57" width="8" height="15" rx="3" fill="#1a1a1a"/><path d="M30 22 L36 22 L34 32 L27 32 Z" fill="#bfe9ff"/><rect x="22" y="39" width="7" height="15" rx="2" fill="#bfe9ff"/><rect x="31" y="39" width="7" height="15" rx="2" fill="#bfe9ff"/><rect x="62" y="39" width="7" height="15" rx="2" fill="#bfe9ff"/><rect x="71" y="39" width="7" height="15" rx="2" fill="#bfe9ff"/><rect x="52" y="37" width="9" height="22" rx="2" fill="#bfe9ff" stroke="#7c2d12"/><rect x="42" y="62" width="14" height="8" rx="2" fill="#92400e"/><rect x="22" y="66" width="7" height="6" rx="2" fill="#ff8a8a"/><rect x="67" y="66" width="7" height="6" rx="2" fill="#ff8a8a"/></svg>'},
-    motor: {label:'Motor', speed:1.25, size:46,
-      svg:'<svg viewBox="0 0 96 96" width="46" height="46"><ellipse cx="48" cy="54" rx="26" ry="24" fill="rgba(0,0,0,.3)"/><circle cx="48" cy="27" r="9" fill="#1a1a1a" stroke="#444" stroke-width="2"/><circle cx="48" cy="67" r="9" fill="#1a1a1a" stroke="#444" stroke-width="2"/><path d="M47 34 L47 52 L34 60" stroke="#374151" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M50 52 L61 60" stroke="#374151" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M36 44 Q48 38 60 44" stroke="#111" stroke-width="3" fill="none"/><path d="M45 27 L45 20 L51 20 L51 27" fill="#111"/><circle cx="48" cy="48" r="9" fill="#e5e7eb" stroke="#9ca3af" stroke-width="1.5"/><path d="M41 45 Q48 55 55 45" stroke="#6b7280" stroke-width="5" fill="none" stroke-linecap="round"/></svg>'},
-    pesawat: {label:'Pesawat', speed:5, size:56,
-      svg:'<svg viewBox="0 0 96 96" width="56" height="56"><defs><linearGradient id="tvp" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#94a3b8"/></linearGradient></defs><ellipse cx="48" cy="52" rx="38" ry="34" fill="rgba(0,0,0,.28)"/><path d="M44 18 L52 18 L52 40 L82 34 L82 42 L52 50 L52 68 L64 76 L64 82 L52 78 L48 78 L32 82 L32 76 L44 68 L44 50 L14 42 L14 34 Z" fill="url(#tvp)" stroke="#64748b" stroke-width="1.4"/><path d="M46 22 L50 22 L50 34 L46 34 Z" fill="#0f172a"/><rect x="45" y="52" width="6" height="11" rx="2" fill="#e2e8f0" stroke="#64748b"/><rect x="43" y="34" width="10" height="4" rx="1.5" fill="#e2e8f0" stroke="#64748b"/></svg>'}
-  };
+  mobil: {label:'Mobil', speed:1, size:54,
+    svg:'<svg viewBox="0 0 24 24" width="54" height="54"><defs><linearGradient id="vM" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffca3a"/><stop offset="1" stop-color="#ef7d00"/></linearGradient></defs><ellipse cx="12" cy="14" rx="10.4" ry="10.6" fill="rgba(0,0,0,.32)"/><g transform="translate(.3 1.1)"><path fill="rgba(90,40,0,.55)" d="m5 11l1.5-4.5h11L19 11m-1.5 5a1.5 1.5 0 0 1-1.5-1.5a1.5 1.5 0 0 1 1.5-1.5a1.5 1.5 0 0 1 1.5 1.5a1.5 1.5 0 0 1-1.5 1.5m-11 0A1.5 1.5 0 0 1 5 14.5A1.5 1.5 0 0 1 6.5 13A1.5 1.5 0 0 1 8 14.5A1.5 1.5 0 0 1 6.5 16M18.92 6c-.2-.58-.76-1-1.42-1h-11c-.66 0-1.22.42-1.42 1L3 12v8a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1h12v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-8z"/></g><path fill="url(#vM)" d="m5 11l1.5-4.5h11L19 11m-1.5 5a1.5 1.5 0 0 1-1.5-1.5a1.5 1.5 0 0 1 1.5-1.5a1.5 1.5 0 0 1 1.5 1.5a1.5 1.5 0 0 1-1.5 1.5m-11 0A1.5 1.5 0 0 1 5 14.5A1.5 1.5 0 0 1 6.5 13A1.5 1.5 0 0 1 8 14.5A1.5 1.5 0 0 1 6.5 16M18.92 6c-.2-.58-.76-1-1.42-1h-11c-.66 0-1.22.42-1.42 1L3 12v8a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1h12v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-8z"/><g transform="translate(-.45 -.8)" opacity=".27"><path fill="#fff" d="m5 11l1.5-4.5h11L19 11M6.8 7.3l-1 3.2h1.6l.7-3.2z"/></g></svg>'},
+  bus: {label:'Bus', speed:0.75, size:62,
+    svg:'<svg viewBox="0 0 24 24" width="62" height="62"><defs><linearGradient id="vB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd94d"/><stop offset="1" stop-color="#f59f00"/></linearGradient></defs><ellipse cx="12" cy="14" rx="10.4" ry="10.6" fill="rgba(0,0,0,.32)"/><g transform="translate(.3 1.1)"><path fill="rgba(110,70,0,.5)" d="M18 11H6V6h12m-1.5 11a1.5 1.5 0 0 1-1.5-1.5a1.5 1.5 0 0 1 1.5-1.5a1.5 1.5 0 0 1 1.5 1.5a1.5 1.5 0 0 1-1.5 1.5m-9 0A1.5 1.5 0 0 1 6 15.5A1.5 1.5 0 0 1 7.5 14a1.5 1.5 0 0 1 1.5 1.5A1.5 1.5 0 0 1 7.5 17M4 16c0 .88.39 1.67 1 2.22V20a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1h12v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-2.5-3.59-4-9-4S4 3.5 4 6z"/></g><path fill="url(#vB)" d="M18 11H6V6h12m-1.5 11a1.5 1.5 0 0 1-1.5-1.5a1.5 1.5 0 0 1 1.5-1.5a1.5 1.5 0 0 1 1.5 1.5a1.5 1.5 0 0 1-1.5 1.5m-9 0A1.5 1.5 0 0 1 6 15.5A1.5 1.5 0 0 1 7.5 14a1.5 1.5 0 0 1 1.5 1.5A1.5 1.5 0 0 1 7.5 17M4 16c0 .88.39 1.67 1 2.22V20a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1h12v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-2.5-3.59-4-9-4S4 3.5 4 6z"/><g transform="translate(-.45 -.8)" opacity=".28"><path fill="#fff" d="M18 11H6V6h12z"/></g></svg>'},
+  motor: {label:'Motor', speed:1.25, size:46,
+    svg:'<svg viewBox="0 0 24 24" width="46" height="46"><defs><linearGradient id="vMt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6db3ff"/><stop offset="1" stop-color="#1e5fd6"/></linearGradient></defs><ellipse cx="12" cy="14" rx="10.4" ry="10.6" fill="rgba(0,0,0,.32)"/><g transform="rotate(90 12 12) translate(.3 1.1)"><path fill="rgba(8,25,70,.5)" d="m17.42 10l-4.01-4H9v2h3.59l2 2H6.5C4 10 2 12 2 14.5S4 19 6.5 19c2.22 0 4.06-1.62 4.42-3.73L13.04 14c-.04.17-.04.33-.04.5c0 2.5 2 4.5 4.5 4.5s4.5-2 4.5-4.5S19.92 10 17.42 10m-8.85 7.41a3.15 3.15 0 0 1-6.14 0C3.12 16.96 4 15.5 5.9 15.5s2.78 1.46 2.67 2.91m13.66-1.41a3.15 3.15 0 0 1-6.14 0c-.11-1.45.77-2.91 2.67-2.91s2.78 1.46 2.67 2.91M11 20H8l2-4h1z"/></g><g transform="rotate(90 12 12)"><path fill="url(#vMt)" d="m17.42 10l-4.01-4H9v2h3.59l2 2H6.5C4 10 2 12 2 14.5S4 19 6.5 19c2.22 0 4.06-1.62 4.42-3.73L13.04 14c-.04.17-.04.33-.04.5c0 2.5 2 4.5 4.5 4.5s4.5-2 4.5-4.5S19.92 10 17.42 10m-8.85 7.41a3.15 3.15 0 0 1-6.14 0C3.12 16.96 4 15.5 5.9 15.5s2.78 1.46 2.67 2.91m13.66-1.41a3.15 3.15 0 0 1-6.14 0c-.11-1.45.77-2.91 2.67-2.91s2.78 1.46 2.67 2.91M11 20H8l2-4h1z"/></g><g transform="rotate(90 12 12) translate(-.45 -.8)" opacity=".27"><path fill="#fff" d="m17.42 10l-4.01-4H9v2h3.59l2 2H6.5C4 10 2 12 2 14.5S4 19 6.5 19c2.22 0 4.06-1.62 4.42-3.73L13.04 14c-.04.17-.04.33-.04.5c0 2.5 2 4.5 4.5 4.5s4.5-2 4.5-4.5S19.92 10 17.42 10z"/></g></svg>'},
+  pesawat: {label:'Pesawat', speed:5, size:66,
+    svg:'<svg viewBox="0 0 24 24" width="66" height="66"><defs><linearGradient id="vP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#b9c6dc"/></linearGradient></defs><ellipse cx="12" cy="14" rx="10.4" ry="10.6" fill="rgba(0,0,0,.32)"/><g transform="translate(.3 1.1)"><path fill="rgba(25,35,60,.45)" d="M20.56 3.91c.59.59.59 1.54 0 2.12l-3.89 3.89l2.12 9.19l-1.41 1.42l-3.88-7.43L9.6 17l.36 2.47l-1.07 1.06l-1.76-3.18l-3.19-1.77L5 14.5l2.5.37L11.37 11L3.94 7.09l1.42-1.41l9.19 2.12l3.89-3.89c.56-.58 1.56-.58 2.12 0"/></g><path fill="url(#vP)" d="M20.56 3.91c.59.59.59 1.54 0 2.12l-3.89 3.89l2.12 9.19l-1.41 1.42l-3.88-7.43L9.6 17l.36 2.47l-1.07 1.06l-1.76-3.18l-3.19-1.77L5 14.5l2.5.37L11.37 11L3.94 7.09l1.42-1.41l9.19 2.12l3.89-3.89c.56-.58 1.56-.58 2.12 0"/><g transform="translate(-.4 -.7)" opacity=".35"><path fill="#fff" d="M20.56 3.91c.59.59.59 1.54 0 2.12l-3.89 3.89l2.12 9.19l-1.41 1.42l-3.88-7.43L9.6 17l.36 2.47l-1.07 1.06l-1.76-3.18l-3.19-1.77L5 14.5l2.5.37L11.37 11L3.94 7.09l1.42-1.41l9.19 2.12l3.89-3.89c.56-.58 1.56-.58 2.12 0"/></g><g fill="#33517e"><path d="M12.5 18.5a.5.5 0 0 1-.8-1.6l1-1-1-1.9-2.9.7-.4.9a.5.5 0 1 1-1-.3l.5-1.2a.5.5 0 0 1 .6-.3l4.3 1.1a.5.5 0 0 1 .3.8l-1.3 1.3 1 1a.5.5 0 0 1-.3.8z"/></g></svg>'}
+};
+
   const vehImgCache = {};
   function vehImg(){
     const t = vehSel.value;
@@ -4299,6 +4697,7 @@ async function ytStreamUrl(id){
   fileEl.addEventListener('change', async ()=>{
     const f = fileEl.files[0];
     if(!f) return;
+    srcFile = f;
     fileNameEl.textContent = f.name;
     running = false;
     cancelAnimationFrame(raf);
@@ -4639,6 +5038,90 @@ async function ytStreamUrl(id){
       try{ await ffState.ffmpeg.deleteFile('in.webm'); }catch(e){}
     }
   });
+
+  // ---- Clip Tool (potong langsung dari file asli, tanpa rekam) ----
+  let srcFile = null;
+  const clipA = $('clipA'), clipB = $('clipB'), clipATxt = $('clipATxt'), clipBTxt = $('clipBTxt');
+  const clipPrev = $('clipPrev'), clipAdd = $('clipAdd'), clipCut = $('clipCut'), clipClear = $('clipClear'), clipList = $('clipList');
+  let clipSegs = [];
+  function clipFmt(t){ t = Math.max(0, t|0); return String(Math.floor(t/60)).padStart(2,'0') + ':' + String(t%60).padStart(2,'0'); }
+  function clipTs(v){ const d = videoEl.duration || 0; return d ? d*v/1000 : 0; }
+  function renderClipList(){
+    clipList.innerHTML = '';
+    clipCut.disabled = !clipSegs.length;
+    clipClear.disabled = !clipSegs.length;
+    clipSegs.forEach((s,i)=>{
+      const d = document.createElement('div');
+      d.className = 'plock-item';
+      d.innerHTML = '<span class="mono">✂</span><span class="grow">Klip ' + (i+1) + ' — ' + clipFmt(s[0]) + ' → ' + clipFmt(s[1]) + ' (' + (s[1]-s[0]).toFixed(1) + 's)</span><button class="mini-btn" title="Hapus klip ini">✕</button>';
+      d.querySelector('button').addEventListener('click', ()=>{ clipSegs.splice(i,1); renderClipList(); });
+      clipList.appendChild(d);
+    });
+  }
+  clipA.addEventListener('input', ()=>{ clipATxt.textContent = clipFmt(clipTs(+clipA.value)); });
+  clipB.addEventListener('input', ()=>{ clipBTxt.textContent = clipFmt(clipTs(+clipB.value)); });
+  clipPrev.addEventListener('click', ()=>{
+    if(!videoEl.videoWidth) return showToast('Pilih video dulu');
+    const s = clipTs(+clipA.value), e = clipTs(+clipB.value);
+    videoEl.currentTime = s;
+    videoEl.play().catch(()=>{});
+    setTimeout(()=>{ if(videoEl.currentTime >= e - 0.05) videoEl.pause(); }, Math.max(500, (e-s)*1000));
+  });
+  clipAdd.addEventListener('click', ()=>{
+    if(!videoEl.videoWidth) return showToast('Pilih video dulu');
+    const s = clipTs(+clipA.value), e = clipTs(+clipB.value);
+    if(e - s < 0.5) return showToast('Klip harus minimal 0,5 detik');
+    clipSegs.push([s, e]);
+    renderClipList();
+    showToast('➕ Klip ' + clipSegs.length + ' ditambahkan');
+  });
+  clipCut.addEventListener('click', async ()=>{
+    if(!srcFile || !clipSegs.length) return showToast('Pilih video & tambah klip dulu');
+    clipCut.disabled = true;
+    clipCut.textContent = '⏳ Menyiapkan FFmpeg…';
+    try{ await ensureFfmpeg(); }
+    catch(e){
+      showToast(ffmpegFailHint(e));
+      clipCut.disabled = false;
+      clipCut.textContent = '✂ Potong & Unduh Klip';
+      return;
+    }
+    try{
+      ffState.onProgress = p => { clipCut.textContent = '⏳ Memotong ' + Math.round(p*100) + '%…'; };
+      const ext = (srcFile.name.match(/\.[a-z0-9]+$/i) || ['.mp4'])[0].toLowerCase();
+      const IN = 'src' + ext;
+      await ffState.ffmpeg.writeFile(IN, new Uint8Array(await srcFile.arrayBuffer()));
+      let done = 0;
+      for(const sg of clipSegs){
+        await ffState.ffmpeg.exec([
+          '-ss', sg[0].toFixed(2), '-t', Math.max(0.5, sg[1]-sg[0]).toFixed(2),
+          '-i', IN,
+          '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
+          '-c:v', 'libvpx', '-crf', '34', '-b:v', '2M',
+          '-c:a', 'libopus', '-y', 'clip' + done + '.webm',
+        ]);
+        done++;
+      }
+      const base = (srcFile.name.replace(/\.[^.]+$/, '') || 'video');
+      for(let i=0;i<done;i++){
+        const data = await ffState.ffmpeg.readFile('clip' + i + '.webm');
+        downloadBlob(new Blob([new Uint8Array(data)], {type:'video/webm'}), base + '-klip' + (i+1) + '.webm');
+      }
+      showToast('✂ ' + done + ' klip terunduh');
+    }catch(e){
+      console.error(e);
+      showToast('Gagal memotong: ' + String(e.message||e).slice(0,80));
+    }finally{
+      ffState.onProgress = null;
+      clipCut.disabled = false;
+      clipCut.textContent = '✂ Potong & Unduh Klip';
+      try{
+        const ext = (srcFile.name.match(/\.[a-z0-9]+$/i) || ['.mp4'])[0].toLowerCase();
+        await ffState.ffmpeg.deleteFile('src' + ext);
+      }catch(e){}
+    }
+  });
+  clipClear.addEventListener('click', ()=>{ clipSegs = []; renderClipList(); });
 
   subSizeEl.addEventListener('input', e=> subSizeValEl.textContent = e.target.value);
   sensEl.addEventListener('input', e=> sensValEl.textContent = e.target.value);
