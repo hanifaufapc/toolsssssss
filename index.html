@@ -217,13 +217,6 @@
     position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:10px; color:#9a9a9a; background:#0d0d0d;
   }
-  .fx-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:16px;}
-  .fx-row button{
-    border:1px solid rgba(28,24,16,0.18); background:#fff; border-radius:8px; padding:9px 14px;
-    font-size:12.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px;
-  }
-  .fx-row button.active{background:var(--orange); border-color:var(--orange); color:#fff;}
-  .fx-row button:disabled{opacity:0.4; cursor:not-allowed;}
 
   footer{border-top:1px solid var(--line); padding:26px 28px; text-align:center;}
   footer p{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:#8f8973; margin:0;}
@@ -562,17 +555,7 @@
       <button class="btn btn-ghost" id="camStop" disabled>Matikan</button>
     </div>
 
-    <div class="fx-row">
-      <button data-fx="none" class="active" disabled>Normal</button>
-      <button data-fx="blur" disabled>Blur</button>
-      <button data-fx="invert" disabled>Invert</button>
-      <button data-fx="glitch" disabled>Glitch</button>
-      <button data-fx="distort" disabled>Distorsi</button>
-      <button data-fx="crack" disabled>Retak Kaca</button>
-      <button data-fx="freeze" disabled>Freeze</button>
-    </div>
-
-    <p class="hint">Hand tracking langsung di browser (MediaPipe WASM): jari-jari terdeteksi real-time dengan overlay HUD. Gesture <b>pinch</b> (jempol + telunjuk bersentuhan) memicu efek terpilih, <b>peace sign</b> otomatis blur — aktif selama gesture dipegang, kembali normal saat dilepas. Butuh internet sekali untuk memuat model, lalu semua jalan di web tanpa install apa pun.</p>
+    <p class="hint"><b>Cara pakai:</b> buka <b>portal</b> dengan 2 tangan — ujung jempol + telunjuk kedua tangan jadi 4 titik yang membentuk bangun datar; di dalamnya efek visual mengikuti gerakan. Ganti efek: dekatkan <b>ujung telunjuk kedua tangan</b>, atau sentuhkan <b>jempol &amp; kelingking</b> (Invert → Glitch → Distorsi → Freeze → Kaca Pecah). <b>Peace sign</b> = blur otomatis. Portal tidak menampilkan skeleton; butuh internet sekali untuk memuat model.</p>
   </div>
 </div>
 
@@ -1740,13 +1723,11 @@ function audioBufferToWav(buffer){
   const startBtn = document.getElementById('camStart');
   const stopBtn = document.getElementById('camStop');
   const snapBtn = document.getElementById('camSnap');
-  const fxRow = document.querySelector('.fx-row');
 
   const ctx = canvas.getContext('2d');
-  let stream = null, rafId = null, activeFx = 'none';
-  let frozenData = null, crackLines = [], handsDet = null;
+  let stream = null, rafId = null;
+  let frozenCanvas = null, crackArt = null, handsDet = null;
   let handLandmarks = [], modelFailed = false;
-  const POTES = 21;
 
   if(!('mediaDevices' in navigator)){
     startBtn.disabled = true;
@@ -1759,19 +1740,61 @@ function audioBufferToWav(buffer){
     badge.innerHTML = html;
   }
 
-  function genCrack(w,h){
+  const FXS = ['invert','glitch','distort','freeze','crack'];
+  const FX_LABELS = {invert:'Invert', glitch:'Glitch', distort:'Distorsi', freeze:'Freeze', crack:'Kaca Pecah'};
+  let fxIdx = 0, wasPinch = false, lastFxT = 0;
+  let peaceOn = false, peaceShownT = 0, lastBadgeT = 0, lastDetT = 0;
+
+  function genCrackArt(cx, cy, rad){
     const lines = [];
-    const cx = w/2, cy = h/2;
-    for(let i=0;i<9;i++){
-      let pt = [cx,cy];
-      for(let j=0;j<5;j++){
-        const nx = pt[0] + (Math.random()-0.5)*w*0.3;
-        const ny = pt[1] + (Math.random()-0.5)*h*0.3;
-        lines.push([pt[0],pt[1],nx,ny]);
-        pt = [nx,ny];
+    const mains = 12 + (Math.random()*4|0);
+    for(let i=0;i<mains;i++){
+      let ang = (i/mains)*Math.PI*2 + (Math.random()-0.5)*0.7;
+      const segs = 3 + (Math.random()*4|0);
+      const total = rad*(0.7+Math.random()*0.5);
+      let x = cx, y = cy;
+      for(let s=0;s<segs;s++){
+        ang += (Math.random()-0.5)*0.85;
+        const nx = x + Math.cos(ang)*total/segs;
+        const ny = y + Math.sin(ang)*total/segs;
+        lines.push([x,y,nx,ny]);
+        if(Math.random() < 0.5){
+          const bAng = ang + (Math.random()<0.5?1:-1)*(0.4+Math.random()*0.9);
+          lines.push([nx,ny, nx+Math.cos(bAng)*total/segs*0.7, ny+Math.sin(bAng)*total/segs*0.7]);
+        }
+        x = nx; y = ny;
       }
     }
-    return lines;
+    const ring = [];
+    for(let a=0;a<Math.PI*2;a+=0.35){
+      const rr = rad*0.18*(1 + (Math.random()-0.5)*0.25);
+      ring.push([cx+Math.cos(a)*rr, cy+Math.sin(a)*rr]);
+    }
+    return {lines, ring};
+  }
+
+  function drawCrack(){
+    ctx.strokeStyle = 'rgba(235,245,255,0.92)';
+    ctx.lineWidth = 1.3;
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 2;
+    ctx.beginPath();
+    for(const [x1,y1,x2,y2] of crackArt.lines){
+      ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+    }
+    ctx.stroke();
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    crackArt.ring.forEach(([x,y],i)=> i ? ctx.lineTo(x,y) : ctx.moveTo(x,y));
+    ctx.closePath();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    const t = performance.now()/600;
+    ctx.strokeStyle = 'rgba(255,255,255,' + (0.18+Math.sin(t)*0.08) + ')';
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    crackArt.ring.forEach(([x,y])=>{ ctx.moveTo(x,y); ctx.lineTo(x,y); });
+    ctx.stroke();
   }
 
   async function loadHands(){
@@ -1824,15 +1847,6 @@ function audioBufferToWav(buffer){
     throw lastErr || new Error('Model tangan gagal dimuat');
   }
 
-  function pinchOf(lm){
-    const d = Math.hypot(lm[8].x-lm[4].x, lm[8].y-lm[4].y, lm[8].z-lm[4].z);
-    if(d < 0.05) return true;
-    if(d < 0.09){
-      const folded = lm[8].y > lm[6].y && lm[6].y > lm[5].y;
-      return folded;
-    }
-    return false;
-  }
   function peaceOf(lm){
     const indexUp = lm[8].y < lm[6].y && lm[6].y < lm[5].y;
     const middleUp = lm[12].y < lm[10].y && lm[10].y < lm[9].y;
@@ -1842,29 +1856,70 @@ function audioBufferToWav(buffer){
     return indexUp && middleUp && ringDown && pinkyDown && sep;
   }
 
-  function drawHud(){
-    ctx.strokeStyle = '#99f0e6';
-    ctx.lineWidth = 2.4;
-    for(const lm of handLandmarks){
-      for(let i=0;i<POTES;i++){
-        const a = lm[i], b = lm[(i+1)%POTES];
-        ctx.beginPath();
-        ctx.moveTo(a.x*canvas.width, a.y*canvas.height);
-        ctx.lineTo(b.x*canvas.width, b.y*canvas.height);
-        ctx.stroke();
-      }
-      const pinch = pinchOf(lm), peace = peaceOf(lm);
-      ctx.fillStyle = (pinch || peace) ? '#ffc46b' : '#42a399';
-      [4, 8].forEach(pi=>{
-        ctx.beginPath();
-        ctx.arc(lm[pi].x*canvas.width, lm[pi].y*canvas.height, 5, 0, Math.PI*2);
-        ctx.fill();
-      });
+  function quadFromHands(land){
+    if(land.length !== 2) return null;
+    const pts = [];
+    for(const lm of land){
+      pts.push([lm[4].x, lm[4].y]);
+      pts.push([lm[8].x, lm[8].y]);
     }
+    const byY = pts.slice().sort((a,b)=>a[1]-b[1]);
+    const top = byY.slice(0,2).sort((a,b)=>a[0]-b[0]);
+    const bot = byY.slice(2).sort((a,b)=>a[0]-b[0]);
+    return [top[0], top[1], bot[1], bot[0]];
   }
 
-  const FX_LABELS = {blur:'Blur', invert:'Invert', glitch:'Glitch', distort:'Distorsi', crack:'Retak Kaca', freeze:'Freeze'};
-  let fxOn = false, latchT = 0, peaceOn = false, peaceShownT = 0, lastBadgeT = 0, lastDetT = 0;
+  function cycleGestOf(land){
+    if(land.length >= 2){
+      const i0 = land[0][8], i1 = land[1][8];
+      if(Math.hypot(i0.x-i1.x, i0.y-i1.y) < 0.035) return 'TELUNJUK';
+    }
+    for(const lm of land){
+      const d = Math.hypot(lm[4].x-lm[20].x, lm[4].y-lm[20].y);
+      if(d < 0.035) return 'KELINGKING';
+    }
+    return null;
+  }
+
+  function drawFx(fx){
+    const w = canvas.width, h = canvas.height;
+    if(fx === 'invert'){ ctx.filter = 'invert(1)'; ctx.drawImage(video,0,0,w,h); ctx.filter = 'none'; }
+    else if(fx === 'glitch'){
+      ctx.filter = 'none';
+      for(let i=0;i<5;i++){
+        const bh = 6 + Math.random()*22;
+        const y = Math.random()*(h-bh);
+        const sx = (Math.random()-0.5)*60;
+        ctx.drawImage(video, 0, y, w, bh, sx, y, w, bh);
+      }
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.filter = 'opacity(0.25)';
+      ctx.drawImage(video, 2, 0, w, h);
+      ctx.drawImage(video, -2, 0, w, h);
+      ctx.filter = 'none';
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    else if(fx === 'distort'){
+      ctx.filter = 'none';
+      const t = performance.now()/250;
+      const bands = 44, bandH = h/bands;
+      for(let i=0;i<bands;i++){
+        const y = i*bandH;
+        const shift = Math.sin(t + i*0.35) * 16;
+        ctx.drawImage(video, 0, y, w, bandH+1, shift, y, w, bandH+1);
+      }
+    }
+    else if(fx === 'freeze'){
+      if(frozenCanvas) ctx.drawImage(frozenCanvas, 0, 0, w, h);
+      else ctx.drawImage(video, 0, 0, w, h);
+    }
+    else if(fx === 'crack'){
+      ctx.drawImage(video, 0, 0, w, h);
+      if(crackArt) drawCrack();
+    }
+    else ctx.drawImage(video, 0, 0, w, h);
+    ctx.filter = 'none';
+  }
 
   function draw(){
     const w = canvas.width, h = canvas.height;
@@ -1880,118 +1935,131 @@ function audioBufferToWav(buffer){
     }
 
     const land = handLandmarks;
-    const pinch = land.some(pinchOf);
+    const chg = cycleGestOf(land);
     const peace = land.some(peaceOf);
+    const quad = quadFromHands(land);
 
-    if(pinch){
-      if(latchT === 0) latchT = performance.now();
-      if(performance.now() - latchT > 180 && !fxOn){
-        fxOn = true;
-        if(activeFx !== 'none'){
-          const lb = FX_LABELS[activeFx];
-          if(lb) showToast(`${lb} aktif — lepas gesture untuk normal`);
-        }
-      }
-    }else{
-      latchT = 0;
-      fxOn = false;
+    if(chg && !wasPinch && now - lastFxT > 450){
+      lastFxT = now;
+      fxIdx = (fxIdx + 1) % FXS.length;
+      frozenCanvas = null; crackArt = null;
+      showToast('Efek: ' + FX_LABELS[FXS[fxIdx]]);
     }
+    wasPinch = chg;
+
     if(peace){
       peaceOn = true;
-      if(performance.now() - peaceShownT > 4000){
-        peaceShownT = performance.now();
+      if(now - peaceShownT > 4000){
+        peaceShownT = now;
         showToast('✌ Peace sign — blur otomatis');
       }
     }else{
       peaceOn = false;
     }
 
-    if(performance.now() - lastBadgeT > 300){
-      lastBadgeT = performance.now();
+    if(now - lastBadgeT > 300){
+      lastBadgeT = now;
       if(!handsDet) setBadge(modelFailed ? 'Model gagal dimuat' : 'Memuat model…', true);
       else if(!land.length) setBadge('Tangan: 0');
       else{
         const tags = [];
-        if(pinch) tags.push('PINCH');
+        if(chg) tags.push(chg);
         if(peace) tags.push('PEACE');
-        setBadge(`Tangan: ${land.length}${tags.length ? ' · ' + tags.join(' · ') : ''}`);
+        let b = `Tangan: ${land.length}`;
+        if(quad) b += ` · EFEK: ${FX_LABELS[FXS[fxIdx]]}`;
+        if(tags.length) b += ' · ' + tags.join(' · ');
+        setBadge(b);
       }
     }
 
     ctx.save();
     ctx.translate(w,0); ctx.scale(-1,1);
 
-    const eff = peaceOn ? 'blur' : (fxOn ? activeFx : 'none');
-
-    if(eff === 'freeze'){
-      if(!frozenData){
-        ctx.filter = 'none';
-        ctx.drawImage(video,0,0,w,h);
-        frozenData = ctx.getImageData(0,0,w,h);
-      }
-      ctx.restore();
-      if(frozenData) ctx.putImageData(frozenData,0,0);
-      rafId = requestAnimationFrame(draw);
-      return;
-    }
-    frozenData = null;
-
-    if(eff === 'blur'){ ctx.filter = 'blur(8px)'; ctx.drawImage(video,0,0,w,h); }
-    else if(eff === 'invert'){ ctx.filter = 'invert(1)'; ctx.drawImage(video,0,0,w,h); }
-    else if(eff === 'glitch'){
-      ctx.filter = 'none'; ctx.drawImage(video,0,0,w,h);
-      for(let i=0;i<5;i++){
-        const bh = 6 + Math.random()*22;
-        const y = Math.random()*(h-bh);
-        const sx = (Math.random()-0.5)*60;
-        ctx.drawImage(video, 0, y, w, bh, sx, y, w, bh);
-      }
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.filter = 'opacity(0.25)';
-      ctx.drawImage(video, 2, 0, w, h);
-      ctx.drawImage(video, -2, 0, w, h);
-      ctx.globalCompositeOperation = 'source-over';
-    }
-    else if(eff === 'distort'){
+    if(peaceOn){
+      ctx.filter = 'blur(8px)';
+      ctx.drawImage(video,0,0,w,h);
       ctx.filter = 'none';
-      const t = performance.now()/250;
-      const bands = 44, bandH = h/bands;
-      for(let i=0;i<bands;i++){
-        const y = i*bandH;
-        const shift = Math.sin(t + i*0.35) * 16;
-        ctx.drawImage(video, 0, y, w, bandH+1, shift, y, w, bandH+1);
-      }
-    }
-    else if(eff === 'crack'){
-      ctx.filter = 'none'; ctx.drawImage(video,0,0,w,h);
-      ctx.strokeStyle = 'rgba(235,245,255,0.85)';
-      ctx.lineWidth = 1.2;
-      ctx.shadowColor = 'rgba(0,0,0,0.4)';
-      ctx.shadowBlur = 2;
-      crackLines.forEach(([x1,y1,x2,y2])=>{
-        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-      });
-      ctx.shadowBlur = 0;
-    }
-    else{
+    }else{
       ctx.filter = 'none';
       ctx.drawImage(video,0,0,w,h);
     }
-    ctx.filter = 'none';
 
-    if(peaceOn || fxOn) drawHud();
+    if(quad){
+      const fx = FXS[fxIdx];
+      if(fx === 'freeze' && !frozenCanvas){
+        frozenCanvas = document.createElement('canvas');
+        frozenCanvas.width = w; frozenCanvas.height = h;
+        const fc = frozenCanvas.getContext('2d');
+        fc.setTransform(-1,0,0,1,w,0);
+        fc.drawImage(video,0,0,w,h);
+        fc.setTransform(1,0,0,1,0,0);
+      }
+      if(fx === 'crack' && !crackArt){
+        const cx = quad.reduce((s,p)=>s+p[0],0)/4*w;
+        const cy = quad.reduce((s,p)=>s+p[1],0)/4*h;
+        const rad = Math.max(
+          Math.hypot(quad[0][0]*w-cx, quad[0][1]*h-cy),
+          Math.hypot(quad[2][0]*w-cx, quad[2][1]*h-cy)
+        );
+        crackArt = genCrackArt(cx, cy, rad);
+      }
+
+      ctx.save();
+      ctx.beginPath();
+      quad.forEach((p,i)=> i ? ctx.lineTo(p[0]*w,p[1]*h) : ctx.moveTo(p[0]*w,p[1]*h));
+      ctx.closePath();
+      ctx.clip();
+      if(!peaceOn) drawFx(fx);
+      ctx.restore();
+
+      ctx.save();
+      ctx.beginPath();
+      quad.forEach((p,i)=> i ? ctx.lineTo(p[0]*w,p[1]*h) : ctx.moveTo(p[0]*w,p[1]*h));
+      ctx.closePath();
+      ctx.strokeStyle = chg ? '#ffd400' : '#ffffff';
+      ctx.lineWidth = chg ? 3 : 2;
+      ctx.shadowColor = 'rgba(255,255,255,0.9)';
+      ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+
+      ctx.fillStyle = chg ? '#ffd400' : '#ffe600';
+      for(const p of quad){
+        ctx.beginPath();
+        ctx.arc(p[0]*w, p[1]*h, 8, 0, Math.PI*2);
+        ctx.fill();
+      }
+      for(let i=0;i<4;i++){
+        const a = quad[i], b = quad[(i+1)%4];
+        for(let k=0;k<5;k++){
+          const t = Math.random();
+          ctx.beginPath();
+          ctx.arc(
+            (a[0]+(b[0]-a[0])*t)*w + (Math.random()-0.5)*30,
+            (a[1]+(b[1]-a[1])*t)*h + (Math.random()-0.5)*30,
+            1 + Math.random()*3, 0, Math.PI*2
+          );
+          ctx.fill();
+        }
+      }
+
+      ctx.save();
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.font = '600 13px "IBM Plex Mono", monospace';
+      ctx.textAlign = 'left';
+      const lx = w - quad[0][0]*w, ly = quad[0][1]*h;
+      ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+      ctx.lineWidth = 3;
+      ctx.strokeText('PORTAL: ' + FX_LABELS[fx], Math.min(lx+12, w-10), Math.max(14, ly-12));
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('PORTAL: ' + FX_LABELS[fx], Math.min(lx+12, w-10), Math.max(14, ly-12));
+      ctx.restore();
+    }
+
     ctx.restore();
     rafId = requestAnimationFrame(draw);
   }
-
-  fxRow.addEventListener('click', e=>{
-    const b = e.target.closest('button'); if(!b || b.disabled) return;
-    fxRow.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    activeFx = b.dataset.fx;
-    frozenData = null;
-    if(activeFx === 'crack' && canvas.width) crackLines = genCrack(canvas.width, canvas.height);
-  });
 
   startBtn.addEventListener('click', async ()=>{
     try{
@@ -2001,7 +2069,6 @@ function audioBufferToWav(buffer){
       canvas.width = video.videoWidth; canvas.height = video.videoHeight;
       placeholder.style.display = 'none';
       startBtn.disabled = true; stopBtn.disabled = false; snapBtn.disabled = false;
-      fxRow.querySelectorAll('button').forEach(b=> b.disabled = false);
       setBadge('Menyalakan model…', true);
       try{
         await loadHands();
@@ -2027,8 +2094,8 @@ function audioBufferToWav(buffer){
     placeholder.style.display = 'flex';
     badge.style.display = 'none';
     startBtn.disabled = false; stopBtn.disabled = true; snapBtn.disabled = true;
-    fxRow.querySelectorAll('button').forEach(b=> b.disabled = true);
-    handLandmarks = []; fxOn = false; latchT = 0; peaceOn = false;
+    handLandmarks = []; wasPinch = false; peaceOn = false;
+    frozenCanvas = null; crackArt = null; fxIdx = 0;
   });
 
   snapBtn.addEventListener('click', ()=>{
