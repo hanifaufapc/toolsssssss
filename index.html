@@ -44,8 +44,9 @@
   .nav-inner{max-width:1080px; margin:0 auto; padding:16px 28px; display:flex; align-items:center; justify-content:space-between;}
   .logo{display:flex; align-items:center; gap:9px; font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:0.04em;}
   .logo .bolt{width:12px;height:12px;border-radius:50%; background:var(--orange); box-shadow:0 0 0 3px rgba(226,85,46,0.2);}
-  .nav-inner a{color:var(--text-light); text-decoration:none; font-size:13.5px; font-weight:600; opacity:0.7; transition:opacity .15s;}
-  .nav-inner a:hover{opacity:1;}
+  .nav-inner > a:not(.logo){color:var(--text-light); text-decoration:none; font-size:13.5px; font-weight:600; opacity:0.7; transition:opacity .15s;}
+  .nav-inner > a:not(.logo):hover{opacity:1;}
+  .nav-inner a.logo{color:var(--text-light); text-decoration:none;}
 
   /* ---------- HERO ---------- */
   .hero{ position:relative; padding:64px 28px 44px; text-align:center; overflow:hidden;}
@@ -228,6 +229,23 @@
   .musik-row .musik-url{flex:1; min-width:220px; background:#141210; border:1px solid rgba(28,24,16,0.35); border-radius:9px; padding:11px 14px; font-size:14px; color:var(--text); outline:none;}
   .musik-row .musik-url:focus{border-color:var(--brass);}
   .musik-select{background:#141210; border:1px solid rgba(28,24,16,0.35); border-radius:9px; padding:11px 15px; font-size:14px; color:var(--text); cursor:pointer;}
+  .musik-top{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;}
+  .musik-top .btn{padding:10px 16px; font-size:12.5px;}
+  .musik-top #musikRec.rec-on{background:#d6453d; color:#fff;}
+  .musik-ctl{display:flex; align-items:center; gap:8px; background:#1a1713; border:1px solid rgba(255,255,255,0.08); border-radius:9px; padding:7px 12px;}
+  .musik-ctl .ctl-label{font-size:11px; color:#9a9178; letter-spacing:0.05em;}
+  .musik-ctl input[type=range]{width:110px; accent-color:var(--brass);}
+  .musik-ctl.toggle{font-size:12px; color:#cfc7a8; cursor:pointer; user-select:none;}
+  .musik-ctl.toggle input{accent-color:var(--brass); width:auto;}
+  .mini-btn{background:#26211a; color:#e8e2d0; border:1px solid rgba(255,255,255,0.1); border-radius:7px; width:30px; height:30px; cursor:pointer; font-size:17px; font-weight:700; line-height:1;}
+  .mini-btn:hover{border-color:var(--brass); color:var(--brass);}
+  .panel-dark{background:#12100d; color:#e8e2d0;}
+  .panel-dark .panel-head p{color:#9a9178;}
+  .panel-dark .hint{color:#8f866f;}
+  .musik-stage{background:#0b0a08; border:1px solid rgba(255,255,255,0.07); border-radius:14px; padding:16px 14px 8px;}
+  .musik-note-row{min-height:30px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:8px;}
+  .note-chip{background:rgba(201,165,77,0.15); color:#e3b955; border:1px solid rgba(201,165,77,0.4); border-radius:100px; padding:4px 11px; font-size:12px; font-family:'IBM Plex Mono',monospace; animation:noteRise .95s ease forwards;}
+  @keyframes noteRise{from{opacity:1; transform:translateY(0);} to{opacity:0; transform:translateY(-12px);}}
   .piano-wrap{position:relative; height:230px; margin-top:16px; user-select:none; touch-action:none;}
   .pkey{position:absolute; bottom:0; border:1px solid #2a2620; border-radius:0 0 5px 5px; box-sizing:border-box; cursor:pointer;}
   .pkey.white{width:52px; height:100%; background:linear-gradient(#fbf8ee, #e9e3d0); color:#5a5340; font-size:14px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:9px;}
@@ -594,16 +612,16 @@
       <button class="btn btn-ghost" id="camStop" disabled>Matikan</button>
     </div>
 
-    <p class="hint"><b>Cara pakai:</b> buka <b>portal</b> dengan 2 tangan — ujung jempol + telunjuk kedua tangan jadi 4 titik membentuk bangun datar; di dalamnya efek filter mengikuti gerakan. <b>Pinch kanan</b> (jempol+telunjuk tangan kanan) = efek berikutnya, <b>pinch kiri</b> = efek sebelumnya (MONO → DUAL-TONE → PIXELATE → INVERT → SEPIA → BLUR → THERMAL → SKETCH → GLITCH → NEON → GALAXY). <b>Sentuh jempol &amp; kelingking</b> = simpan foto area portal. <b>Peace sign</b> = blur otomatis. Portal tidak menampilkan skeleton; butuh internet sekali untuk memuat model.</p>
+    <p class="hint"><b>Cara pakai:</b> buka <b>portal</b> dengan 2 tangan — ujung jempol + telunjuk kedua tangan jadi 4 titik membentuk bangun datar; di dalamnya efek filter mengikuti gerakan. <b>Pinch kanan</b> (jempol+telunjuk tangan kanan) = efek berikutnya, <b>pinch kiri</b> = efek sebelumnya (MONO → DUAL-TONE → PIXELATE → INVERT → SEPIA → BLUR → THERMAL → SKETCH → GLITCH → NEON). <b>Sentuh jempol &amp; kelingking</b> = simpan foto area portal. <b>Peace sign</b> = blur otomatis. Portal tidak menampilkan skeleton; butuh internet sekali untuk memuat model.</p>
   </div>
 
-  <div class="panel" data-panel="musik">
+  <div class="panel panel-dark" data-panel="musik">
     <div class="panel-head">
       <div class="ic-wrap"><svg class="icon" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-      <div><h2>Alat Musik</h2><p>Main dengan keyboard, atau autoplay mengikuti audio.</p></div>
+      <div><h2>Alat Musik</h2><p>Virtual piano &amp; drum — main, rekam, atau autoplay mengikuti audio.</p></div>
     </div>
 
-    <div class="musik-row">
+    <div class="musik-top">
       <select id="musikInst" class="musik-select">
         <option value="piano">🎹 Piano</option>
         <option value="gitar">🎸 Gitar</option>
@@ -612,6 +630,29 @@
         <option value="flute">🎷 Flute</option>
         <option value="drum">🥁 Drum</option>
       </select>
+      <div class="musik-ctl" title="Volume">
+        <span class="ctl-label mono">Vol</span>
+        <input type="range" id="musikVol" min="0" max="100" value="80">
+      </div>
+      <div class="musik-ctl" title="Geser oktaf">
+        <button class="mini-btn" id="musikOctDown" aria-label="Oktaf turun">−</button>
+        <span class="mono ctl-label" id="musikOctVal">C3–E5</span>
+        <button class="mini-btn" id="musikOctUp" aria-label="Oktaf naik">+</button>
+      </div>
+      <label class="musik-ctl toggle mono" title="Tahan nada lebih lama"><input type="checkbox" id="musikSustain"> Sustain</label>
+      <select id="musikNoteLang" class="musik-select" title="Tampilan nama not">
+        <option value="letter">Nama Not: C / C#</option>
+        <option value="solfege">Nama Not: Do / Re</option>
+        <option value="none">Tanpa Nama Not</option>
+      </select>
+      <button class="btn btn-dark" id="musikRec" title="Rekam permainanmu">● Rekam</button>
+      <button class="btn btn-dark" id="musikPlay" disabled title="Putar rekaman">▶ Putar</button>
+    </div>
+
+    <div class="musik-stage" id="musikStage"></div>
+    <div class="musik-note-row" id="musikNoteRow"></div>
+
+    <div class="musik-row">
       <button class="btn btn-primary" id="musikFileBtn">🎵 Autoplay: Pilih Audio/Video</button>
       <input type="file" id="musikFile" accept="audio/*,video/*" hidden>
       <input type="text" id="musikUrl" class="musik-url" placeholder="Atau tempel link YouTube…">
@@ -619,9 +660,8 @@
       <button class="btn btn-ghost" id="musikStop" disabled>Stop</button>
     </div>
 
-    <div class="musik-stage" id="musikStage"></div>
     <div class="musik-status" id="musikStatus" style="display:none"></div>
-    <p class="hint" id="musikHint"><b>Melodi</b> (Piano/Gitar/Bass/Organ/Flute): baris bawah <span class="mono">Z X C V B N M , . /</span> = C3–E4, baris atas <span class="mono">Q W E R T Y U I O P</span> = C4–E5, tombol hitam <span class="mono">S D G H J</span> &amp; <span class="mono">2 3 5 6 7</span>. <b>Shift + tombol</b> = 1 oktaf lebih tinggi (works di semua layout keyboard). <b>Drum:</b> <span class="mono">1</span> kick, <span class="mono">2</span> snare, <span class="mono">3</span> hi-hat, <span class="mono">4</span> crash, <span class="mono">5/6/7</span> tom. <b>Autoplay:</b> pilih file audio/video atau tempel <b>link YouTube</b> — alat musik bermain sendiri mengikuti musiknya (audio asli tidak ikut diputar). Instrumen melodi mengikuti nada, Drum mengikuti ketukan. Klik di area instrumen dulu jika keyboard tidak merespons.</p>
+    <p class="hint" id="musikHint"><b>Melodi</b> (Piano/Gitar/Bass/Organ/Flute): baris bawah <span class="mono">Z X C V B N M , . /</span> = C3–E4, baris atas <span class="mono">Q W E R T Y U I O P</span> = C4–E5, tombol hitam <span class="mono">S D G H J</span> &amp; <span class="mono">2 3 5 6 7</span>. <b>Shift + tombol</b> = 1 oktaf lebih tinggi (works di semua layout keyboard), tombol <b>+ / −</b> geser oktaf piano. <b>Sustain</b> = nada tidak langsung berhenti. <b>Rekam</b> lalu <b>Putar</b> untuk memutar kembali permainanmu. <b>Drum:</b> <span class="mono">1</span> kick, <span class="mono">2</span> snare, <span class="mono">3</span> hi-hat, <span class="mono">4</span> crash, <span class="mono">5/6/7</span> tom. <b>Autoplay:</b> pilih file audio/video atau tempel <b>link YouTube</b> — alat musik bermain sendiri mengikuti musiknya (audio asli tidak ikut diputar). Klik di area instrumen dulu jika keyboard tidak merespons.</p>
   </div>
 </div>
 
@@ -1863,7 +1903,7 @@ function audioBufferToWav(buffer){
     badge.innerHTML = html;
   }
 
-  const FXS = ['MONO','DUAL-TONE','PIXELATE','INVERT','SEPIA','BLUR','THERMAL','SKETCH','GLITCH','NEON','GALAXY'];
+  const FXS = ['MONO','DUAL-TONE','PIXELATE','INVERT','SEPIA','BLUR','THERMAL','SKETCH','GLITCH','NEON'];
   const FX_LABELS = Object.fromEntries(FXS.map(x=>[x,x]));
   let fxIdx = 0, wasPinch = false, lastFxT = 0;
   let wasPhoto = false, lastPhotoT = 0, flashT = 0;
@@ -1880,25 +1920,7 @@ function audioBufferToWav(buffer){
     return t;
   })();
 
-  const star = (()=>{
-    const cv = document.createElement('canvas');
-    cv.width = 1280; cv.height = 720;
-    const c = cv.getContext('2d');
-    c.fillStyle = '#1e0a28'; c.fillRect(0,0,cv.width,cv.height);
-    const colors = ['#ffffff','#ffd400','#4dd2ff','#ff6bd6'];
-    for(let i=0;i<900;i++){
-      c.fillStyle = colors[Math.random()*4|0];
-      c.globalAlpha = 0.5+Math.random()*0.5;
-      c.beginPath();
-      c.arc(Math.random()*cv.width, Math.random()*cv.height, Math.random()*2.4, 0, Math.PI*2);
-      c.fill();
-    }
-    c.globalAlpha = 1;
-    return {cv, data: c.getImageData(0,0,cv.width,cv.height).data};
-  })();
-
-  let pxSrc = null, pxHalf = null, pxOut = null, pxFx = '', pxLast = 0, pxSmall = null;
-  let pxBX = 0, pxBY = 0, pxBW = 0, pxBH = 0;
+  let pxFull = null, pxFx = '', pxLast = 0, pxSmall = null;
   function pxBBox(quad){
     if(!quad) return null;
     let mx1 = 1e9, my1 = 1e9, mx2 = -1, my2 = -1;
@@ -1979,121 +2001,25 @@ function audioBufferToWav(buffer){
     }
   }
 
-  let segDet = null, segFailed = false, segMask = null, segLast = 0;
-  async function ensureSeg(){
-    if(segDet || segFailed || !window.__mpVision || !window.__mpVision.ImageSegmenter) return;
-    const {FilesetResolver, ImageSegmenter} = window.__mpVision;
-    const abs = p => new URL(p, location.href).href;
-    const WASMS = [
-      abs('./vendor/tasks-vision/wasm'),
-      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm',
-      'https://unpkg.com/@mediapipe/tasks-vision@0.10.14/wasm',
-    ];
-    const MODELS = [
-      abs('./vendor/tasks-vision/selfie_segmenter.tflite'),
-      'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite',
-    ];
-    let lastErr = null;
-    for(const wp of WASMS){
-      let fs;
-      try{ fs = await FilesetResolver.forVisionTasks(wp); }catch(e){ lastErr = e; continue; }
-      for(const mp of MODELS){
-        try{
-          segDet = await ImageSegmenter.createFromOptions(fs, {
-            baseOptions: {modelAssetPath: mp, delegate: 'GPU'},
-            runningMode: 'VIDEO',
-            outputCategoryMask: true,
-          });
-          return;
-        }catch(e){ lastErr = e; }
-      }
-    }
-    segFailed = true;
-    const i = FXS.indexOf('GALAXY');
-    if(i > -1){ FXS.splice(i,1); if(fxIdx >= FXS.length) fxIdx = 0; }
-  }
-  function grabSegMask(now){
-    if(!segDet) return null;
-    if(now - segLast < 120) return segMask;
-    segLast = now;
-    try{
-      const res = segDet.segmentForVideo(video, now);
-      if(res && res.categoryMask) segMask = res.categoryMask.getAsUint8Array();
-    }catch(e){}
-    return segMask;
-  }
-  function pxGalaxy(d, bw, bh, b, now, ss){
-    const mask = grabSegMask(now);
-    const w = canvas.width, h = canvas.height;
-    const step = ss || 1;
-    for(let j=0;j<bh;j++){
-      const my = Math.min(h-1, b.y + j*step);
-      const sy = Math.min(star.cv.height-1, ((b.y+j*step)/h*star.cv.height|0));
-      for(let i=0;i<bw;i++){
-        const sx0 = b.x + i*step;
-        const mx = Math.min(w-1, w-1-sx0);
-        const o = (j*bw+i)*4;
-        if(mask && mask[my*w+mx] !== 0) continue;
-        const sx = Math.min(star.cv.width-1, ((w-1-sx0)/w*star.cv.width|0));
-        const so = (sy*star.cv.width+sx)*4;
-        d[o] = star.data[so]; d[o+1] = star.data[so+1]; d[o+2] = star.data[so+2];
-        d[o+3] = 255;
-      }
-    }
-  }
-function pxProcess(quad, fx, now){
-    const b = pxBBox(quad);
-    if(!b) return null;
-    if(!pxSrc){ pxSrc = document.createElement('canvas'); }
-    pxSrc.width = canvas.width; pxSrc.height = canvas.height;
-    const c = pxSrc.getContext('2d');
+  function pxProcess(fx, now){
+    if(!pxFull){ pxFull = document.createElement('canvas'); }
+    pxFull.width = canvas.width; pxFull.height = canvas.height;
+    const c = pxFull.getContext('2d');
     c.save();
     c.setTransform(-1,0,0,1,canvas.width,0);
     c.drawImage(video,0,0,canvas.width,canvas.height);
     c.restore();
-    const big = b.bw*b.bh > 300000;
-    const ox = big ? (b.bw/2)|0 : b.bw;
-    const oy = big ? (b.bh/2)|0 : b.bh;
-    const moved = Math.abs(b.x-pxBX)+Math.abs(b.y-pxBY)+Math.abs(b.bw-pxBW)+Math.abs(b.bh-pxBH);
-    const cool = (fx === 'SKETCH' || fx === 'NEON') ? 60 : (fx === 'GALAXY' ? 120 : 0);
-    if(fx === pxFx && now - pxLast < cool && moved < 8 && pxOut && (!big || pxHalf)){
-      // re-anchor hasil lama ke bbox saat ini: efek selalu penuh + menempel portal (tanpa kedut)
-      if(!big){
-        const old = c.getImageData(pxBX,pxBY,pxBW,pxBH);
-        c.putImageData(old, b.x, b.y);
-        return {cv: pxSrc, x: b.x, y: b.y, bw: b.bw, bh: b.bh};
-      }
-      return {cv: pxHalf, x: b.x, y: b.y, bw: b.bw, bh: b.bh};
-    }
-    pxFx = fx; pxLast = now; pxBX = b.x; pxBY = b.y; pxBW = b.bw; pxBH = b.bh;
-    let out;
-    if(big){
-      if(!pxHalf){ pxHalf = document.createElement('canvas'); }
-      pxHalf.width = ox; pxHalf.height = oy;
-      const hc = pxHalf.getContext('2d');
-      hc.drawImage(pxSrc, b.x, b.y, b.bw, b.bh, 0, 0, ox, oy);
-      const hid = hc.getImageData(0,0,ox,oy);
-      const hd = hid.data;
-      if(fx === 'DUAL-TONE') pxDualTone(hd);
-      else if(fx === 'THERMAL') pxThermal(hd);
-      else if(fx === 'SKETCH') pxSketch(hd,ox,oy);
-      else if(fx === 'NEON') pxNeon(hd,ox,oy);
-      else if(fx === 'GALAXY') pxGalaxy(hd,ox,oy,b,now,2);
-      hc.putImageData(hid,0,0);
-      out = {cv: pxHalf, x: b.x, y: b.y, bw: b.bw, bh: b.bh};
-    }else{
-      const id = c.getImageData(b.x,b.y,b.bw,b.bh);
-      const d = id.data;
-      if(fx === 'DUAL-TONE') pxDualTone(d);
-      else if(fx === 'THERMAL') pxThermal(d);
-      else if(fx === 'SKETCH') pxSketch(d,b.bw,b.bh);
-      else if(fx === 'NEON') pxNeon(d,b.bw,b.bh);
-      else if(fx === 'GALAXY') pxGalaxy(d,b.bw,b.bh,b,now,1);
-      c.putImageData(id,b.x,b.y);
-      out = {cv: pxSrc, x: b.x, y: b.y, bw: b.bw, bh: b.bh};
-    }
-    pxOut = out;
-    return out;
+    const cool = (fx === 'SKETCH' || fx === 'NEON') ? 60 : 0;
+    if(fx === pxFx && now - pxLast < cool) return pxFull;
+    pxFx = fx; pxLast = now;
+    const id = c.getImageData(0,0,canvas.width,canvas.height);
+    const d = id.data;
+    if(fx === 'DUAL-TONE') pxDualTone(d);
+    else if(fx === 'THERMAL') pxThermal(d);
+    else if(fx === 'SKETCH') pxSketch(d, canvas.width, canvas.height);
+    else if(fx === 'NEON') pxNeon(d, canvas.width, canvas.height);
+    c.putImageData(id,0,0);
+    return pxFull;
   }
 
   async function loadHands(){
@@ -2233,12 +2159,11 @@ function pxProcess(quad, fx, now){
         break;
       }
       default: {
-        const out = pxProcess(quad, fx, now);
+        const out = pxProcess(fx, now);
         if(out){
           c.save();
           c.setTransform(1,0,0,1,0,0);
-          if(out.cv === pxSrc) c.drawImage(out.cv, -ox, -oy, w, h);
-          else c.drawImage(out.cv, out.x-ox, out.y-oy, out.bw, out.bh);
+          c.drawImage(out, -ox, -oy, w, h);
           c.restore();
         }
       }
@@ -2353,7 +2278,6 @@ function pxProcess(quad, fx, now){
 
     if(quad){
       const fx = FXS[fxIdx];
-      if(fx === 'GALAXY' && !segDet && !segFailed) ensureSeg();
 
       ctx.save();
       ctx.beginPath();
@@ -2452,7 +2376,7 @@ function pxProcess(quad, fx, now){
     badge.style.display = 'none';
     startBtn.disabled = false; stopBtn.disabled = true; snapBtn.disabled = true;
     handLandmarks = []; handSides = []; wasPinch = false; wasPhoto = false; peaceOn = false;
-    pxOut = null; pxFx = ''; pxBX = 0; pxBY = 0; pxBW = 0; pxBH = 0; flashT = 0; fxIdx = 0;
+    pxFull = null; pxFx = ''; flashT = 0; fxIdx = 0;
   });
   window.__camStop = ()=> stopBtn.click();
 
@@ -2476,17 +2400,34 @@ function pxProcess(quad, fx, now){
   const urlInput = document.getElementById('musikUrl');
   const urlBtn = document.getElementById('musikUrlBtn');
   const stopBtn = document.getElementById('musikStop');
+  const volEl = document.getElementById('musikVol');
+  const octValEl = document.getElementById('musikOctVal');
+  const noteRowEl = document.getElementById('musikNoteRow');
+  const recBtnEl = document.getElementById('musikRec');
+  const playBtnEl = document.getElementById('musikPlay');
 
-  let actx = null;
+  let actx = null, master = null;
   function ac(){
     if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if(!master){
+      master = actx.createGain();
+      master.gain.value = volEl ? volEl.value/100 : 0.8;
+      master.connect(actx.destination);
+    }
     if(actx.state === 'suspended') actx.resume();
     return actx;
   }
 
   function noteFreq(n){ return 440*Math.pow(2,(n-69)/12); }
   const NOTE_NAME = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-  function noteName(m){ return NOTE_NAME[m%12] + (Math.floor(m/12)-1); }
+  const SOLFEGE = {0:'Do',1:'Do#',2:'Re',3:'Re#',4:'Mi',5:'Fa',6:'Fa#',7:'Sol',8:'Sol#',9:'La',10:'La#',11:'Si'};
+  let noteLang = 'letter', noteNamesOn = true;
+  function noteName(m){
+    if(!noteNamesOn) return '';
+    const pc = m%12;
+    if(noteLang === 'solfege') return SOLFEGE[pc];
+    return NOTE_NAME[pc] + (Math.floor(m/12)-1);
+  }
 
   function playPiano(midi, vel, dur){
     const a = ac(), t = a.currentTime;
@@ -2500,7 +2441,7 @@ function pxProcess(quad, fx, now){
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(0.5*vel, t+0.008);
     g.gain.exponentialRampToValueAtTime(0.001, t+len);
-    o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(lp); lp.connect(a.destination);
+    o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(lp); lp.connect(master);
     o1.start(t); o2.start(t); o1.stop(t+len+0.05); o2.stop(t+len+0.05);
   }
   function playGitar(midi, vel){
@@ -2511,7 +2452,7 @@ function pxProcess(quad, fx, now){
     delay.connect(fb); fb.connect(delay);
     const g = a.createGain();
     const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = Math.min(3600, f*7);
-    delay.connect(lp); lp.connect(g); g.connect(a.destination);
+    delay.connect(lp); lp.connect(g); g.connect(master);
     const n = a.createBufferSource(); n.buffer = noiseBuf();
     const ng = a.createGain();
     ng.gain.setValueAtTime(1.1*vel, t);
@@ -2541,7 +2482,7 @@ function pxProcess(quad, fx, now){
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(0.55*vel, t+0.01);
     g.gain.exponentialRampToValueAtTime(0.001, t+len);
-    o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(lp); lp.connect(a.destination);
+    o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(lp); lp.connect(master);
     o1.start(t); o2.start(t); o1.stop(t+len+0.1); o2.stop(t+len+0.1);
   }
   function playOrgan(midi, vel, dur){
@@ -2558,7 +2499,7 @@ function pxProcess(quad, fx, now){
     vib.connect(vibG); vibG.connect(o1.frequency); vibG.connect(o2.frequency);
     g.gain.setValueAtTime(0.6*vel, t);
     g.gain.exponentialRampToValueAtTime(0.001, t+Math.min(2.2, len+0.4));
-    o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(lp); lp.connect(a.destination);
+    o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(lp); lp.connect(master);
     o1.start(t); o2.start(t); vib.start(t);
     o1.stop(t+len+0.5); o2.stop(t+len+0.5); vib.stop(t+len+0.5);
   }
@@ -2578,7 +2519,7 @@ function pxProcess(quad, fx, now){
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(0.4*vel, t+0.06);
     g.gain.exponentialRampToValueAtTime(0.001, t+Math.min(2, len+0.3));
-    o.connect(g); g.connect(a.destination);
+    o.connect(g); g.connect(master);
     o.start(t); vib.start(t); breath.start(t);
     o.stop(t+len+0.4); vib.stop(t+len+0.4); breath.stop(t+len+0.4);
   }
@@ -2605,7 +2546,7 @@ function pxProcess(quad, fx, now){
   function playDrum(kind, vel){
     const a = ac(), t = a.currentTime;
     const g = a.createGain();
-    g.connect(a.destination);
+    g.connect(master);
     if(kind === 'kick'){
       const o = a.createOscillator(); o.type = 'sine';
       o.frequency.setValueAtTime(165, t);
@@ -2660,15 +2601,27 @@ function pxProcess(quad, fx, now){
   const WHITE_PC = [0,2,4,5,7,9,11];
   let held = {}, midiEl = {};
   let autoSrc = null, autoRaf = 0, padEls = {};
+  let octShift = 0, sustainOn = false;
+  let recNotes = [], recOn = false, recT0 = 0;
+  let playOn = false, playTimer = 0;
 
   function flashEl(el){
     if(!el) return;
     el.classList.add('active');
     setTimeout(()=> el.classList.remove('active'), 90);
   }
+  function pushChip(midi){
+    const c = document.createElement('span');
+    c.className = 'note-chip';
+    c.textContent = noteName(midi);
+    noteRowEl.appendChild(c);
+    setTimeout(()=> c.remove(), 950);
+  }
   function pressNote(midi, vel){
-    voice(midi, vel||0.9, 0.45);
+    voice(midi, vel||0.9, sustainOn ? 2.2 : 0.45);
     flashEl(midiEl[midi]);
+    pushChip(midi);
+    if(recOn) recNotes.push({m: midi, t: performance.now() - recT0});
   }
 
   function blurFocus(){
@@ -2684,7 +2637,7 @@ function pxProcess(quad, fx, now){
       const wrap = document.createElement('div');
       wrap.className = 'piano-wrap';
       let wi = 0;
-      for(let m=48;m<=84;m++){
+      for(let m=48+octShift;m<=84+octShift;m++){
         const pc = m%12;
         const k = document.createElement('div');
         k.dataset.note = m;
@@ -2743,12 +2696,16 @@ function pxProcess(quad, fx, now){
       if(name){ playDrum(name, 0.9); flashPad(name); }
       return;
     }
-    const m = e.shiftKey ? SHIFT_MIDI[e.code] : KEY_MIDI[e.code];
-    if(m !== undefined && !held[m]){ held[m] = true; pressNote(m); }
+    const base = e.shiftKey ? SHIFT_MIDI[e.code] : KEY_MIDI[e.code];
+    if(base !== undefined){
+      const m = base + octShift;
+      if(!held[m]){ held[m] = true; pressNote(m); }
+    }
   });
   window.addEventListener('keyup', e=>{
-    for(const m of [KEY_MIDI[e.code], SHIFT_MIDI[e.code]]){
-      if(m === undefined) continue;
+    for(const b of [KEY_MIDI[e.code], SHIFT_MIDI[e.code]]){
+      if(b === undefined) continue;
+      const m = b + octShift;
       held[m] = false;
       const el = midiEl[m];
       if(el) el.classList.remove('active');
@@ -2939,7 +2896,61 @@ function pxProcess(quad, fx, now){
   });
   stage.addEventListener('pointerdown', blurFocus);
   stopBtn.addEventListener('click', stopAuto);
-  window.__musikStop = stopAuto;
+
+  volEl.addEventListener('input', ()=>{ if(master) master.gain.value = volEl.value/100; });
+  function setOct(d){
+    octShift = Math.max(-24, Math.min(24, octShift + d));
+    octValEl.textContent = noteName(48+octShift) + '–' + noteName(84+octShift);
+    renderStage();
+  }
+  document.getElementById('musikOctUp').addEventListener('click', ()=>{ blurFocus(); setOct(12); });
+  document.getElementById('musikOctDown').addEventListener('click', ()=>{ blurFocus(); setOct(-12); });
+  document.getElementById('musikSustain').addEventListener('change', e=> sustainOn = e.target.checked);
+  document.getElementById('musikNoteLang').addEventListener('change', e=>{
+    noteLang = e.target.value;
+    noteNamesOn = noteLang !== 'none';
+    if(noteNamesOn){
+      renderStage();
+    }
+    blurFocus();
+  });
+  recBtnEl.addEventListener('click', ()=>{
+    recOn = !recOn;
+    recBtnEl.classList.toggle('rec-on', recOn);
+    recBtnEl.textContent = recOn ? '■ Selesai' : '● Rekam';
+    if(recOn){ recNotes = []; recT0 = performance.now(); }
+    else playBtnEl.disabled = !recNotes.length;
+    blurFocus();
+  });
+  function stopPlay(){
+    playOn = false;
+    clearTimeout(playTimer);
+    playBtnEl.textContent = '▶ Putar';
+    playBtnEl.disabled = !recNotes.length;
+  }
+  playBtnEl.addEventListener('click', ()=>{
+    if(playOn) return stopPlay();
+    if(!recNotes.length) return;
+    playOn = true;
+    playBtnEl.textContent = '■ Stop';
+    let idx = 0;
+    const step = ()=>{
+      if(!playOn) return;
+      const n = recNotes[idx];
+      if(n){
+        voice(n.m, 0.9, sustainOn ? 2.2 : 0.45);
+        flashEl(midiEl[n.m]);
+        pushChip(n.m);
+      }
+      idx++;
+      if(idx >= recNotes.length){ stopPlay(); return; }
+      playTimer = setTimeout(step, Math.max(30, Math.min(2000, recNotes[idx].t - recNotes[idx-1].t)));
+    };
+    playTimer = setTimeout(step, 50);
+    blurFocus();
+  });
+  octValEl.textContent = noteName(48) + '–' + noteName(84);
+  window.__musikStop = ()=>{ stopAuto(); stopPlay(); };
 })();
 </script>
 
