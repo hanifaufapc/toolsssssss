@@ -584,18 +584,22 @@
     <div class="musik-row">
       <select id="musikInst" class="musik-select">
         <option value="piano">🎹 Piano</option>
+        <option value="gitar">🎸 Gitar</option>
+        <option value="bass">🎻 Bass</option>
+        <option value="organ">🎼 Organ</option>
+        <option value="flute">🎷 Flute</option>
         <option value="drum">🥁 Drum</option>
       </select>
       <button class="btn btn-primary" id="musikFileBtn">🎵 Autoplay: Pilih Audio/Video</button>
       <input type="file" id="musikFile" accept="audio/*,video/*" hidden>
-      <input type="text" id="musikUrl" class="musik-url" placeholder="Atau tempel URL audio/video…">
-      <button class="btn btn-ghost" id="musikUrlBtn">Muat URL</button>
+      <input type="text" id="musikUrl" class="musik-url" placeholder="Atau tempel link YouTube…">
+      <button class="btn btn-ghost" id="musikUrlBtn">Muat</button>
       <button class="btn btn-ghost" id="musikStop" disabled>Stop</button>
     </div>
 
     <div class="musik-stage" id="musikStage"></div>
     <div class="musik-status" id="musikStatus" style="display:none"></div>
-    <p class="hint" id="musikHint"><b>Piano:</b> mainkan seperti keyboard piano — baris bawah <span class="mono">Z X C V B N M , . /</span> = C3–E4, baris atas <span class="mono">Q W E R T Y U I O P</span> = C4–E5, tombol hitam <span class="mono">S D G H J</span> &amp; <span class="mono">2 3 5 6 7</span>. <b>Drum:</b> <span class="mono">1</span> kick, <span class="mono">2</span> snare, <span class="mono">3</span> hi-hat, <span class="mono">4</span> crash, <span class="mono">5/6/7</span> tom. <b>Autoplay:</b> mainkan audio/video lalu alat musik bermain sendiri mengikuti musik — Piano mengikuti nada, Drum mengikuti ketukan. URL harus CORS-friendly (kalau ditolak, unduh filenya lalu pilih dari tombol).</p>
+    <p class="hint" id="musikHint"><b>Melodi</b> (Piano/Gitar/Bass/Organ/Flute): baris bawah <span class="mono">Z X C V B N M , . /</span> = C3–E4, baris atas <span class="mono">Q W E R T Y U I O P</span> = C4–E5, tombol hitam <span class="mono">S D G H J</span> &amp; <span class="mono">2 3 5 6 7</span>. <b>Drum:</b> <span class="mono">1</span> kick, <span class="mono">2</span> snare, <span class="mono">3</span> hi-hat, <span class="mono">4</span> crash, <span class="mono">5/6/7</span> tom. <b>Autoplay:</b> pilih file audio/video atau tempel <b>link YouTube</b> — alat musik bermain sendiri mengikuti musiknya (audio asli tidak ikut diputar). Instrumen melodi mengikuti nada, Drum mengikuti ketukan. Klik di area instrumen dulu jika keyboard tidak merespons.</p>
   </div>
 </div>
 
@@ -2087,7 +2091,8 @@ function audioBufferToWav(buffer){
     return Math.hypot(lm[4].x-lm[20].x, lm[4].y-lm[20].y) < 0.035;
   }
 
-  function drawFx(fx, c, w, h, quad, now){
+  function drawFx(fx, c, w, h, quad, now, off){
+    const ox = (off && off.x) || 0, oy = (off && off.y) || 0;
     switch(fx){
       case 'MONO':
         c.filter = 'grayscale(1)';
@@ -2142,8 +2147,13 @@ function audioBufferToWav(buffer){
       }
       default: {
         const out = pxProcess(quad, fx, now);
-        if(out) c.drawImage(out.cv, out.x, out.y, out.bw, out.bh);
-        else c.drawImage(video,0,0,w,h);
+        if(out){
+          c.save();
+          c.setTransform(1,0,0,1,0,0);
+          if(out.cv === pxSrc) c.drawImage(out.cv, -ox, -oy, w, h);
+          else c.drawImage(out.cv, out.x-ox, out.y-oy, out.bw, out.bh);
+          c.restore();
+        }
       }
     }
     c.filter = 'none';
@@ -2165,7 +2175,7 @@ function audioBufferToWav(buffer){
     quad.forEach((p,i)=> i ? c.lineTo(p[0]*canvas.width-b.x, p[1]*canvas.height-b.y) : c.moveTo(p[0]*canvas.width-b.x, p[1]*canvas.height-b.y));
     c.closePath();
     c.clip();
-    drawFx(FXS[fxIdx], c, canvas.width, canvas.height, quad, now);
+    drawFx(FXS[fxIdx], c, canvas.width, canvas.height, quad, now, b);
     c.restore();
     cv.toBlob(blob => {
       if(blob){ downloadBlob(blob, 'portal-' + new Date().toISOString().replace(/[:.]/g,'-') + '.png'); showToast('📷 Foto area portal tersimpan'); }
@@ -2390,7 +2400,7 @@ function audioBufferToWav(buffer){
   const NOTE_NAME = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   function noteName(m){ return NOTE_NAME[m%12] + (Math.floor(m/12)-1); }
 
-  function playNote(midi, vel, dur){
+  function playPiano(midi, vel, dur){
     const a = ac(), t = a.currentTime;
     const g = a.createGain();
     const lp = a.createBiquadFilter();
@@ -2404,6 +2414,82 @@ function audioBufferToWav(buffer){
     g.gain.exponentialRampToValueAtTime(0.001, t+len);
     o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(lp); lp.connect(a.destination);
     o1.start(t); o2.start(t); o1.stop(t+len+0.05); o2.stop(t+len+0.05);
+  }
+  function playGitar(midi, vel){
+    const a = ac(), t = a.currentTime;
+    const f = noteFreq(midi), dur = 1/f;
+    const delay = a.createDelay(1); delay.delayTime.value = dur;
+    const fb = a.createGain(); fb.gain.value = 0.9;
+    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400;
+    const g = a.createGain();
+    delay.connect(fb); fb.connect(lp); lp.connect(delay); delay.connect(g); g.connect(a.destination);
+    const n = a.createBufferSource(); n.buffer = noiseBuf();
+    const ng = a.createGain(); ng.gain.setValueAtTime(0.8*vel, t); ng.gain.exponentialRampToValueAtTime(0.001, t+0.006);
+    ng.connect(delay);
+    n.start(t); n.stop(t+0.01);
+    g.gain.setValueAtTime(0.55*vel, t); g.gain.exponentialRampToValueAtTime(0.001, t+1.6);
+  }
+  function playBass(midi, vel, dur){
+    const a = ac(), t = a.currentTime;
+    const f = noteFreq(midi-12);
+    const g = a.createGain();
+    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420;
+    const o1 = a.createOscillator(); o1.type = 'triangle'; o1.frequency.value = f;
+    const o2 = a.createOscillator(); o2.type = 'sine'; o2.frequency.value = f/2;
+    const g2 = a.createGain(); g2.gain.value = 0.55;
+    const len = dur || 0.3;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.55*vel, t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t+len);
+    o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(lp); lp.connect(a.destination);
+    o1.start(t); o2.start(t); o1.stop(t+len+0.1); o2.stop(t+len+0.1);
+  }
+  function playOrgan(midi, vel, dur){
+    const a = ac(), t = a.currentTime;
+    const f = noteFreq(midi);
+    const g = a.createGain();
+    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400;
+    const o1 = a.createOscillator(); o1.type = 'sawtooth'; o1.frequency.value = f;
+    const o2 = a.createOscillator(); o2.type = 'sawtooth'; o2.frequency.value = f*1.005;
+    const g2 = a.createGain(); g2.gain.value = 0.7;
+    const len = dur || 0.6;
+    const vib = a.createOscillator(); vib.frequency.value = 5.5;
+    const vibG = a.createGain(); vibG.gain.value = 2;
+    vib.connect(vibG); vibG.connect(o1.frequency); vibG.connect(o2.frequency);
+    g.gain.setValueAtTime(0.6*vel, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t+Math.min(2.2, len+0.4));
+    o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(lp); lp.connect(a.destination);
+    o1.start(t); o2.start(t); vib.start(t);
+    o1.stop(t+len+0.5); o2.stop(t+len+0.5); vib.stop(t+len+0.5);
+  }
+  function playFlute(midi, vel, dur){
+    const a = ac(), t = a.currentTime;
+    const f = noteFreq(midi);
+    const g = a.createGain();
+    const o = a.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+    const vib = a.createOscillator(); vib.type = 'sine'; vib.frequency.value = 5.5;
+    const vibG = a.createGain(); vibG.gain.value = f*0.006;
+    vib.connect(vibG); vibG.connect(o.frequency);
+    const breath = a.createBufferSource(); breath.buffer = noiseBuf();
+    const bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f*2.2; bp.Q.value = 1.2;
+    const bg = a.createGain(); bg.gain.value = 0.035*vel;
+    breath.connect(bp); bp.connect(bg); bg.connect(g);
+    const len = dur || 0.6;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.4*vel, t+0.06);
+    g.gain.exponentialRampToValueAtTime(0.001, t+Math.min(2, len+0.3));
+    o.connect(g); g.connect(a.destination);
+    o.start(t); vib.start(t); breath.start(t);
+    o.stop(t+len+0.4); vib.stop(t+len+0.4); breath.stop(t+len+0.4);
+  }
+  function voice(midi, vel, dur){
+    const inst = instSel.value;
+    if(inst === 'piano') playPiano(midi, vel, dur);
+    else if(inst === 'gitar') playGitar(midi, vel);
+    else if(inst === 'bass') playBass(midi, vel, dur);
+    else if(inst === 'organ') playOrgan(midi, vel, dur);
+    else if(inst === 'flute') playFlute(midi, vel, dur);
+    else playPiano(midi, vel, dur);
   }
 
   let noiseBufCache = null;
@@ -2477,14 +2563,20 @@ function audioBufferToWav(buffer){
     setTimeout(()=> el.classList.remove('active'), 90);
   }
   function pressNote(midi, vel){
-    playNote(midi, vel||0.9, 0.45);
+    voice(midi, vel||0.9, 0.45);
     flashEl(midiEl[midi]);
+  }
+
+  function blurFocus(){
+    const el = document.activeElement;
+    if(el && (el.tagName === 'INPUT' || el.tagName === 'SELECT')) el.blur();
   }
 
   function renderStage(){
     stage.innerHTML = '';
     midiEl = {};
-    if(instSel.value === 'piano'){
+    const inst = instSel.value;
+    if(inst !== 'drum'){
       const wrap = document.createElement('div');
       wrap.className = 'piano-wrap';
       let wi = 0;
@@ -2502,7 +2594,7 @@ function audioBufferToWav(buffer){
           k.style.left = ((wi-1)*30 + 30 - 9.5)+'px';
           k.textContent = KEY_CHAR[m] || '';
         }
-        k.addEventListener('pointerdown', e=>{ e.preventDefault(); pressNote(m); });
+        k.addEventListener('pointerdown', e=>{ e.preventDefault(); blurFocus(); pressNote(m); });
         k.addEventListener('pointerup', ()=> k.classList.remove('active'));
         k.addEventListener('pointerleave', ()=> k.classList.remove('active'));
         midiEl[m] = k;
@@ -2526,7 +2618,7 @@ function audioBufferToWav(buffer){
         d.className = 'dpad';
         d.dataset.pad = name;
         d.innerHTML = label + '<small>Tombol ' + key + '</small>';
-        d.addEventListener('pointerdown', e=>{ e.preventDefault(); playDrum(name, 0.9); flashEl(d); });
+        d.addEventListener('pointerdown', e=>{ e.preventDefault(); blurFocus(); playDrum(name, 0.9); flashEl(d); });
         padEls[name] = d;
         grid.appendChild(d);
       }
@@ -2535,26 +2627,25 @@ function audioBufferToWav(buffer){
   }
   function flashPad(name){ flashEl(padEls[name]); }
 
-  instSel.addEventListener('change', renderStage);
+  instSel.addEventListener('change', ()=>{ renderStage(); blurFocus(); });
   renderStage();
 
   window.addEventListener('keydown', e=>{
     if(e.repeat) return;
     const t = e.target;
-    if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+    if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
     const ch = e.key.toLowerCase();
-    if(instSel.value === 'piano'){
-      const m = KEY_MIDI[ch];
-      if(m && !held[m]){ held[m] = true; pressNote(m); }
-    }else{
+    if(instSel.value === 'drum'){
       const map = {'1':'kick','2':'snare','3':'hat','4':'crash','5':'tomL','6':'tomM','7':'tomH'};
       const name = map[ch];
       if(name){ playDrum(name, 0.9); flashPad(name); }
+      return;
     }
+    const m = KEY_MIDI[ch];
+    if(m && !held[m]){ held[m] = true; pressNote(m); }
   });
   window.addEventListener('keyup', e=>{
-    const ch = e.key.toLowerCase();
-    const m = KEY_MIDI[ch];
+    const m = KEY_MIDI[e.key.toLowerCase()];
     if(m){ held[m] = false; const el = midiEl[m]; if(el) el.classList.remove('active'); }
   });
 
@@ -2582,6 +2673,33 @@ function audioBufferToWav(buffer){
     stopBtn.disabled = true;
   }
 
+  const PROXIES = [
+    'https://api.allorigins.win/raw?url=',
+    'https://api.codetabs.com/v1/proxy?quest=',
+  ];
+  async function proxyFetch(u){
+    let lastErr;
+    for(const pr of PROXIES){
+      try{
+        const r = await fetch(pr + encodeURIComponent(u), {mode:'cors'});
+        if(r.ok) return r;
+      }catch(e){ lastErr = e; }
+    }
+    throw lastErr || new Error('Semua proxy CORS gagal');
+  }
+  function ytId(u){
+    const m = u.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+    return m ? m[1] : null;
+  }
+  async function ytStreamUrl(id){
+    const html = await (await proxyFetch('https://www.youtube.com/watch?v=' + id)).text();
+    const m = html.match(/"adaptiveFormats":(\[[\s\S]*?\]),\s*"expiresInSeconds"/);
+    if(!m) throw new Error('Audio YouTube tidak ditemukan di halaman (video mungkin dilindungi)');
+    const fmts = JSON.parse(m[1]).filter(f=>!/\/video\//.test(f.mimeType || '')).sort((a,b)=>(b.bitrate||0)-(a.bitrate||0));
+    if(!fmts.length) throw new Error('Tidak ada stream audio dari video ini');
+    return fmts[0].url;
+  }
+
   async function loadAuto(input){
     stopAuto();
     const a = ac();
@@ -2589,10 +2707,18 @@ function audioBufferToWav(buffer){
     try{
       if(input instanceof File){
         buf = await a.decodeAudioData(await input.arrayBuffer());
+      }else if(/^https?:\/\//.test(input)){
+        const id = ytId(input);
+        if(id){
+          const su = await ytStreamUrl(id);
+          const data = await (await proxyFetch(su)).arrayBuffer();
+          buf = await a.decodeAudioData(data);
+        }else{
+          const data = await (await proxyFetch(input)).arrayBuffer();
+          buf = await a.decodeAudioData(data);
+        }
       }else{
-        const r = await fetch(input, {mode:'cors'});
-        if(!r.ok) throw new Error('HTTP ' + r.status);
-        buf = await a.decodeAudioData(await r.arrayBuffer());
+        throw new Error('Berikan link YouTube atau pilih file');
       }
     }catch(e){
       showToast('Autoplay gagal: ' + e.message);
@@ -2602,7 +2728,7 @@ function audioBufferToWav(buffer){
     src.buffer = buf;
     const an = a.createAnalyser();
     an.fftSize = 2048; an.smoothingTimeConstant = 0.6;
-    src.connect(an); an.connect(a.destination);
+    src.connect(an);
     src.start();
     autoSrc = src;
     stopBtn.disabled = false;
@@ -2635,7 +2761,7 @@ function audioBufferToWav(buffer){
           const midi = Math.round(69 + 12*Math.log2(f/440));
           if(midi >= 40 && midi <= 84){
             lastNote = now;
-            playNote(midi, Math.min(1, rms*3.5), 0.35);
+            voice(midi, Math.min(1, rms*3.5), 0.35);
             flashEl(midiEl[midi]);
           }
         }
@@ -2643,7 +2769,8 @@ function audioBufferToWav(buffer){
       lastRMS = rms*0.7 + lastRMS*0.3;
       if(now-lastTick > 500){
         lastTick = now;
-        statusEl.textContent = '🎧 Autoplay aktif — ' + (instSel.value === 'piano' ? 'Piano mengikuti nada' : 'Drum mengikuti ketukan') + ' · level ' + (rms*100|0) + '%';
+        const inst = instSel.value;
+        statusEl.textContent = '🎧 Autoplay aktif — ' + (inst === 'drum' ? 'Drum mengikuti ketukan' : (inst === 'piano' ? 'Piano' : inst === 'gitar' ? 'Gitar' : inst === 'bass' ? 'Bass' : inst === 'organ' ? 'Organ' : 'Flute') + ' mengikuti nada') + ' · level ' + (rms*100|0) + '%';
       }
       autoRaf = requestAnimationFrame(tick);
     }
@@ -2653,12 +2780,20 @@ function audioBufferToWav(buffer){
   fileBtn.addEventListener('click', ()=> fileInput.click());
   fileInput.addEventListener('change', ()=>{
     if(fileInput.files && fileInput.files[0]) loadAuto(fileInput.files[0]);
+    blurFocus();
   });
   urlBtn.addEventListener('click', ()=>{
     const u = urlInput.value.trim();
     if(u) loadAuto(u);
+    blurFocus();
   });
-  urlInput.addEventListener('keydown', e=>{ if(e.key === 'Enter' && urlInput.value.trim()) loadAuto(urlInput.value.trim()); });
+  urlInput.addEventListener('keydown', e=>{
+    if(e.key === 'Enter' && urlInput.value.trim()){
+      loadAuto(urlInput.value.trim());
+      blurFocus();
+    }
+  });
+  stage.addEventListener('pointerdown', blurFocus);
   stopBtn.addEventListener('click', stopAuto);
 })();
 </script>
