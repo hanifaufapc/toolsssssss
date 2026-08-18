@@ -1777,36 +1777,48 @@ function audioBufferToWav(buffer){
   async function loadHands(){
     if(window.__mpVision) return;
     setBadge('Memuat model tangan…', true);
-    const SOURCES = [
-      {bundle: './vendor/tasks-vision/vision_bundle.mjs', wasm: './vendor/tasks-vision/wasm'},
-      {bundle: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs', wasm: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'},
-      {bundle: 'https://unpkg.com/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs', wasm: 'https://unpkg.com/@mediapipe/tasks-vision@0.10.14/wasm'},
-    ];
-    const MODELS = [
-      './vendor/tasks-vision/hand_landmarker.task',
-      'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+    const abs = p => new URL(p, location.href).href;
+    const BUNDLES = [
+      abs('./vendor/tasks-vision/vision_bundle.mjs'),
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs',
+      'https://unpkg.com/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs',
     ];
     let found = null;
-    for(const s of SOURCES){
+    for(const bundle of BUNDLES){
       try{
-        const mod = await import(s.bundle);
-        if(mod && mod.FilesetResolver && mod.HandLandmarker){ found = {mod, wasm: s.wasm}; break; }
+        const mod = await import(bundle);
+        if(mod && mod.FilesetResolver && mod.HandLandmarker){ found = mod; break; }
       }catch(err){ /* coba sumber berikutnya */ }
     }
     if(!found) throw new Error('Gagal memuat MediaPipe (CDN & lokal)');
-    window.__mpVision = found.mod;
-    const {FilesetResolver, HandLandmarker} = found.mod;
+    window.__mpVision = found;
+    const {FilesetResolver, HandLandmarker} = found;
+    const WASMS = [
+      abs('./vendor/tasks-vision/wasm'),
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm',
+      'https://unpkg.com/@mediapipe/tasks-vision@0.10.14/wasm',
+    ];
+    const MODELS = [
+      abs('./vendor/tasks-vision/hand_landmarker.task'),
+      'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+    ];
     let lastErr = null;
-    for(const modelPath of MODELS){
-      for(const delegate of ['GPU','CPU']){
-        try{
-          handsDet = await HandLandmarker.createFromOptions(FilesetResolver.forVisionTasks(found.wasm), {
-            baseOptions: {modelAssetPath: modelPath, delegate},
-            runningMode: 'VIDEO',
-            numHands: 2,
-          });
-          return;
-        }catch(err){ lastErr = err; }
+    for(const wasmPath of WASMS){
+      let fileset;
+      try{
+        fileset = await FilesetResolver.forVisionTasks(wasmPath);
+      }catch(err){ lastErr = err; continue; }
+      for(const modelPath of MODELS){
+        for(const delegate of ['GPU','CPU']){
+          try{
+            handsDet = await HandLandmarker.createFromOptions(fileset, {
+              baseOptions: {modelAssetPath: modelPath, delegate},
+              runningMode: 'VIDEO',
+              numHands: 2,
+            });
+            return;
+          }catch(err){ lastErr = err; }
+        }
       }
     }
     throw lastErr || new Error('Model tangan gagal dimuat');
