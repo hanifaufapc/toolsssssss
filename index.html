@@ -2773,14 +2773,26 @@ async function ytStreamUrl(id){
   return fmts[0].url;
 }
 async function ytFullInfo(id){
-  const html = await (await fetchVia('https://www.youtube.com/watch?v=' + id)).text();
+  let html = null;
+  try{ html = await (await fetchVia('https://www.youtube.com/watch?v=' + id, true)).text(); }catch(e){}
+  if(!html || !html.includes('streamingData')){
+    try{
+      const r = await fetch('https://r.jina.ai/https://www.youtube.com/watch?v=' + id, {headers: {'X-Return-Format': 'html'}});
+      if(r.ok) html = await r.text();
+    }catch(e){}
+  }
   let pr = null, err = null;
-  try{ pr = JSON.parse(extractBalanced(html, 'ytInitialPlayerResponse')); }catch(e){ err = e; }
+  try{ pr = JSON.parse(extractBalanced(html || '', 'ytInitialPlayerResponse')); }catch(e){ err = e; }
   if(!pr || !pr.streamingData){
-    try{ pr = {streamingData: JSON.parse(extractBalanced(html, '"streamingData"'))}; }catch(e){ err = e; }
+    try{ pr = {streamingData: JSON.parse(extractBalanced(html || '', '"streamingData"'))}; }catch(e){ err = e; }
   }
   if(!pr || !pr.streamingData || !pr.streamingData.formats){
-    throw new Error(err ? 'Parse respons YouTube gagal' : 'Video tidak punya stream (dilindungi?)');
+    const st = pr && pr.playabilityStatus && pr.playabilityStatus.status;
+    throw new Error(st === 'LOGIN_REQUIRED' || st === 'AGE_CHECK_REQUIRED' || st === 'ERROR' || st === 'LIVE_STREAM_OFFLINE'
+      ? 'YouTube menolak: ' + (st === 'LIVE_STREAM_OFFLINE' ? 'live sedang offline' : 'perlu login / video dibatasi (' + st + ')')
+      : (st === 'UNPLAYABLE' || /(consent|CONSENT|bot check|recaptcha)/.test(String(html||''))
+        ? 'YouTube mendeteksi akses otomatis (verifikasi bukan-bot). Buka videonya dulu di tab lain, tunggu ~1 menit, lalu coba lagi.'
+        : (err ? 'Parse respons YouTube gagal — coba lagi' : 'Video tidak punya stream (dilindungi?)')));
   }
   const vd = pr.videoDetails || {};
   const af = pr.streamingData.adaptiveFormats || [];
