@@ -273,6 +273,11 @@
   .edt-stage canvas{display:block; width:100%; max-height:440px; object-fit:contain;}
   .edt-stage-msg{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#8f866f; font-size:14px; pointer-events:none;}
   .viz-canvas{display:block; width:100%; background:#000; border-radius:14px; border:1px solid rgba(255,255,255,0.08); margin-top:14px;}
+  .edt-mark{position:absolute; top:-5px; bottom:-5px; width:16px; margin-left:-8px; background:rgba(255,77,77,0.28); border:1.5px solid #ff4d4d; border-radius:5px; color:#ff8080; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:ew-resize; font-family:'IBM Plex Mono',monospace; user-select:none; z-index:3;}
+  #edtTimelineWrap{background:#000; border-radius:9px; padding:4px; border:1px solid rgba(255,255,255,0.08);}
+  #edtThumbs canvas{flex:1 0 0; min-width:0; height:78px; object-fit:none; border-radius:4px; cursor:pointer;}
+  .edt-seg{position:absolute; bottom:0; top:0; background:rgba(255,212,59,0.22); border-left:1px solid rgba(255,212,59,.6); border-right:1px solid rgba(255,212,59,.6);}
+  .edt-trimz{position:absolute; top:0; bottom:0; background:rgba(46,204,113,0.14); pointer-events:none; z-index:1;}
   #tripMap{height:460px; border-radius:14px; border:1px solid rgba(28,24,16,0.18); margin-top:12px; z-index:0;}
   .dl-tab{font-size:13px;}
   .dl-tab.active{background:#eab308; color:#14100b; border-color:transparent;}
@@ -739,12 +744,27 @@
           <button class="mini-btn" data-r="4/3">4:3</button>
           <button class="mini-btn" data-r="16/9">16:9</button>
         </div>
+        <div class="row" style="gap:6px">
+          <span class="mono" style="min-width:auto">Custom</span>
+          <input type="number" id="edtSizeW" min="120" max="1920" value="720" style="width:74px" title="Lebar output">
+          <span class="mono">×</span>
+          <input type="number" id="edtSizeH" min="120" max="1920" value="720" style="width:74px" title="Tinggi output">
+          <button class="mini-btn" id="edtSizeGo">Pakai</button>
+        </div>
         <div class="edt-outinfo mono" id="edtOutInfo"></div>
-        <label class="ctl-line mono"><input type="checkbox" id="edtShowBox" checked> Tampilkan kotak pelacakan</label>
+        <label class="ctl-line mono"><input type="checkbox" id="edtShowBox" checked> Tampilkan kotak pelacakan (AI)</label>
+        <label class="ctl-line mono"><input type="checkbox" id="edtSmooth" checked> Kamera AI halus (hold target)</label>
+      </div>
+      <div class="edt-card">
+        <div class="edt-card-title">🎙 Reduksi Noise (AI Audio)</div>
+        <label class="ctl-line mono"><input type="checkbox" id="edtNc"> Aktifkan pengurang noise</label>
+        <label class="ctl-line mono"><span style="min-width:auto">Kekuatan</span><input type="range" id="edtNcStr" min="0.3" max="9" step="0.1" value="3"><span class="mono" id="edtNcStrVal">3.0</span></label>
+        <button class="btn btn-ghost" id="edtNcCal">🎯 Kalibrasi noise latar (2 dtk)</button>
+        <div class="mono edt-outinfo" id="edtNcInfo">Noise dibersihkan di audio hasil rekaman (2–3× lebih bersih).</div>
       </div>
       <div class="edt-card">
         <div class="edt-card-title">Auto Track Orang</div>
-        <label class="ctl-line mono"><input type="checkbox" id="edtTrack" checked> Pelacakan aktif</label>
+        <label class="ctl-line mono"><input type="checkbox" id="edtTrack" checked> Pelacakan aktif (AI)</label>
         <select id="edtTrackMode" class="musik-select" style="width:100%">
           <option value="auto">Mode: paling aktif (bicara/bergerak)</option>
           <option value="big">Mode: orang terbesar</option>
@@ -754,7 +774,7 @@
         <div class="mono edt-outinfo" id="edtTrackInfo">Klik chip untuk mengunci ke orang tertentu.</div>
       </div>
       <div class="edt-card">
-        <div class="edt-card-title">Subtitle Otomatis</div>
+        <div class="edt-card-title">Subtitle Otomatis (AI)</div>
         <label class="ctl-line mono"><input type="checkbox" id="edtSub"> Ucapkan &amp; rekam subtitle (mikrofon)</label>
         <select id="edtSubPos" class="musik-select" style="width:100%">
           <option value="bottom">Posisi: bawah</option>
@@ -764,11 +784,46 @@
         <label class="ctl-line mono"><input type="checkbox" id="edtSubBg" checked> Latar gelap</label>
       </div>
       <div class="edt-card">
-        <div class="edt-card-title">Klip Momen Penting</div>
+        <div class="edt-card-title">Overlay Teks &amp; Logo</div>
+        <input type="text" id="edtTitle" class="musik-url" placeholder="Judul di video… (opsional)" style="width:100%">
+        <input type="text" id="edtMarquee" class="musik-url" placeholder="Teks berjalan… (opsional)" style="width:100%; margin-top:6px">
+        <div class="ctl-line mono"><span style="min-width:auto">Kecepatan berjalan</span><input type="range" id="edtMarqSpd" min="10" max="220" value="90"><span class="mono" id="edtMarqSpdVal">90</span></div>
+        <div class="row" style="gap:6px">
+          <input type="file" id="edtLogo" accept="image/png,image/jpeg,image/webp" hidden>
+          <button class="btn btn-ghost" id="edtLogoBtn">🖼 Logo/Watermark</button>
+          <select id="edtLogoPos" class="musik-select" style="flex:1">
+            <option value="tr">Posisi: kanan atas</option>
+            <option value="tl">Posisi: kiri atas</option>
+            <option value="br">Posisi: kanan bawah</option>
+            <option value="bl">Posisi: kiri bawah</option>
+          </select>
+        </div>
+        <div class="ctl-line mono"><span style="min-width:auto">Ukuran logo</span><input type="range" id="edtLogoSz" min="20" max="160" value="70"><span class="mono" id="edtLogoSzVal">70</span></div>
+        <div class="ctl-line mono"><span style="min-width:auto">Transparansi</span><input type="range" id="edtLogoOp" min="0" max="100" value="85"><span class="mono" id="edtLogoOpVal">85%</span></div>
+      </div>
+      <div class="edt-card">
+        <div class="edt-card-title">Klip Momen Penting (AI)</div>
         <label class="ctl-line mono"><input type="checkbox" id="edtClip" checked> Deteksi otomatis bagian berenergi</label>
         <div class="ctl-line"><span class="mono" style="min-width:auto">Sensitivitas</span><input type="range" id="edtSens" min="1" max="100" value="45"><span class="mono" id="edtSensVal">45</span></div>
         <div class="ctl-line mono"><span style="min-width:auto">Pra</span><input type="range" id="edtPre" min="0" max="4" step="0.5" value="1"><span class="mono" id="edtPreVal">1.0s</span></div>
         <div class="ctl-line mono"><span style="min-width:auto">Pasca</span><input type="range" id="edtPost" min="0" max="8" step="0.5" value="3"><span class="mono" id="edtPostVal">3.0s</span></div>
+      </div>
+    </div>
+
+    <div class="edt-card" style="margin-top:12px">
+      <div class="edt-card-title">📼 Timeline &amp; Trim — seret playhead, klik segmen kuning=klip penting, set A/B untuk memotong</div>
+      <div class="mono edt-outinfo" id="edtTimeInfo">Pilih video untuk membangun timeline thumbnail.</div>
+      <div id="edtTimelineWrap" style="position:relative; margin:8px 0 4px; display:none">
+        <div id="edtThumbs" style="display:flex; gap:2px; overflow:hidden; border-radius:8px; height:78px"></div>
+        <div id="edtSegs" style="position:absolute; inset:0; pointer-events:none"></div>
+        <div id="edtHead" style="position:absolute; top:0; bottom:0; width:3px; background:#ffd43b; box-shadow:0 0 6px rgba(255,212,59,.8); pointer-events:none"></div>
+        <div id="edtMarkA" class="edt-mark" style="left:0" title="Awal trim — geser">A</div>
+        <div id="edtMarkB" class="edt-mark" style="left:100%" title="Akhir trim — geser">B</div>
+      </div>
+      <div class="row">
+        <label class="ctl-line mono"><input type="checkbox" id="edtTrim"> Batasi putar/rekaman ke A–B</label>
+        <button class="btn btn-ghost" id="edtTrimGo">➡ Kirim A–B ke Clip Tool</button>
+        <button class="btn btn-ghost" id="edtTrimInfo">🧭 Zona hijau = yang disimpan</button>
       </div>
     </div>
 
@@ -919,10 +974,19 @@
       <button class="btn btn-dark" id="tripPlay" disabled>▶ Putar</button>
       <label class="hint" style="margin:0; display:flex; align-items:center; gap:6px; white-space:nowrap">🚘 Kendaraan
         <select id="tripVehicle" class="musik-select" title="Jenis kendaraan">
-          <option value="mobil" selected>Mobil</option>
+          <option value="mobil" selected>Mobil Balap</option>
+          <option value="taksi">Taksi</option>
+          <option value="van">Van</option>
           <option value="bus">Bus</option>
           <option value="motor">Motor</option>
+          <option value="kart">Kart</option>
           <option value="pesawat">Pesawat</option>
+        </select>
+      </label>
+      <label class="hint" style="margin:0; display:flex; align-items:center; gap:6px; white-space:nowrap">🎨 Model
+        <select id="tripStyle" class="musik-select" title="Gaya tampilan kendaraan">
+          <option value="3d" selected>3D Kartun</option>
+          <option value="2d">Ikon 2D</option>
         </select>
       </label>
       <select id="tripSpeed" class="musik-select" title="Kecepatan replay">
@@ -941,7 +1005,7 @@
       <button class="btn btn-primary" id="tripVid">⬇ Unduh Video</button>
     </div>
     <div id="tripMap"></div>
-    <p class="hint"><b>Cara pakai:</b> ketik tempat <b>asal</b> dan <b>tujuan</b> (mis. "Surabaya" dan "Bali") lalu <b>Cari Rute</b> — peta menampilkan rute berkendara (OpenStreetMap + OSRM). Pilih kendaraan (mobil / bus / motor / pesawat), tekan <b>▶ Putar</b> untuk melihatnya berjalan dari asal ke tujuan; atur kecepatan 0.5×–8× atau seret slider untuk melompat. <b>Atau klik langsung di peta:</b> klik pertama = asal, klik kedua = tujuan. Tekan <b>⇄</b> untuk menukar arah, <b>Unduh Video</b> untuk menyimpan replay, <b>Unduh Gambar</b> untuk snapshot peta. Butuh koneksi internet untuk peta & pencarian tempat.</p>
+    <p class="hint"><b>Cara pakai:</b> ketik tempat <b>asal</b> dan <b>tujuan</b> (mis. "Surabaya" dan "Bali") lalu <b>Cari Rute</b> — peta menampilkan rute berkendara (OpenStreetMap + OSRM). Pilih kendaraan (mobil balap / taksi / van / bus / motor / kart / pesawat) dan model <b>3D Kartun</b> atau <b>Ikon 2D</b>, tekan <b>▶ Putar</b> untuk melihatnya berjalan dari asal ke tujuan; atur kecepatan 0.5×–8× atau seret slider untuk melompat. <b>Atau klik langsung di peta:</b> klik pertama = asal, klik kedua = tujuan. Tekan <b>⇄</b> untuk menukar arah, <b>Unduh Video</b> untuk menyimpan replay, <b>Unduh Gambar</b> untuk snapshot peta. Butuh koneksi internet untuk peta & pencarian tempat. <i>Kendaraan 3D oleh Kenney (CC0) &amp; Poly by Google (CC-BY 3.0).</i></p>
   </div>
 
   <!-- PROTECT -->
@@ -2320,6 +2384,9 @@ function audioBufferToWav(buffer){
   }
 
   function pxProcess(fx, now){
+    const cool = (fx === 'SKETCH' || fx === 'NEON') ? 60 : 0;
+    if(fx === pxFx && now - pxLast < cool) return pxFull;
+    pxFx = fx; pxLast = now;
     if(!pxFull){ pxFull = document.createElement('canvas'); }
     pxFull.width = canvas.width; pxFull.height = canvas.height;
     const c = pxFull.getContext('2d');
@@ -2327,9 +2394,6 @@ function audioBufferToWav(buffer){
     c.setTransform(-1,0,0,1,canvas.width,0);
     c.drawImage(video,0,0,canvas.width,canvas.height);
     c.restore();
-    const cool = (fx === 'SKETCH' || fx === 'NEON') ? 60 : 0;
-    if(fx === pxFx && now - pxLast < cool) return pxFull;
-    pxFx = fx; pxLast = now;
     const id = c.getImageData(0,0,canvas.width,canvas.height);
     const d = id.data;
     if(fx === 'DUAL-TONE') pxDualTone(d);
@@ -2341,7 +2405,7 @@ function audioBufferToWav(buffer){
   }
 
   async function loadHands(){
-    if(window.__mpVision) return;
+    if(window.__mpVision && handsDet) return;
     setBadge('Memuat model tangan…', true);
     const abs = p => new URL(p, location.href).href;
     const BUNDLES = [
@@ -2349,15 +2413,17 @@ function audioBufferToWav(buffer){
       'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs',
       'https://unpkg.com/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs',
     ];
-    let found = null;
-    for(const bundle of BUNDLES){
-      try{
-        const mod = await import(bundle);
-        if(mod && mod.FilesetResolver && mod.HandLandmarker){ found = mod; break; }
-      }catch(err){ /* coba sumber berikutnya */ }
+    let found = window.__mpVision;
+    if(!found){
+      for(const bundle of BUNDLES){
+        try{
+          const mod = await import(bundle);
+          if(mod && mod.FilesetResolver && mod.HandLandmarker){ found = mod; break; }
+        }catch(err){ /* coba sumber berikutnya */ }
+      }
+      if(!found) throw new Error('Gagal memuat MediaPipe (CDN & lokal)');
+      window.__mpVision = found;
     }
-    if(!found) throw new Error('Gagal memuat MediaPipe (CDN & lokal)');
-    window.__mpVision = found;
     const {FilesetResolver, HandLandmarker} = found;
     const WASMS = [
       abs('./vendor/tasks-vision/wasm'),
@@ -2499,10 +2565,10 @@ function audioBufferToWav(buffer){
     cv.width = b.bw; cv.height = b.bh;
     const c = cv.getContext('2d');
     c.save();
-    c.translate(canvas.width-1-b.x, -b.y);
+    c.translate(b.x + b.bw - 1, -b.y);
     c.scale(-1,1);
     c.beginPath();
-    quad.forEach((p,i)=> i ? c.lineTo(p[0]*canvas.width-b.x, p[1]*canvas.height-b.y) : c.moveTo(p[0]*canvas.width-b.x, p[1]*canvas.height-b.y));
+    quad.forEach((p,i)=> i ? c.lineTo(p[0]*canvas.width, p[1]*canvas.height) : c.moveTo(p[0]*canvas.width, p[1]*canvas.height));
     c.closePath();
     c.clip();
     drawFx(FXS[fxIdx], c, canvas.width, canvas.height, quad, now, b);
@@ -3080,12 +3146,12 @@ async function ytFullInfo(id){
         if(WHITE_PC.includes(pc)){
           k.className = 'pkey white';
           k.style.left = (wi*52)+'px';
-          k.innerHTML = '<span>' + (KEY_CHAR[m] ? KEY_CHAR[m] : '') + '</span><small style="font-size:10.5px;opacity:.6">' + noteName(m) + '</small>';
+          k.innerHTML = '<span>' + (KEY_CHAR[m-octShift] ? KEY_CHAR[m-octShift] : '') + '</span><small style="font-size:10.5px;opacity:.6">' + noteName(m) + '</small>';
           wi++;
         }else{
           k.className = 'pkey black';
           k.style.left = ((wi-1)*52 + 52 - 16)+'px';
-          k.textContent = KEY_CHAR[m] || '';
+          k.textContent = KEY_CHAR[m-octShift] || '';
         }
         k.addEventListener('pointerdown', e=>{ e.preventDefault(); blurFocus(); pressNote(m); });
         k.addEventListener('pointerup', ()=> k.classList.remove('active'));
@@ -3124,9 +3190,10 @@ async function ytFullInfo(id){
   renderStage();
 
   window.addEventListener('keydown', e=>{
+    if(currentTool !== 'musik') return;
     if(e.repeat) return;
     const t = e.target;
-    if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+    if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
     if(instSel.value === 'drum'){
       const name = DRUM_CODE[e.code];
       if(name){ playDrum(name, 0.9); flashPad(name); }
@@ -3139,6 +3206,8 @@ async function ytFullInfo(id){
     }
   });
   window.addEventListener('keyup', e=>{
+    if(e.repeat) return;
+    if(currentTool !== 'musik' || !held) return;
     for(const b of [KEY_MIDI[e.code], SHIFT_MIDI[e.code]]){
       if(b === undefined) continue;
       const m = b + octShift;
@@ -3202,6 +3271,7 @@ async function ytFullInfo(id){
     const an = a.createAnalyser();
     an.fftSize = 2048; an.smoothingTimeConstant = 0.6;
     src.connect(an);
+    src.onended = stopAuto;
     src.start();
     autoSrc = src;
     stopBtn.disabled = false;
@@ -3273,6 +3343,7 @@ async function ytFullInfo(id){
   function setOct(d){
     octShift = Math.max(-24, Math.min(24, octShift + d));
     octValEl.textContent = noteName(48+octShift) + '–' + noteName(84+octShift);
+    held = {};
     renderStage();
   }
   document.getElementById('musikOctUp').addEventListener('click', ()=>{ blurFocus(); setOct(12); });
@@ -3545,7 +3616,7 @@ async function ytFullInfo(id){
     const cv = el.canvas.getContext('2d');
     let ctx = null, analyser = null, srcNode = null, gain = null, micStream = null, micSrc = null;
     let raf = 0, running = false;
-    let recorder = null, chunks = [], recOn = false;
+    let recorder = null, chunks = [], recOn = false, discardRec = false;
     const freq = new Uint8Array(1024), time = new Uint8Array(2048);
 
     function aCtx(){
@@ -3557,7 +3628,10 @@ async function ytFullInfo(id){
     function stopAll(){
       running = false;
       cancelAnimationFrame(raf);
-      if(recorder && recorder.state !== 'inactive'){ try{ recorder.stop(); }catch(e){} }
+      if(recorder && recorder.state !== 'inactive'){
+        if(recOn) discardRec = true;
+        try{ recorder.stop(); }catch(e){}
+      }
       if(srcNode){ try{ srcNode.stop(); }catch(e){} srcNode.disconnect(); srcNode = null; }
       if(gain){ gain.disconnect(); gain = null; }
       if(analyser){ analyser.disconnect(); analyser = null; }
@@ -3569,7 +3643,7 @@ async function ytFullInfo(id){
       if(el.rec) el.rec.textContent = '● Rekam Video';
       recOn = false;
     }
-    async function playBuffer(buf){
+    async function playBuffer(buf, label){
       stopAll();
       const a = aCtx();
       srcNode = a.createBufferSource();
@@ -3578,7 +3652,9 @@ async function ytFullInfo(id){
       analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.72;
       gain = a.createGain(); gain.gain.value = 0.92;
       srcNode.connect(analyser); analyser.connect(gain); gain.connect(a.destination);
+      srcNode.onended = ()=>{ stopAll(); showToast('Audio selesai'); };
       srcNode.start(0);
+      setBadge(label || '');
       running = true;
       if(el.stop) el.stop.disabled = false;
       raf = requestAnimationFrame(loop);
@@ -3591,7 +3667,8 @@ async function ytFullInfo(id){
       micSrc = a.createMediaStreamSource(micStream);
       analyser = a.createAnalyser();
       analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.72;
-      micSrc.connect(analyser);
+      gain = a.createGain(); gain.gain.value = 0.92;
+      micSrc.connect(analyser); analyser.connect(gain); gain.connect(a.destination);
       setBadge('🎙 Mikrofon langsung');
       running = true;
       if(el.stop) el.stop.disabled = false;
@@ -3621,8 +3698,7 @@ async function ytFullInfo(id){
         setBadge('Gagal memuat: ' + String(e.message||e).slice(0,60));
         return;
       }
-      setBadge(input instanceof File ? input.name : (ytId(input) ? '▶ YouTube' : '▶ URL'));
-      playBuffer(buf);
+      playBuffer(buf, input instanceof File ? input.name : (ytId(input) ? '▶ YouTube' : '▶ URL'));
     }
     function loop(){
       if(!running) return;
@@ -3636,19 +3712,32 @@ async function ytFullInfo(id){
       if(recOn){ recorder.stop(); return; }
       recOn = true;
       chunks = [];
-      let stream;
-      try{ stream = el.canvas.captureStream(30); }
-      catch(e){ recOn = false; showToast('Rekaman tak didukung browser ini'); return; }
-      const mime = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m)) || '';
-      recorder = new MediaRecorder(stream, mime ? {mimeType:mime, videoBitsPerSecond: 6e6} : undefined);
+      discardRec = false;
+      let stream, mime, rec;
+      try{
+        stream = el.canvas.captureStream(30);
+        mime = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m)) || '';
+        rec = new MediaRecorder(stream, mime ? {mimeType:mime, videoBitsPerSecond: 6e6} : undefined);
+      }catch(e){
+        recOn = false;
+        if(el.exp){ el.exp.classList.remove('busy'); el.exp.textContent = '⬇ Unduh Hasil'; }
+        showToast('Rekaman tak didukung browser ini');
+        return;
+      }
+      recorder = rec;
       recorder.ondataavailable = e => { if(e.data && e.data.size) chunks.push(e.data); };
       recorder.onstop = ()=>{
         const blob = new Blob(chunks, {type:'video/webm'});
-        if(blob.size) downloadBlob(blob, prefix.toLowerCase() + '-' + Date.now() + '.webm');
+        const disc = discardRec;
+        discardRec = false;
+        if(blob.size && !disc){
+          downloadBlob(blob, prefix.toLowerCase() + '-' + Date.now() + '.webm');
+          showToast('Video tersimpan');
+        }
         recOn = false;
         if(el.rec) el.rec.textContent = '● Rekam Video';
         if(el.exp){ el.exp.classList.remove('busy'); el.exp.textContent = '⬇ Unduh Hasil'; }
-        showToast('Video tersimpan');
+        chunks = [];
       };
       recorder.start(500);
       if(el.rec) el.rec.textContent = '■ Stop';
@@ -3672,7 +3761,10 @@ async function ytFullInfo(id){
     if(el.snap) el.snap.addEventListener('click', ()=>{
       el.canvas.toBlob(b=>{ if(b) downloadBlob(b, prefix.toLowerCase() + '-' + Date.now() + '.png'); }, 'image/png');
     });
-    window['__' + prefix + 'Stop'] = stopAll;
+    window['__' + prefix + 'Stop'] = ()=>{
+      stopAll();
+      if(ctx){ try{ ctx.close(); }catch(e){} ctx = null; }
+    };
   }
 
   // ---------- util warna ----------
@@ -3811,6 +3903,7 @@ async function ytFullInfo(id){
 
   let map = null, routeLine = null, aMark = null, bMark = null, vehMark = null, vehEl = null;
   let coords = [], spl = [], cum = [], routeDur = 0, routeDist = 0;
+  let roadMeta = null;
   let prog = 0, animDur = 60, playing = false, raf = 0, lastT = 0, hSmooth = 0;
   let ptA = null, ptB = null;
 
@@ -3821,6 +3914,12 @@ async function ytFullInfo(id){
     svg:'<svg viewBox="0 0 24 24" width="62" height="62"><defs><linearGradient id="vB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd94d"/><stop offset="1" stop-color="#f59f00"/></linearGradient></defs><ellipse cx="12" cy="14" rx="10.4" ry="10.6" fill="rgba(0,0,0,.32)"/><g transform="translate(.3 1.1)"><path fill="rgba(110,70,0,.5)" d="M18 11H6V6h12m-1.5 11a1.5 1.5 0 0 1-1.5-1.5a1.5 1.5 0 0 1 1.5-1.5a1.5 1.5 0 0 1 1.5 1.5a1.5 1.5 0 0 1-1.5 1.5m-9 0A1.5 1.5 0 0 1 6 15.5A1.5 1.5 0 0 1 7.5 14a1.5 1.5 0 0 1 1.5 1.5A1.5 1.5 0 0 1 7.5 17M4 16c0 .88.39 1.67 1 2.22V20a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1h12v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-2.5-3.59-4-9-4S4 3.5 4 6z"/></g><path fill="url(#vB)" d="M18 11H6V6h12m-1.5 11a1.5 1.5 0 0 1-1.5-1.5a1.5 1.5 0 0 1 1.5-1.5a1.5 1.5 0 0 1 1.5 1.5a1.5 1.5 0 0 1-1.5 1.5m-9 0A1.5 1.5 0 0 1 6 15.5A1.5 1.5 0 0 1 7.5 14a1.5 1.5 0 0 1 1.5 1.5A1.5 1.5 0 0 1 7.5 17M4 16c0 .88.39 1.67 1 2.22V20a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1h12v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-2.5-3.59-4-9-4S4 3.5 4 6z"/><g transform="translate(-.45 -.8)" opacity=".28"><path fill="#fff" d="M18 11H6V6h12z"/></g></svg>'},
   motor: {label:'Motor', speed:1.25, size:46,
     svg:'<svg viewBox="0 0 24 24" width="46" height="46"><defs><linearGradient id="vMt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6db3ff"/><stop offset="1" stop-color="#1e5fd6"/></linearGradient></defs><ellipse cx="12" cy="14" rx="10.4" ry="10.6" fill="rgba(0,0,0,.32)"/><g transform="rotate(90 12 12) translate(.3 1.1)"><path fill="rgba(8,25,70,.5)" d="m17.42 10l-4.01-4H9v2h3.59l2 2H6.5C4 10 2 12 2 14.5S4 19 6.5 19c2.22 0 4.06-1.62 4.42-3.73L13.04 14c-.04.17-.04.33-.04.5c0 2.5 2 4.5 4.5 4.5s4.5-2 4.5-4.5S19.92 10 17.42 10m-8.85 7.41a3.15 3.15 0 0 1-6.14 0C3.12 16.96 4 15.5 5.9 15.5s2.78 1.46 2.67 2.91m13.66-1.41a3.15 3.15 0 0 1-6.14 0c-.11-1.45.77-2.91 2.67-2.91s2.78 1.46 2.67 2.91M11 20H8l2-4h1z"/></g><g transform="rotate(90 12 12)"><path fill="url(#vMt)" d="m17.42 10l-4.01-4H9v2h3.59l2 2H6.5C4 10 2 12 2 14.5S4 19 6.5 19c2.22 0 4.06-1.62 4.42-3.73L13.04 14c-.04.17-.04.33-.04.5c0 2.5 2 4.5 4.5 4.5s4.5-2 4.5-4.5S19.92 10 17.42 10m-8.85 7.41a3.15 3.15 0 0 1-6.14 0C3.12 16.96 4 15.5 5.9 15.5s2.78 1.46 2.67 2.91m13.66-1.41a3.15 3.15 0 0 1-6.14 0c-.11-1.45.77-2.91 2.67-2.91s2.78 1.46 2.67 2.91M11 20H8l2-4h1z"/></g><g transform="rotate(90 12 12) translate(-.45 -.8)" opacity=".27"><path fill="#fff" d="m17.42 10l-4.01-4H9v2h3.59l2 2H6.5C4 10 2 12 2 14.5S4 19 6.5 19c2.22 0 4.06-1.62 4.42-3.73L13.04 14c-.04.17-.04.33-.04.5c0 2.5 2 4.5 4.5 4.5s4.5-2 4.5-4.5S19.92 10 17.42 10z"/></g></svg>'},
+  taksi: {label:'Taksi', speed:1, size:54,
+    svg:'<svg viewBox="0 0 24 24" width="54" height="54"><defs><linearGradient id="vT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd43b"/><stop offset="1" stop-color="#f08c00"/></linearGradient></defs><ellipse cx="12" cy="14" rx="10.4" ry="10.6" fill="rgba(0,0,0,.32)"/><g transform="translate(.3 1.1)"><path fill="rgba(90,40,0,.55)" d="m5 11l1.5-4.5h11L19 11m-1.5 5a1.5 1.5 0 0 1-1.5-1.5a1.5 1.5 0 0 1 1.5-1.5a1.5 1.5 0 0 1 1.5 1.5a1.5 1.5 0 0 1-1.5 1.5m-11 0A1.5 1.5 0 0 1 5 14.5A1.5 1.5 0 0 1 6.5 13A1.5 1.5 0 0 1 8 14.5A1.5 1.5 0 0 1 6.5 16M18.92 6c-.2-.58-.76-1-1.42-1h-11c-.66 0-1.22.42-1.42 1L3 12v8a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1h12v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-8z"/></g><path fill="url(#vT)" d="m5 11l1.5-4.5h11L19 11m-1.5 5a1.5 1.5 0 0 1-1.5-1.5a1.5 1.5 0 0 1 1.5-1.5a1.5 1.5 0 0 1 1.5 1.5a1.5 1.5 0 0 1-1.5 1.5m-11 0A1.5 1.5 0 0 1 5 14.5A1.5 1.5 0 0 1 6.5 13A1.5 1.5 0 0 1 8 14.5A1.5 1.5 0 0 1 6.5 16M18.92 6c-.2-.58-.76-1-1.42-1h-11c-.66 0-1.22.42-1.42 1L3 12v8a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1h12v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-8z"/><g transform="translate(-.45 -.8)" opacity=".27"><path fill="#fff" d="m5 11l1.5-4.5h11L19 11M6.8 7.3l-1 3.2h1.6l.7-3.2z"/></g></svg>'},
+  van: {label:'Van', speed:0.9, size:60,
+    svg:'<svg viewBox="0 0 24 24" width="60" height="60"><defs><linearGradient id="vV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3fae8"/><stop offset="1" stop-color="#12b886"/></linearGradient></defs><ellipse cx="12" cy="14" rx="10.4" ry="10.6" fill="rgba(0,0,0,.32)"/><g transform="translate(.3 1.1)"><path fill="rgba(2,80,50,.5)" d="M18 11H6V6h12m-1.5 11a1.5 1.5 0 0 1-1.5-1.5a1.5 1.5 0 0 1 1.5-1.5a1.5 1.5 0 0 1 1.5 1.5a1.5 1.5 0 0 1-1.5 1.5m-9 0A1.5 1.5 0 0 1 6 15.5A1.5 1.5 0 0 1 7.5 14a1.5 1.5 0 0 1 1.5 1.5A1.5 1.5 0 0 1 7.5 17M4 16c0 .88.39 1.67 1 2.22V20a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1h12v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-2.5-3.59-4-9-4S4 3.5 4 6z"/></g><path fill="url(#vV)" d="M18 11H6V6h12m-1.5 11a1.5 1.5 0 0 1-1.5-1.5a1.5 1.5 0 0 1 1.5-1.5a1.5 1.5 0 0 1 1.5 1.5a1.5 1.5 0 0 1-1.5 1.5m-9 0A1.5 1.5 0 0 1 6 15.5A1.5 1.5 0 0 1 7.5 14a1.5 1.5 0 0 1 1.5 1.5A1.5 1.5 0 0 1 7.5 17M4 16c0 .88.39 1.67 1 2.22V20a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1h12v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-2.5-3.59-4-9-4S4 3.5 4 6z"/><g transform="translate(-.45 -.8)" opacity=".28"><path fill="#fff" d="M18 11H6V6h12z"/></g></svg>'},
+  kart: {label:'Kart', speed:1.5, size:48,
+    svg:'<svg viewBox="0 0 24 24" width="48" height="48"><defs><linearGradient id="vK" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8787"/><stop offset="1" stop-color="#e03131"/></linearGradient></defs><ellipse cx="12" cy="14" rx="10.4" ry="10.6" fill="rgba(0,0,0,.32)"/><g transform="rotate(90 12 12) translate(.3 1.1)"><path fill="rgba(90,10,10,.5)" d="m17.42 10l-4.01-4H9v2h3.59l2 2H6.5C4 10 2 12 2 14.5S4 19 6.5 19c2.22 0 4.06-1.62 4.42-3.73L13.04 14c-.04.17-.04.33-.04.5c0 2.5 2 4.5 4.5 4.5s4.5-2 4.5-4.5S19.92 10 17.42 10m-8.85 7.41a3.15 3.15 0 0 1-6.14 0C3.12 16.96 4 15.5 5.9 15.5s2.78 1.46 2.67 2.91m13.66-1.41a3.15 3.15 0 0 1-6.14 0c-.11-1.45.77-2.91 2.67-2.91s2.78 1.46 2.67 2.91M11 20H8l2-4h1z"/></g><g transform="rotate(90 12 12)"><path fill="url(#vK)" d="m17.42 10l-4.01-4H9v2h3.59l2 2H6.5C4 10 2 12 2 14.5S4 19 6.5 19c2.22 0 4.06-1.62 4.42-3.73L13.04 14c-.04.17-.04.33-.04.5c0 2.5 2 4.5 4.5 4.5s4.5-2 4.5-4.5S19.92 10 17.42 10m-8.85 7.41a3.15 3.15 0 0 1-6.14 0C3.12 16.96 4 15.5 5.9 15.5s2.78 1.46 2.67 2.91m13.66-1.41a3.15 3.15 0 0 1-6.14 0c-.11-1.45.77-2.91 2.67-2.91s2.78 1.46 2.67 2.91M11 20H8l2-4h1z"/></g><g transform="rotate(90 12 12) translate(-.45 -.8)" opacity=".27"><path fill="#fff" d="m17.42 10l-4.01-4H9v2h3.59l2 2H6.5C4 10 2 12 2 14.5S4 19 6.5 19c2.22 0 4.06-1.62 4.42-3.73L13.04 14c-.04.17-.04.33-.04.5c0 2.5 2 4.5 4.5 4.5s4.5-2 4.5-4.5S19.92 10 17.42 10z"/></g></svg>'},
   pesawat: {label:'Pesawat', speed:5, size:66,
     svg:'<svg viewBox="0 0 24 24" width="66" height="66"><defs><linearGradient id="vP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#b9c6dc"/></linearGradient></defs><ellipse cx="12" cy="14" rx="10.4" ry="10.6" fill="rgba(0,0,0,.32)"/><g transform="translate(.3 1.1)"><path fill="rgba(25,35,60,.45)" d="M20.56 3.91c.59.59.59 1.54 0 2.12l-3.89 3.89l2.12 9.19l-1.41 1.42l-3.88-7.43L9.6 17l.36 2.47l-1.07 1.06l-1.76-3.18l-3.19-1.77L5 14.5l2.5.37L11.37 11L3.94 7.09l1.42-1.41l9.19 2.12l3.89-3.89c.56-.58 1.56-.58 2.12 0"/></g><path fill="url(#vP)" d="M20.56 3.91c.59.59.59 1.54 0 2.12l-3.89 3.89l2.12 9.19l-1.41 1.42l-3.88-7.43L9.6 17l.36 2.47l-1.07 1.06l-1.76-3.18l-3.19-1.77L5 14.5l2.5.37L11.37 11L3.94 7.09l1.42-1.41l9.19 2.12l3.89-3.89c.56-.58 1.56-.58 2.12 0"/><g transform="translate(-.4 -.7)" opacity=".35"><path fill="#fff" d="M20.56 3.91c.59.59.59 1.54 0 2.12l-3.89 3.89l2.12 9.19l-1.41 1.42l-3.88-7.43L9.6 17l.36 2.47l-1.07 1.06l-1.76-3.18l-3.19-1.77L5 14.5l2.5.37L11.37 11L3.94 7.09l1.42-1.41l9.19 2.12l3.89-3.89c.56-.58 1.56-.58 2.12 0"/></g><g fill="#33517e"><path d="M12.5 18.5a.5.5 0 0 1-.8-1.6l1-1-1-1.9-2.9.7-.4.9a.5.5 0 1 1-1-.3l.5-1.2a.5.5 0 0 1 .6-.3l4.3 1.1a.5.5 0 0 1 .3.8l-1.3 1.3 1 1a.5.5 0 0 1-.3.8z"/></g></svg>'}
 };
@@ -3836,6 +3935,156 @@ async function ytFullInfo(id){
     return vehImgCache[t];
   }
   const veh = ()=> VEHICLES[vehSel.value] || VEHICLES.mobil;
+
+  // ---------- 3D kartun (three.js + GLB, self-hosted) ----------
+  const styleSel = document.getElementById('tripStyle');
+  const GLBS = {
+    mobil:  {f:'mobil.glb',  yaw0: 90, s:1},
+    taksi:  {f:'taksi.glb',  yaw0: 90, s:1},
+    van:    {f:'van.glb',    yaw0: 90, s:1.05},
+    bus:    {f:'bus.glb',    yaw0: 90, s:1.15},
+    motor:  {f:'motor.glb',  yaw0: 0,  s:0.95},
+    kart:   {f:'kart.glb',   yaw0: 90, s:0.9},
+    pesawat:{f:'pesawat.glb',yaw0: 90, s:1.3},
+  };
+  let trip3d = null, trip3dStatus = 'off', trip3dWait = null;
+  const veh3dModels = new Map();
+  const vehSpriteCv = document.createElement('canvas');
+  vehSpriteCv.width = vehSpriteCv.height = 256;
+  const vehSpriteCx = vehSpriteCv.getContext('2d');
+
+  function veh3dActive(){
+    return styleSel.value === '3d' && trip3dStatus === 'ok' && veh3dModels.has(vehSel.value) && trip3d && !trip3d.fail;
+  }
+
+  function ensureTrip3D(){
+    if(trip3dStatus === 'ok') return Promise.resolve();
+    if(trip3dStatus === 'loading') return trip3dWait;
+    trip3dStatus = 'loading';
+    trip3dWait = (async ()=>{
+      const abs = p => new URL(p, location.href).href;
+      const mapEl = map => {
+        const s = document.createElement('script');
+        s.type = 'importmap';
+        s.textContent = JSON.stringify({imports: map});
+        document.head.appendChild(s);
+      };
+      const bases = [
+        {three: abs('./vendor/three/three.module.min.js'), loader: abs('./vendor/three/loaders/GLTFLoader.js')},
+        {three: 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js', loader: 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js'},
+        {three: 'https://unpkg.com/three@0.160.0/build/three.module.min.js', loader: 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js'},
+      ];
+      let THREE = null, GLTFLoader = null;
+      for(const b of bases){
+        try{
+          mapEl({three: b.three});
+          THREE = await import(b.three);
+          const lm = await import(b.loader);
+          GLTFLoader = lm.GLTFLoader;
+          break;
+        }catch(e){ THREE = null; GLTFLoader = null; }
+      }
+      if(!GLTFLoader) throw new Error('three.js gagal dimuat');
+      const rcv = document.createElement('canvas');
+      const renderer = new THREE.WebGLRenderer({canvas: rcv, antialias: true, alpha: true, preserveDrawingBuffer: true});
+      renderer.setClearColor(0x000000, 0);
+      renderer.setPixelRatio(2);
+      renderer.setSize(256, 256, false);
+      const scene = new THREE.Scene();
+      scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+      const dir = new THREE.DirectionalLight(0xffffff, 1.0);
+      dir.position.set(4, 8, 3);
+      scene.add(dir);
+      const dir2 = new THREE.DirectionalLight(0xffffff, 0.35);
+      dir2.position.set(-3, 5, -4);
+      scene.add(dir2);
+      const camera = new THREE.OrthographicCamera(-1.15, 1.15, 1.15, -1.15, 0.05, 50);
+      camera.up.set(0, 0, -1);
+      camera.position.set(0, 6, 0);
+      camera.lookAt(0, 0, 0);
+      trip3d = {renderer, scene, camera, THREE, GLTFLoader, fail: false};
+      const g = GLBS[vehSel.value];
+      if(g){ try{ await loadVeh3d(vehSel.value); }catch(e){ trip3d.fail = true; } }
+      if(trip3d.fail) throw new Error('Model 3D gagal dimuat');
+      return trip3d;
+    })();
+    trip3dWait.catch(()=>{
+      trip3dStatus = 'fail';
+      trip3dWait = null;
+      if(styleSel.value === '3d'){
+        styleSel.value = '2d';
+        if(vehEl && vehMark){ try{ refreshVehIcon(); }catch(e){} }
+      }
+    });
+    return trip3dWait;
+  }
+
+  async function loadVeh3d(name){
+    if(veh3dModels.has(name)) return veh3dModels.get(name);
+    if(!trip3d) throw new Error('3D belum siap');
+    const g = GLBS[name];
+    if(!g) throw new Error('Model tidak ada');
+    const abs = p => new URL(p, location.href).href;
+    const res = await fetch(abs('./vendor/vehicles/' + g.f));
+    if(!res.ok) throw new Error('GLB ' + g.f + ' gagal diunduh');
+    const buf = await res.arrayBuffer();
+    const gltf = await trip3d.GLTFLoader.parseAsync(buf, '');
+    const root = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+    const pivot = new trip3d.THREE.Group();
+    pivot.add(root);
+    trip3d.scene.add(pivot);
+    fitVehicle3d(pivot, root, g.s);
+    const entry = {pivot, root, yaw0: g.yaw0, name};
+    veh3dModels.set(name, entry);
+    return entry;
+  }
+  function fitVehicle3d(pivot, root, scaleF){
+    const THREE = trip3d.THREE;
+    const box = new THREE.Box3().setFromObject(root);
+    const size = box.getSize(new THREE.Vector3());
+    const cx = box.getCenter(new THREE.Vector3());
+    root.position.x -= cx.x;
+    root.position.z -= cx.z;
+    const r = Math.hypot(size.x, size.z) / 2 || 1;
+    const s = (0.95 / r) * scaleF;
+    root.scale.setScalar(s);
+    const b2 = new THREE.Box3().setFromObject(root);
+    root.position.y -= b2.min.y;
+  }
+  let v3Last = 0;
+  function renderVeh3d(headingDeg){
+    if(!veh3dActive()) return;
+    const m = veh3dModels.get(vehSel.value);
+    m.pivot.rotation.y = (m.yaw0 + headingDeg) * Math.PI / 180;
+    trip3d.renderer.render(trip3d.scene, trip3d.camera);
+    vehSpriteCx.clearRect(0, 0, 256, 256);
+    vehSpriteCx.drawImage(trip3d.renderer.domElement, 0, 0, 256, 256);
+    if(vehEl && vehEl.tagName === 'CANVAS'){
+      const c2 = vehEl.getContext('2d');
+      if(c2){ c2.clearRect(0, 0, vehEl.width, vehEl.height); c2.drawImage(vehSpriteCv, 0, 0, vehEl.width, vehEl.height); }
+    }
+  }
+  function refreshVehIcon(){
+    if(!vehMark) return;
+    const v = veh();
+    if(styleSel.value === '3d' && trip3dStatus === 'ok' && veh3dModels.has(vehSel.value) && !trip3d.fail){
+      vehMark.setIcon(L.divIcon({
+        className: '',
+        html: '<canvas class="veh3d" width="' + v.size + '" height="' + v.size + '"></canvas>',
+        iconSize: [v.size, v.size], iconAnchor: [v.size/2, v.size/2],
+      }));
+      vehEl = vehMark.getElement() && vehMark.getElement().querySelector('.veh3d');
+      if(vehEl){ renderVeh3d(hSmooth); }
+    }else{
+      vehMark.setIcon(L.divIcon({
+        className: '',
+        html: '<div class="veh3d">' + v.svg + '</div>',
+        iconSize: [v.size, v.size], iconAnchor: [v.size/2, v.size/2],
+      }));
+      vehEl = vehMark.getElement() && vehMark.getElement().querySelector('.veh3d');
+      if(vehEl && styleSel.value !== '3d'){ vehEl.style.transform = 'rotate(' + vehRot(hSmooth) + 'deg)'; }
+    }
+  }
 
   function loadLeaflet(){
     if(window.L) return Promise.resolve(window.L);
@@ -3948,7 +4197,7 @@ async function ytFullInfo(id){
       routeDur = routeDist/222;
     } else {
       spl = resample(coords.map(c=>[c[1], c[0]]), 600);
-      routeDist = routeDur = 0;
+      if(roadMeta){ routeDist = roadMeta.dist; routeDur = roadMeta.dur; }
     }
     cum = [0];
     for(let i=1;i<spl.length;i++) cum.push(cum[i-1] + haversine(spl[i-1], spl[i]));
@@ -3962,12 +4211,14 @@ async function ytFullInfo(id){
       ? {color:'#60a5fa', weight: 4, opacity: 0.9, dashArray: '10 12'}
       : {color:'#d98a21', weight: 5, opacity: 0.9}).addTo(map);
     map.fitBounds(L.latLngBounds(latlngs), {padding: [40, 40]});
-    const v = veh();
-    vehMark = L.marker(L.latLng(latlngs[0].lat, latlngs[0].lng), {
-      icon: L.divIcon({className: '', html: '<div class="veh3d">' + v.svg + '</div>', iconSize: [v.size, v.size], iconAnchor: [v.size/2, v.size/2]}),
-    }).addTo(map);
-    vehEl = vehMark.getElement().querySelector('.veh3d');
     hSmooth = 0;
+    if(styleSel.value === '3d'){
+      ensureTrip3D().then(()=>{
+        refreshVehIcon();
+      }).catch(()=>{});
+    }else{
+      refreshVehIcon();
+    }
   }
 
   function posAt(f){
@@ -3989,6 +4240,12 @@ async function ytFullInfo(id){
 
   const ease = t => -(Math.cos(Math.PI*t)-1)/2;
   function ef(f){ return vehSel.value === 'pesawat' ? f : ease(f); }
+  function vehRot(deg){
+    const t = vehSel.value;
+    if(t === 'pesawat') return -deg;
+    if(t === 'motor' || t === 'kart') return 90 - deg;
+    return 180 - deg;
+  }
 
   function updateMarker(){
     if(!vehMark || !spl.length) return;
@@ -3996,7 +4253,14 @@ async function ytFullInfo(id){
     vehMark.setLatLng(L.latLng(p.lat, p.lon));
     let d = (p.deg - hSmooth + 540) % 360 - 180;
     hSmooth += d*0.16;
-    if(vehEl) vehEl.style.transform = 'rotate(' + (hSmooth+90) + 'deg)';
+    if(vehEl){
+      if(veh3dActive()){
+        const now = performance.now();
+        if(now - v3Last > 66){ v3Last = now; renderVeh3d(hSmooth); }
+      }else{
+        vehEl.style.transform = 'rotate(' + vehRot(hSmooth) + 'deg)';
+      }
+    }
     map.panTo(L.latLng(p.lat, p.lon), {animate: false, noMoveStart: true});
   }
 
@@ -4026,6 +4290,7 @@ async function ytFullInfo(id){
       coords = rt.geometry.coordinates;
       routeDist = rt.distance;
       routeDur = rt.duration;
+      roadMeta = {dist: rt.distance, dur: rt.duration};
       rebuildSamples();
       drawRoute();
       const spd = vehSel.value === 'pesawat' ? 0.35 : 1;
@@ -4055,6 +4320,18 @@ async function ytFullInfo(id){
       prog = 0; progEl.value = 0;
       updateMarker();
       timeEl.textContent = '00:00 / ' + fmtDur(relDur());
+      if(styleSel.value === '3d'){
+        ensureTrip3D().then(()=> loadVeh3d(vehSel.value)).then(()=> refreshVehIcon()).catch(()=>{});
+      }
+    }
+  });
+
+  styleSel.addEventListener('change', ()=>{
+    if(!vehMark) return;
+    if(styleSel.value === '3d'){
+      ensureTrip3D().then(()=> loadVeh3d(vehSel.value)).then(()=> refreshVehIcon()).catch(()=>{});
+    }else{
+      refreshVehIcon();
     }
   });
 
@@ -4183,13 +4460,28 @@ async function ytFullInfo(id){
     drawPin(ptA, '#e03131', 'A');
     drawPin(ptB, '#2f9e44', 'B');
     const vp = wpt([q.lat, q.lon]);
-    const img = vehImg();
-    ctx.save();
-    ctx.translate(vp[0], vp[1]);
-    ctx.rotate(q.deg*Math.PI/180);
+    const v = veh();
     const sz = vehSel.value === 'pesawat' ? 76 : 68;
-    ctx.drawImage(img, -sz/2, -sz/2, sz, sz);
-    ctx.restore();
+    if(veh3dActive()){
+      const m = veh3dModels.get(vehSel.value);
+      m.pivot.rotation.y = (m.yaw0 + q.deg) * Math.PI / 180;
+      trip3d.renderer.render(trip3d.scene, trip3d.camera);
+      ctx.save();
+      ctx.translate(vp[0], vp[1]);
+      ctx.beginPath();
+      ctx.ellipse(0, sz*0.42, sz*0.52, sz*0.2, 0, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(0,0,0,.28)';
+      ctx.fill();
+      ctx.drawImage(trip3d.renderer.domElement, -sz/2, -sz/2 - sz*0.06, sz, sz);
+      ctx.restore();
+    }else{
+      const img = vehImg();
+      ctx.save();
+      ctx.translate(vp[0], vp[1]);
+      ctx.rotate(vehRot(q.deg)*Math.PI/180);
+      ctx.drawImage(img, -sz/2, -sz/2, sz, sz);
+      ctx.restore();
+    }
     ctx.fillStyle = 'rgba(0,0,0,.55)';
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'right';
@@ -4228,7 +4520,8 @@ async function ytFullInfo(id){
       await Promise.all(jobs);
       infoEl.textContent = 'Merender video (12 dtk, 1280×720)…';
       const stream = cv.captureStream(REC_FPS);
-      const rec = new MediaRecorder(stream, {mimeType: 'video/webm;codecs=vp9'});
+      const mime = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(m=>MediaRecorder.isTypeSupported(m)) || '';
+      const rec = new MediaRecorder(stream, mime ? {mimeType: mime, videoBitsPerSecond: 8e6} : undefined);
       const chunks = [];
       rec.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
       const done = new Promise(r => rec.onstop = r);
@@ -4279,7 +4572,7 @@ async function ytFullInfo(id){
         }
       }
       await Promise.all(jobs);
-      drawRecFrame(ctx, z, ef(f));
+      drawRecFrame(ctx, z, f);
       const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
       downloadBlob(blob, 'trip-map.png');
       showToast('Snapshot diunduh 🖼');
@@ -4329,8 +4622,9 @@ async function ytFullInfo(id){
   }
   freshVideo();
 
-  let ratio = 1, outW = 720, outH = 720;
+  let ratio = 1, outW = 720, outH = 720, customSize = false;
   function setOutSize(){
+    if(customSize) return;
     if(ratio >= 1){ outW = Math.round(720*ratio); outH = 720; }
     else { outW = 720; outH = Math.round(720/ratio); }
     canvas.width = outW; canvas.height = outH;
@@ -4341,10 +4635,44 @@ async function ytFullInfo(id){
     if(!b) return;
     ratiosEl.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
+    customSize = false;
     ratio = eval(b.dataset.r);
     setOutSize();
   });
   setOutSize();
+
+  const sizeWEl = $('edtSizeW'), sizeHEl = $('edtSizeH'), sizeGoEl = $('edtSizeGo');
+  const ncEl = $('edtNc'), ncStrEl = $('edtNcStr'), ncStrValEl = $('edtNcStrVal'), ncCalEl = $('edtNcCal'), ncInfoEl = $('edtNcInfo');
+  const titleEl = $('edtTitle'), marqueeEl = $('edtMarquee'), marqSpdEl = $('edtMarqSpd'), marqSpdValEl = $('edtMarqSpdVal');
+  const logoBtn = $('edtLogoBtn'), logoFileEl = $('edtLogo'), logoPosEl = $('edtLogoPos'), logoSzEl = $('edtLogoSz'), logoSzValEl = $('edtLogoSzVal'), logoOpEl = $('edtLogoOp'), logoOpValEl = $('edtLogoOpVal');
+  const timeInfoEl = $('edtTimeInfo'), tlWrap = $('edtTimelineWrap'), thumbsEl = $('edtThumbs'), segsEl = $('edtSegs'), headEl = $('edtHead'), markAEl = $('edtMarkA'), markBEl = $('edtMarkB');
+  const trimEl = $('edtTrim'), trimGoEl = $('edtTrimGo'), trimInfoEl = $('edtTrimInfo');
+  const smoothEl = $('edtSmooth');
+
+  sizeGoEl.addEventListener('click', ()=>{
+    const w = Math.round(Math.max(120, Math.min(1920, +sizeWEl.value || 720)));
+    const h = Math.round(Math.max(120, Math.min(1920, +sizeHEl.value || 720)));
+    sizeWEl.value = w; sizeHEl.value = h;
+    customSize = true; ratio = w/h; outW = w; outH = h;
+    canvas.width = w; canvas.height = h;
+    outInfoEl.textContent = outW + '×' + outH + ' px · 30 fps';
+    showToast('Ukuran output ' + w + '×' + h);
+  });
+
+  let bgLogo = null, marqOff = 0, marqLast = 0;
+  let lastTarget = null, lastSeenAt = 0;
+  marqSpdEl.addEventListener('input', e=> marqSpdValEl.textContent = e.target.value);
+  logoSzEl.addEventListener('input', e=> logoSzValEl.textContent = e.target.value);
+  logoOpEl.addEventListener('input', e=> logoOpValEl.textContent = e.target.value + '%');
+  logoBtn.addEventListener('click', ()=> logoFileEl.click());
+  logoFileEl.addEventListener('change', ()=>{
+    const f = logoFileEl.files[0];
+    if(!f) return;
+    const im = new Image();
+    im.onload = ()=>{ bgLogo = im; showToast('🖼 Logo/watermark dimuat'); };
+    im.onerror = ()=> showToast('Gagal memuat gambar logo');
+    im.src = URL.createObjectURL(f);
+  });
 
   let ctx = null, analyser = null, meSrc = null;
   let raf = 0, running = false, recorder = null, chunks = [], recOn = false, recT0 = 0;
@@ -4441,11 +4769,19 @@ async function ytFullInfo(id){
       return;
     }
     setOutSize();
+    tlBusy = false;
+    tlFracA = 0; tlFracB = 1;
+    markAEl.style.left = '0'; markBEl.style.left = '100%';
+    thumbsEl.innerHTML = '';
+    segsEl.innerHTML = '';
+    timeInfoEl.textContent = 'Membangun thumbnail…';
+    try{ setupAudio(); }catch(e){}
     msgEl.textContent = 'Memuat model pelacakan orang…';
     try{ await ensurePose(); }
     catch(e){ msgEl.textContent = 'Pelacakan tak tersedia: ' + String(e.message||e).slice(0,70); }
     setTimeout(()=>{ msgEl.style.display = 'none'; }, 600);
     videoEl.play().catch(()=>{});
+    buildTimeline();
     running = true;
     raf = requestAnimationFrame(loop);
   });
@@ -4514,12 +4850,18 @@ async function ytFullInfo(id){
 
   function cropRect(vw, vh){
     const p = trackEl.checked ? pickPerson() : null;
-    const cx = p ? p.cx : 0.5;
-    const cy = p ? p.cy : 0.5;
+    let cx = 0.5, cy = 0.5, pw = 0, ph = 0, have = false;
+    const hold = smoothEl.checked && trackEl.checked;
+    if(p){
+      lastTarget = {cx:p.cx, cy:p.cy, w:p.w, h:p.h};
+      lastSeenAt = performance.now();
+      cx = p.cx; cy = p.cy; pw = p.w*vw; ph = p.h*vh; have = true;
+    } else if(hold && lastTarget && performance.now() - lastSeenAt < 1500){
+      cx = lastTarget.cx; cy = lastTarget.cy; pw = lastTarget.w*vw; ph = lastTarget.h*vh; have = true;
+    }
     let w = vh*ratio, h = vh;
     if(w > vw){ w = vw; h = vw/ratio; }
-    if(p){
-      const pw = p.w*vw, ph = p.h*vh;
+    if(have){
       if(pw > w || ph > h){
         const k = Math.max(pw/w, ph/h);
         const kx = vw/w, ky = vh/h;
@@ -4585,6 +4927,52 @@ async function ytFullInfo(id){
         lc.forEach((ln,i)=> cv.fillText(ln, outW/2, y + i*(fs+6)));
       }
     }
+    seekPlayhead();
+    if(titleEl.value){
+      const fs = Math.round(outH*0.058);
+      cv.font = '700 ' + fs + 'px Inter, system-ui, sans-serif';
+      cv.textAlign = 'center'; cv.textBaseline = 'top';
+      const tw = cv.measureText(titleEl.value).width;
+      cv.fillStyle = 'rgba(0,0,0,0.55)';
+      cv.fillRect(outW/2 - tw/2 - 16, 18, tw + 32, fs + 22);
+      cv.fillStyle = '#ffffff';
+      cv.fillText(titleEl.value, outW/2, 26);
+      cv.textBaseline = 'alphabetic';
+    }
+    if(marqueeEl.value){
+      const fs = Math.round(outH*0.042);
+      cv.font = '600 ' + fs + 'px Inter, system-ui, sans-serif';
+      cv.textAlign = 'left'; cv.textBaseline = 'alphabetic';
+      const txt = marqueeEl.value;
+      const tw = cv.measureText(txt).width;
+      if(marqLast){
+        const dt = Math.min(0.1, (now - marqLast)/1000);
+        marqOff += dt*(30 + (+marqSpdEl.value))*outW/1400;
+      }
+      marqLast = now;
+      const span = outW + tw + 60;
+      if(marqOff > span + tw) marqOff = -tw;
+      const x = outW - marqOff + 0;
+      if(x > -tw && x < outW){
+        const y = outH - Math.round(outH*0.035) - fs/2;
+        cv.fillStyle = 'rgba(0,0,0,0.5)';
+        cv.fillRect(x - 10, y - fs - 14, tw + 20, fs + 28);
+        cv.fillStyle = '#ffd43b';
+        cv.fillText(txt, x, y);
+        cv.textAlign = 'left';
+      }
+    }
+    if(bgLogo){
+      const lo = logoPosEl.value;
+      const pad = Math.max(10, Math.round(outW*0.015));
+      const lh = Math.round(outH*0.32*(logoSzEl.value/100));
+      const lw = Math.round(bgLogo.width/bgLogo.height*lh);
+      const lx = lo.includes('l') ? pad : outW - lw - pad;
+      const ly = lo.includes('t') ? pad : outH - lh - pad;
+      cv.globalAlpha = Math.max(0, Math.min(1, logoOpEl.value/100));
+      cv.drawImage(bgLogo, lx, ly, lw, lh);
+      cv.globalAlpha = 1;
+    }
     timeEl.textContent = fmtTime(videoEl.currentTime);
   }
 
@@ -4608,6 +4996,12 @@ async function ytFullInfo(id){
       rmsEl.textContent = '';
     }
     if(recOn && analyser) energyLog.push({t: (now-recT0)/1000, rms});
+    if(trimEl.checked && videoEl.duration){
+      const a = tlFracA*videoEl.duration, b = tlFracB*videoEl.duration;
+      if(videoEl.currentTime >= b - 0.02){
+        videoEl.currentTime = a;
+      }
+    }
     draw(now);
   }
 
@@ -4628,7 +5022,11 @@ async function ytFullInfo(id){
     let stream;
     try{ stream = canvas.captureStream(30); }
     catch(e){ return showToast('Rekaman tak didukung browser ini'); }
-    if(vs && vs.getAudioTracks().length) stream.addTrack(vs.getAudioTracks()[0]);
+    if(ncEl.checked && ncDest && ncDest.stream.getAudioTracks().length){
+      stream.addTrack(ncDest.stream.getAudioTracks()[0]);
+    } else if(vs && vs.getAudioTracks().length){
+      stream.addTrack(vs.getAudioTracks()[0]);
+    }
     const mime = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m)) || '';
     recorder = new MediaRecorder(stream, mime ? {mimeType:mime, videoBitsPerSecond: 7e6} : undefined);
     recorder.ondataavailable = e=>{ if(e.data && e.data.size) chunks.push(e.data); };
@@ -4657,27 +5055,47 @@ async function ytFullInfo(id){
     renderBtn.disabled = true;
     recBtn.disabled = true;
     stopBtn.disabled = true;
-    if(ctx && ctx.state === 'suspended') ctx.resume();
-    videoEl.muted = true;
-    chunks = [];
-    energyLog = [];
-    videoEl.currentTime = 0;
-    fRecord();
-    videoEl.play().catch(()=>{});
-    const tick = setInterval(()=>{
-      const d = videoEl.duration || 0;
-      renderBtn.textContent = d > 0 ? '⏳ Render ' + Math.round(videoEl.currentTime/d*100) + '%…' : '⏳ Render…';
-    }, 250);
-    await new Promise(res => { videoEl.onended = res; });
-    clearInterval(tick);
-    stopRecorder();
-    videoEl.onended = null;
-    videoEl.muted = false;
-    rendering = false;
-    renderBtn.disabled = false;
-    recBtn.disabled = false;
-    stopBtn.disabled = false;
-    renderBtn.textContent = '⬇ Unduh Hasil';
+    let tick = null;
+    try{
+      if(ctx && ctx.state === 'suspended') ctx.resume();
+      videoEl.muted = true;
+      chunks = [];
+      energyLog = [];
+      recT0 = performance.now();
+      const rA = trimEl.checked ? tlFracA*(videoEl.duration||0) : 0;
+      const rB = trimEl.checked ? tlFracB*(videoEl.duration||0) : (videoEl.duration||0);
+      videoEl.currentTime = rA;
+      fRecord();
+      videoEl.play().catch(()=>{});
+      tick = setInterval(()=>{
+        const d = videoEl.duration || 0;
+        const doneFrac = trimEl.checked
+          ? Math.max(0, Math.min(1, (videoEl.currentTime - rA)/Math.max(0.001, rB - rA)))
+          : (d > 0 ? videoEl.currentTime/d : 0);
+        renderBtn.textContent = d > 0 ? '⏳ Render ' + Math.round(doneFrac*100) + '%…' : '⏳ Render…';
+      }, 250);
+      await new Promise(res=>{
+        let settled = false;
+        const fin = ()=>{ if(!settled){ settled = true; clearInterval(iv); res(); } };
+        const iv = setInterval(()=>{
+          if(trimEl.checked ? videoEl.currentTime >= rB - 0.03 : videoEl.ended) fin();
+        }, 100);
+        videoEl.onended = fin;
+        setTimeout(fin, Math.max(120000, (videoEl.duration||0)*1000 + 30000));
+      });
+    }catch(e){
+      showToast('Render gagal: ' + String(e.message||e).slice(0,60));
+    }finally{
+      clearInterval(tick);
+      stopRecorder();
+      videoEl.onended = null;
+      videoEl.muted = false;
+      rendering = false;
+      renderBtn.disabled = false;
+      recBtn.disabled = false;
+      stopBtn.disabled = false;
+      renderBtn.textContent = '⬇ Unduh Hasil';
+    }
   });
   stopBtn.addEventListener('click', ()=>{
     if(recorder && recorder.state !== 'inactive') recorder.stop();
@@ -4698,18 +5116,29 @@ async function ytFullInfo(id){
     }
     if(open) runs.push([t0, lastT]);
     const segs = [];
+    let lastRunEnd = null;
     for(const [a,b] of runs){
       if(b - a < 2.5) continue;
       const s = Math.max(0, a - pre), e = b + post;
-      if(segs.length && s - segs[segs.length-1][1] < 3){
-        segs[segs.length-1][1] = e;
-        continue;
+      if(lastRunEnd !== null && a - lastRunEnd < 3){
+        segs[segs.length-1][1] = Math.max(segs[segs.length-1][1], e);
+      }else{
+        segs.push([s, e]);
       }
-      segs.push([s, e]);
+      lastRunEnd = b;
     }
     if(!segs.length) return;
     clipsBtn.disabled = false;
     clipsBtn.dataset.segs = JSON.stringify(segs.map(([s,e])=>({s:+s.toFixed(2), e:+e.toFixed(2)})));
+    segsEl.querySelectorAll('.edt-seg').forEach(s=>s.remove());
+    const dur = videoEl.duration || 1;
+    segs.forEach(([s,e])=>{
+      const sg = document.createElement('div');
+      sg.className = 'edt-seg';
+      sg.style.left = (s/dur*100) + '%';
+      sg.style.width = Math.max(0.3, (e-s)/dur*100) + '%';
+      segsEl.appendChild(sg);
+    });
     clipsBoxEl.style.display = 'block';
     clipsBoxEl.innerHTML = '<div class="hint"><b>✂ Klip penting ditemukan:</b> ' + segs.length + ' bagian. Tekan tombol Potong untuk memotongnya (FFmpeg, butuh internet sekali).</div>';
     segs.forEach(([s,e],i)=>{
@@ -4848,6 +5277,109 @@ async function ytFullInfo(id){
   });
   clipClear.addEventListener('click', ()=>{ clipSegs = []; renderClipList(); });
 
+  // ---- Timeline, Trim A–B & thumbnail strip ----
+  let tlBusy = false, tlFracA = 0, tlFracB = 1;
+  let markDrag = null;
+  function seekPlayhead(){
+    const dur = videoEl.duration || 1;
+    let f = videoEl.currentTime/dur;
+    if(trimEl.checked && dur){
+      const span = (tlFracB - tlFracA)||1;
+      f = Math.max(0, Math.min(1, (videoEl.currentTime - tlFracA*dur)/span));
+    }
+    headEl.style.left = (f*100) + '%';
+  }
+  function redrawMarkers(){
+    markAEl.style.left = (tlFracA*100) + '%';
+    markBEl.style.left = (tlFracB*100) + '%';
+    const dur = videoEl.duration || 0;
+    timeInfoEl.textContent = 'A–B = ' + fmtTime(tlFracA*dur) + ' → ' + fmtTime(tlFracB*dur) +
+      ' (' + ((tlFracB-tlFracA)*dur).toFixed(1) + 's)';
+  }
+  function drawTrimZone(){
+    let z = segsEl.querySelector('.edt-trimz');
+    if(!z){ z = document.createElement('div'); z.className = 'edt-trimz'; segsEl.appendChild(z); }
+    z.style.left = (tlFracA*100) + '%';
+    z.style.width = Math.max(0.3, (tlFracB - tlFracA)*100) + '%';
+    z.style.display = trimInfoEl.dataset.on ? '' : 'none';
+  }
+  function refreshSegs(){
+    segsEl.querySelectorAll('.edt-seg').forEach(s=>s.remove());
+    drawTrimZone();
+  }
+  trimInfoEl.addEventListener('click', ()=>{
+    trimInfoEl.dataset.on = trimInfoEl.dataset.on ? '' : '1';
+    trimInfoEl.textContent = trimInfoEl.dataset.on ? '🧭 Zona hijau aktif' : '🧭 Zona hijau = yang disimpan';
+    drawTrimZone();
+  });
+  function attachMark(el, which){
+    el.addEventListener('pointerdown', e=>{
+      markDrag = which;
+      el.setPointerCapture(e.pointerId);
+      markMove(e);
+    });
+    el.addEventListener('pointermove', e=>{ if(markDrag === which) markMove(e); });
+    el.addEventListener('pointerup', ()=>{ markDrag = null; });
+    el.addEventListener('pointercancel', ()=>{ markDrag = null; });
+    function markMove(e){
+      const r = el.parentElement.getBoundingClientRect();
+      if(!r.width) return;
+      let f = Math.max(0, Math.min(1, (e.clientX - r.left)/r.width));
+      if(which === 'A') tlFracA = Math.min(f, tlFracB - 0.01);
+      else tlFracB = Math.max(f, tlFracA + 0.01);
+      redrawMarkers();
+      refreshSegs();
+    }
+  }
+  attachMark(markAEl, 'A');
+  attachMark(markBEl, 'B');
+  trimGoEl.addEventListener('click', ()=>{
+    if(!videoEl.videoWidth) return showToast('Pilih video dulu');
+    clipA.value = Math.round(tlFracA*1000);
+    clipB.value = Math.round(tlFracB*1000);
+    clipA.dispatchEvent(new Event('input'));
+    clipB.dispatchEvent(new Event('input'));
+    showToast('A–B disalin ke Clip Tool — tekan ➕ Tambah Klip untuk menyimpan');
+  });
+  function playFrom(t){
+    if(!videoEl.videoWidth) return showToast('Pilih video dulu');
+    videoEl.currentTime = Math.max(0, Math.min(videoEl.duration || 0, t));
+    videoEl.play().catch(()=>{});
+  }
+  async function buildTimeline(){
+    const dur = videoEl.duration || 1;
+    if(!dur) return;
+    tlBusy = true;
+    const n = Math.max(8, Math.min(28, Math.ceil(dur/3)));
+    const th = 78;
+    const tw = Math.max(14, Math.round(th*videoEl.videoWidth/videoEl.videoHeight));
+    const c = document.createElement('canvas'); c.width = tw; c.height = th;
+    const cx = c.getContext('2d');
+    const prevTime = videoEl.currentTime;
+    for(let i=0; i<n && tlBusy; i++){
+      const t = (n === 1 ? 0 : i/(n-1))*dur;
+      await new Promise(r=>{
+        const tmr = setTimeout(r, 350);
+        videoEl.onseeked = ()=>{ clearTimeout(tmr); r(); };
+        videoEl.currentTime = t;
+      });
+      videoEl.onseeked = null;
+      try{
+        cx.drawImage(videoEl, 0, 0, tw, th);
+        const cu = document.createElement('canvas');
+        cu.width = tw; cu.height = th;
+        cu.getContext('2d').drawImage(c, 0, 0);
+        cu.addEventListener('click', ()=> playFrom(t));
+        thumbsEl.appendChild(cu);
+      }catch(e){}
+    }
+    tlBusy = false;
+    tlWrap.style.display = '';
+    timeInfoEl.textContent = (n) + ' thumbnail · klik gambar untuk melompat.';
+    redrawMarkers();
+    refreshSegs();
+    try{ videoEl.currentTime = prevTime; }catch(e){}
+  }
   subSizeEl.addEventListener('input', e=> subSizeValEl.textContent = e.target.value);
   sensEl.addEventListener('input', e=> sensValEl.textContent = e.target.value);
   preEl.addEventListener('input', e=> preValEl.textContent = (+e.target.value).toFixed(1) + 's');
@@ -4873,7 +5405,11 @@ async function ytFullInfo(id){
         if(finalT) subFinal = (subFinal + ' ' + finalT).trim().slice(-160);
         subText = (subFinal + (interimT ? ' ' + interimT : '')).trim();
       };
-      subRec.onerror = ()=>{};
+      subRec.onerror = ()=>{
+        showToast('Subtitle: ' + ((subRec.error && subRec.error.error) || 'gagal akses mikrofon'));
+        subEl.checked = false;
+        subRec = null; subText = ''; subFinal = '';
+      };
       subRec.onend = ()=>{ if(subEl.checked) try{ subRec.start(); }catch(e){} };
       try{ subRec.start(); }catch(e){}
       showToast('🎙 Subtitle aktif — ucapkan sesuatu');
@@ -4881,6 +5417,148 @@ async function ytFullInfo(id){
       if(subRec) try{ subRec.stop(); }catch(e){}
       subRec = null; subText = ''; subFinal = '';
     }
+  });
+
+  // ---- Reduksi Noise (spektral subtraction via AudioWorklet) ----
+  let ncNode = null, ncDest = null, ncUrl = null, ncConnected = false;
+  const NC_WORKLET = [
+    "const N=1024,H=512;",
+    "const WIN=(k)=>{const w=N-1;return 0.5-0.5*Math.cos(2*Math.PI*k/w);};",
+    "class NCReduce extends AudioWorkletProcessor{",
+    "constructor(){",
+    " super();",
+    " this.lin=new Float32Array(N); this.count=0;",
+    " this.acc=new Float32Array(N); this.outQ=[]; this.qFill=0;",
+    " this.re=new Float32Array(N); this.im=new Float32Array(N);",
+    " this.mag=new Float32Array(N/2+1);",
+    " this.noise=null; this.avg=new Float32Array(N/2+1);",
+    " this.coef=0.36; this.calibrating=false; this.calFrames=0;",
+    " this.port.onmessage=e=>{",
+    "   const d=e.data;",
+    "   if(d.cmd==='calibrate'){ this.calibrating=true; this.calFrames=0; this.avg.fill(0); }",
+    "   else if(d.cmd==='coef'){ this.coef=Math.max(0,Number(d.v)||0); }",
+    " };",
+    "}",
+    "fft(re,im){",
+    " const n=re.length;",
+    " for(let i=1,j=0;i<n;i++){",
+    "   let b=n>>1;",
+    "   for(; j&b; b>>=1) j^=b;",
+    "   j^=b;",
+    "   if(i<j){ const tr=re[i]; re[i]=re[j]; re[j]=tr; const ti=im[i]; im[i]=im[j]; im[j]=ti; }",
+    " }",
+    " for(let len=2;len<=n;len<<=1){",
+    "   const ang=-2*Math.PI/len, wpr=Math.cos(ang), wpi=Math.sin(ang);",
+    "   for(let i=0;i<n;i+=len){",
+    "     let wr=1, wi=0;",
+    "     const h=len>>1;",
+    "     for(let j=0;j<h;j++){",
+    "       const ur=re[i+j], ui=im[i+j];",
+    "       const vr=wr*re[i+j+h]-wi*im[i+j+h];",
+    "       const vi=wr*im[i+j+h]+wi*re[i+j+h];",
+    "       re[i+j]=ur+vr; im[i+j]=ui+vi;",
+    "       re[i+j+h]=ur-vr; im[i+j+h]=ui-vi;",
+    "       const nw=wr*wpr-wi*wpi;",
+    "       wi=wr*wpi+wi*wpr; wr=nw;",
+    "     }",
+    "   }",
+    " }",
+    "}",
+    "ifft(re,im){ this.fft(re,im); for(let i=0;i<re.length;i++){ re[i]/=re.length; im[i]/=re.length; } }",
+    "analyze(){",
+    " const re=this.re, im=this.im, ln=this.lin;",
+    " for(let i=0;i<N;i++){ re[i]=ln[i]*WIN(i); im[i]=0; }",
+    " this.fft(re,im);",
+    " const mag=this.mag;",
+    " for(let i=0;i<=N/2;i++) mag[i]=Math.hypot(re[i],im[i]);",
+    " if(this.calibrating){",
+    "   for(let i=0;i<=N/2;i++) this.avg[i]+=mag[i];",
+    "   this.calFrames++;",
+    "   if(this.calFrames>=43){",
+    "     this.calibrating=false;",
+    "     this.noise=new Float32Array(this.avg);",
+    "     for(let i=0;i<=N/2;i++) this.noise[i]/=43;",
+    "     this.port.postMessage({ev:'cal'});",
+    "   }",
+    "   return;",
+    " }",
+    " if(this.noise){",
+    "   const c=this.coef;",
+    "   for(let i=1;i<=N/2;i++){",
+    "     const m=mag[i];",
+    "     if(m>1e-9){",
+    "       const g=m-this.noise[i]*c;",
+    "       const out=g>0?g:0;",
+    "       let scale=out/m;",
+    "       if(scale<0.06) scale=0.06;",
+    "       re[i]*=scale; im[i]*=scale;",
+    "     }",
+    "   }",
+    "   for(let i=N/2+1;i<N;i++){ re[i]=re[N-i]; im[i]=-im[N-i]; }",
+    " }",
+    " this.ifft(re,im);",
+    " const acc=this.acc;",
+    " for(let i=0;i<N;i++){ acc[i]+=re[i]*WIN(i); }",
+    " for(let i=0;i<H;i++){ this.outQ.push(acc[i]/1.5); }",
+    " acc.copyWithin(0,H);",
+    " for(let i=N-H;i<N;i++) acc[i]=0;",
+    "}",
+    "process(inputs,outputs){",
+    " const inp=inputs[0], out=outputs[0];",
+    " if(!inp||!inp[0]) return true;",
+    " const ch=inp[0], o=out[0], n=out.length, ln=this.lin;",
+    " for(let i=0;i<n;i++){",
+    "   ln[this.count]=ch[i]||0;",
+    "   this.count++;",
+    "   if(this.count>=N){",
+    "     this.analyze();",
+    "     ln.copyWithin(0,H);",
+    "     this.count=N-H;",
+    "   }",
+    "   o[i]=this.outQ.length?this.outQ.shift():0;",
+    " }",
+    " return true;",
+    "}",
+    "}",
+    "registerProcessor('nc-reduce',NCReduce);",
+  ].join('\n');
+  async function ensureNc(){
+    if(ncNode) return;
+    if(!ctx) setupAudio();
+    if(!ncUrl){
+      ncUrl = URL.createObjectURL(new Blob([NC_WORKLET], {type:'application/javascript'}));
+    }
+    await ctx.audioWorklet.addModule(ncUrl);
+    ncNode = new AudioWorkletNode(ctx, 'nc-reduce');
+    meSrc.connect(ncNode);
+    ncDest = ctx.createMediaStreamDestination();
+    ncNode.connect(ncDest);
+    ncConnected = true;
+    try{ ncNode.port.postMessage({cmd:'coef', v: +ncStrEl.value*0.12}); }catch(e){}
+  }
+  ncEl.addEventListener('change', async ()=>{
+    if(ncEl.checked){
+      try{ await ensureNc(); showToast('🔕 Reduksi noise aktif — kalibrasi untuk hasil terbaik'); }
+      catch(e){ console.error(e); showToast('Reduksi noise gagal: ' + String(e.message||e).slice(0,60)); ncEl.checked = false; }
+    }else{
+      if(ncNode){ try{ ncNode.disconnect(); }catch(e){} ncNode = null; }
+      if(ncDest){ try{ ncDest.disconnect(); }catch(e){} ncDest = null; }
+      ncConnected = false;
+    }
+  });
+  ncStrEl.addEventListener('input', e=>{
+    ncStrValEl.textContent = (+e.target.value).toFixed(1);
+    if(ncNode){ try{ ncNode.port.postMessage({cmd:'coef', v: +e.target.value*0.12}); }catch(err){} }
+  });
+  ncCalEl.addEventListener('click', async ()=>{
+    if(!ncEl.checked){ showToast('Aktifkan reduksi noise dulu'); return; }
+    const wasPaused = videoEl.paused;
+    try{ videoEl.pause(); }catch(e){}
+    ncInfoEl.textContent = '🎧 Merekam noise latar (±2 dtk) — jangan bersuara…';
+    try{ ncNode.port.postMessage({cmd:'calibrate'}); }catch(e){}
+    await new Promise(r=> setTimeout(r, 2300));
+    ncInfoEl.textContent = '✅ Profil noise tersimpan — mainkan video & cek hasilnya.';
+    if(wasPaused){ videoEl.play().catch(()=>{}); }
   });
 
   function stopAll(finalize){
@@ -4898,6 +5576,10 @@ async function ytFullInfo(id){
       recorder.stop();
     }
     if(subRec){ try{ subRec.stop(); }catch(e){} subRec = null; subEl.checked = false; }
+    if(ncNode){ try{ ncNode.disconnect(); }catch(e){} ncNode = null; }
+    if(ncDest){ try{ ncDest.disconnect(); }catch(e){} ncDest = null; }
+    ncConnected = false;
+    tlBusy = false;
     if(videoEl) videoEl.pause();
     timeEl.textContent = '00:00';
     rmsEl.textContent = '';
