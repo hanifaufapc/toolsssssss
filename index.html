@@ -762,7 +762,20 @@
       <div class="edt-card">
         <div class="edt-card-title">Subtitle dari Audio Video (AI)</div>
         <button class="btn btn-dark" id="edtAsr" style="width:100%">🎧 Transkripsi dari Audio Video</button>
-        <div class="mono edt-outinfo" id="edtAsrInfo">Deteksi ucapan langsung dari suara video (tanpa mikrofon). Model AI diunduh sekali (±40 MB), lalu diproses di browser.</div>
+        <div class="mono edt-outinfo" id="edtAsrInfo">Transkripsi (bukan terjemahan) langsung dari suara video — bahasa dideteksi otomatis. Model AI diunduh sekali (±40 MB), lalu diproses di browser.</div>
+        <select id="edtAsrLang" class="musik-select" style="width:100%">
+          <option value="">Bahasa: otomatis (deteksi)</option>
+          <option value="indonesian">Bahasa: Indonesia</option>
+          <option value="english">Bahasa: Inggris</option>
+          <option value="arabic">Bahasa: Arab</option>
+          <option value="japanese">Bahasa: Jepang</option>
+          <option value="korean">Bahasa: Korea</option>
+          <option value="chinese">Bahasa: Mandarin</option>
+          <option value="french">Bahasa: Prancis</option>
+          <option value="spanish">Bahasa: Spanyol</option>
+          <option value="portuguese">Bahasa: Portugis</option>
+          <option value="hindi">Bahasa: Hindi</option>
+        </select>
         <label class="ctl-line mono"><input type="checkbox" id="edtSub" disabled> Tampilkan subtitle di hasil</label>
         <select id="edtSubPos" class="musik-select" style="width:100%">
           <option value="bottom">Posisi: bawah</option>
@@ -4529,7 +4542,7 @@ async function ytFullInfo(id){
   const fileEl = $('edtFile'), pickBtn = $('edtPick'), fileNameEl = $('edtFileName');
   const ratiosEl = $('edtRatios'), outInfoEl = $('edtOutInfo'), showBoxEl = $('edtShowBox');
   const trackEl = $('edtTrack'), trackModeEl = $('edtTrackMode'), tracksEl = $('edtTracks'), trackInfoEl = $('edtTrackInfo'), smoothEl = $('edtSmooth');
-  const asrBtn = $('edtAsr'), asrInfoEl = $('edtAsrInfo'), subEl = $('edtSub'), subPosEl = $('edtSubPos'), subSizeEl = $('edtSubSize'), subSizeValEl = $('edtSubSizeVal'), subBgEl = $('edtSubBg'), asrListEl = $('edtAsrList');
+  const asrBtn = $('edtAsr'), asrInfoEl = $('edtAsrInfo'), asrLangEl = $('edtAsrLang'), subEl = $('edtSub'), subPosEl = $('edtSubPos'), subSizeEl = $('edtSubSize'), subSizeValEl = $('edtSubSizeVal'), subBgEl = $('edtSubBg'), asrListEl = $('edtAsrList');
   const autoClipBtn = $('edtAutoClip'), clipInfoEl = $('edtClipInfo'), sensEl = $('edtSens'), sensValEl = $('edtSensVal'), preEl = $('edtPre'), preValEl = $('edtPreVal'), postEl = $('edtPost'), postValEl = $('edtPostVal'), clipsBoxEl = $('edtClipsBox');
   const renderBtn = $('edtRender'), timeEl = $('edtTime'), rmsEl = $('edtRms');
   const canvas = $('edtCanvas'), cv = canvas.getContext('2d');
@@ -4583,7 +4596,7 @@ async function ytFullInfo(id){
 
   // ---- pose tracking (MediaPipe, self-hosted) ----
   let poseDet = null, poseBusy = false, lastDet = 0;
-  let persons = [], prevLms = [], smP = [], lastAutoIdx = -1, lockIdx = -1, lastTarget = null, lastSeenAt = 0, lastCam = null;
+  let persons = [], prevLms = [], smP = [], lastAutoIdx = -1, lockIdx = -1, lastTarget = null, lastSeenAt = 0, lastCam = null, panPos = null;
   async function ensurePose(){
     if(poseDet) return;
     const abs = p => new URL(p, location.href).href;
@@ -4638,9 +4651,12 @@ async function ytFullInfo(id){
       const res = await poseDet.detectForVideo(videoEl, now);
       const poses = res.landmarks || [];
       const sm = smP;
+      const FACE_IDX = [0,2,5,7,8,9,10];
       persons = poses.map((lms, idx)=>{
         let minX=1, maxX=0, minY=1, maxY=0;
-        for(const lm of lms){
+        for(const i of FACE_IDX){
+          const lm = lms[i];
+          if(!lm) continue;
           if(lm.x < minX) minX = lm.x;
           if(lm.x > maxX) maxX = lm.x;
           if(lm.y < minY) minY = lm.y;
@@ -4652,9 +4668,10 @@ async function ytFullInfo(id){
           for(let i=0;i<lms.length;i++) act += Math.abs(lms[i].x-prev[i].x) + Math.abs(lms[i].y-prev[i].y);
         }
         prevLms[idx] = lms.map(l=>({x:l.x, y:l.y}));
-        const padX = (maxX-minX)*0.14, padY = (maxY-minY)*0.18;
+        const spanX = Math.max(0.05, maxX - minX), spanY = Math.max(0.05, maxY - minY);
+        const pad = Math.max(spanX, spanY)*0.9;
         let cx = (minX+maxX)/2, cy = (minY+maxY)/2;
-        let w = Math.min(1.2, maxX-minX+padX*2), h = Math.min(1.2, maxY-minY+padY*2);
+        let w = Math.min(1.4, spanX + pad*2), h = Math.min(1.4, spanY + pad*2);
         const pr = sm[idx];
         if(pr){
           const k = 0.5;
@@ -4715,14 +4732,14 @@ async function ytFullInfo(id){
   }
   function cropRect(vw, vh){
     const p = trackEl.checked ? pickPerson() : null;
-    let cx = 0.5, cy = 0.5, pw = 0, ph = 0, have = false;
+    let fx = 0.5, fy = 0.5, pw = 0, ph = 0, have = false;
     const hold = smoothEl.checked && trackEl.checked;
     if(p){
       lastTarget = {cx:p.cx, cy:p.cy, w:p.w, h:p.h};
       lastSeenAt = performance.now();
-      cx = p.cx; cy = p.cy; pw = p.w*vw; ph = p.h*vh; have = true;
+      fx = p.cx; fy = p.cy; pw = p.w*vw; ph = p.h*vh; have = true;
     } else if(hold && lastTarget && performance.now() - lastSeenAt < 1500){
-      cx = lastTarget.cx; cy = lastTarget.cy; pw = lastTarget.w*vw; ph = lastTarget.h*vh; have = true;
+      fx = lastTarget.cx; fy = lastTarget.cy; pw = lastTarget.w*vw; ph = lastTarget.h*vh; have = true;
     }
     let w = vh*ratio, h = vh;
     if(w > vw){ w = vw; h = vw/ratio; }
@@ -4734,13 +4751,35 @@ async function ytFullInfo(id){
         w *= k2; h *= k2;
       }
     }
-    let x = cx*vw - w/2, y = cy*vh - h/2;
+    if(!panPos) panPos = {cx: vw/2, cy: vh/2};
+    if(have){
+      const ox = (fx*vw - panPos.cx)/w, oy = (fy*vh - panPos.cy)/h;
+      const dxDead = 0.30, dyLo = 0.55, dyHi = 0.18;
+      let tx = null, ty = null;
+      if(Math.abs(ox) > dxDead) tx = fx*vw - Math.sign(ox)*dxDead*w;
+      if(oy > dyLo || oy < dyHi) ty = fy*vh - (oy > dyLo ? dyLo : dyHi)*h;
+      if(tx !== null){
+        let nx = panPos.cx + (tx - panPos.cx)*0.10;
+        const mx = Math.max(0.012*w, Math.abs(tx - panPos.cx)*0.04);
+        if(Math.abs(nx - panPos.cx) > mx) nx = panPos.cx + Math.sign(nx - panPos.cx)*mx;
+        panPos.cx = nx;
+      }
+      if(ty !== null){
+        let ny = panPos.cy + (ty - panPos.cy)*0.10;
+        const my = Math.max(0.012*h, Math.abs(ty - panPos.cy)*0.04);
+        if(Math.abs(ny - panPos.cy) > my) ny = panPos.cy + Math.sign(ny - panPos.cy)*my;
+        panPos.cy = ny;
+      }
+    }
+    panPos.cx = Math.max(w/2, Math.min(vw - w/2, panPos.cx));
+    panPos.cy = Math.max(h/2, Math.min(vh - h/2, panPos.cy));
+    let x = panPos.cx - w/2, y = panPos.cy - h/2;
     if(lastCam){
-      const sm = 0.18;
-      x = lastCam.x + (x-lastCam.x)*sm;
-      y = lastCam.y + (y-lastCam.y)*sm;
-      w = lastCam.w + (w-lastCam.w)*sm;
-      h = lastCam.h + (h-lastCam.h)*sm;
+      w = lastCam.w + (w-lastCam.w)*0.18;
+      h = lastCam.h + (h-lastCam.h)*0.18;
+      if(w > vw) w = vw;
+      if(h > vh) h = vh;
+      x = panPos.cx - w/2; y = panPos.cy - h/2;
     }
     if(!(w > 0) || !(h > 0)){ w = vh*ratio; h = vh; x = (vw-w)/2; y = 0; }
     x = Math.max(0, Math.min(vw-w, x));
@@ -4897,6 +4936,10 @@ async function ytFullInfo(id){
       env.allowLocalModels = false;
       env.remoteHost = 'https://huggingface.co';
       env.remotePathTemplate = '{model}/resolve/{revision}/';
+      if(env.backends && env.backends.onnx && env.backends.onnx.wasm){
+        env.backends.onnx.wasm.proxy = false;
+        env.backends.onnx.wasm.numThreads = 1;
+      }
     }
     try{
       asrPipe = await mod.pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny');
@@ -4929,10 +4972,13 @@ async function ytFullInfo(id){
   function processChunk(f32, off){
     chain = chain.then(async ()=>{
       try{
-        const out = await asrPipe(f32, {
+        const opts = {
           chunk_length_s: 30, stride_length_s: 5, return_timestamps: true,
-          callback_function: p => { if(p && p.status === 'progress') asrInfoEl.textContent = '🧠 Menerjemahkan… ' + (p.file ? p.file.replace(/^.*\//,'') + ' ' : '') + Math.round((p.progress||0)*100) + '%'; },
-        });
+          callback_function: p => { if(p && p.status === 'progress') asrInfoEl.textContent = '🧠 Transkripsi… ' + (p.file ? p.file.replace(/^.*\//,'') + ' ' : '') + Math.round((p.progress||0)*100) + '%'; },
+        };
+        const lg = asrLangEl ? asrLangEl.value : '';
+        if(lg) opts.language = lg;
+        const out = await asrPipe(f32, opts);
         const chunks = (out && out.chunks) ? out.chunks
           : (out && out.text ? [{timestamp: [0, f32.length/16000], text: out.text}] : []);
         for(const c of chunks){
@@ -5029,7 +5075,11 @@ async function ytFullInfo(id){
   // ---- Auto Klip (sekali tekan: scan → deteksi → potong) ----
   let energyLog = [];
   function detectSegments(){
-    const th = Math.max(0.06, 0.22 + (1 - sensEl.value/100)*0.45);
+    const vals = energyLog.map(x=>x.rms).sort((a,b)=>a-b);
+    if(vals.length < 2) return [];
+    const p85 = vals[Math.floor(vals.length*0.85)];
+    const userBase = Math.max(0.04, 0.10 + (1 - sensEl.value/100)*0.30);
+    const th = Math.max(userBase, p85*0.65);
     const pre = parseFloat(preEl.value), post = parseFloat(postEl.value);
     const runs = [];
     let open = false, t0 = 0, lastT = 0;
