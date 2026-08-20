@@ -9,6 +9,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three/three.module.min.js"
+    }
+  }
+</script>
 
 <style>
   :root{
@@ -273,11 +280,7 @@
   .edt-stage canvas{display:block; width:100%; max-height:440px; object-fit:contain;}
   .edt-stage-msg{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#8f866f; font-size:14px; pointer-events:none;}
   .viz-canvas{display:block; width:100%; background:#000; border-radius:14px; border:1px solid rgba(255,255,255,0.08); margin-top:14px;}
-  .edt-mark{position:absolute; top:-5px; bottom:-5px; width:16px; margin-left:-8px; background:rgba(255,77,77,0.28); border:1.5px solid #ff4d4d; border-radius:5px; color:#ff8080; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:ew-resize; font-family:'IBM Plex Mono',monospace; user-select:none; z-index:3;}
-  #edtTimelineWrap{background:#000; border-radius:9px; padding:4px; border:1px solid rgba(255,255,255,0.08);}
-  #edtThumbs canvas{flex:1 0 0; min-width:0; height:78px; object-fit:none; border-radius:4px; cursor:pointer;}
-  .edt-seg{position:absolute; bottom:0; top:0; background:rgba(255,212,59,0.22); border-left:1px solid rgba(255,212,59,.6); border-right:1px solid rgba(255,212,59,.6);}
-  .edt-trimz{position:absolute; top:0; bottom:0; background:rgba(46,204,113,0.14); pointer-events:none; z-index:1;}
+  
   #tripMap{height:460px; border-radius:14px; border:1px solid rgba(28,24,16,0.18); margin-top:12px; z-index:0;}
   .dl-tab{font-size:13px;}
   .dl-tab.active{background:#eab308; color:#14100b; border-color:transparent;}
@@ -725,7 +728,7 @@
   <div class="panel panel-dark" data-panel="editor">
     <div class="panel-head">
       <div class="ic-wrap"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/><path d="M6 12h3v2H6z"/></svg></div>
-      <div><h2>Editor Video</h2><p>Auto-track orang, subtitle otomatis, dan klip momen penting.</p></div>
+      <div><h2>Editor Video</h2><p>Auto-track orang, subtitle dari audio video, dan klip momen penting — sekali tekan.</p></div>
     </div>
 
     <div class="row">
@@ -736,7 +739,7 @@
 
     <div class="edt-grid">
       <div class="edt-card">
-        <div class="edt-card-title">Rasio Output</div>
+        <div class="edt-card-title">Auto Track Orang</div>
         <div class="edt-presets" id="edtRatios">
           <button class="mini-btn" data-r="9/16">9:16</button>
           <button class="mini-btn" data-r="4/5">4:5</button>
@@ -744,26 +747,7 @@
           <button class="mini-btn" data-r="4/3">4:3</button>
           <button class="mini-btn" data-r="16/9">16:9</button>
         </div>
-        <div class="row" style="gap:6px">
-          <span class="mono" style="min-width:auto">Custom</span>
-          <input type="number" id="edtSizeW" min="120" max="1920" value="720" style="width:74px" title="Lebar output">
-          <span class="mono">×</span>
-          <input type="number" id="edtSizeH" min="120" max="1920" value="720" style="width:74px" title="Tinggi output">
-          <button class="mini-btn" id="edtSizeGo">Pakai</button>
-        </div>
         <div class="edt-outinfo mono" id="edtOutInfo"></div>
-        <label class="ctl-line mono"><input type="checkbox" id="edtShowBox" checked> Tampilkan kotak pelacakan (AI)</label>
-        <label class="ctl-line mono"><input type="checkbox" id="edtSmooth" checked> Kamera AI halus (hold target)</label>
-      </div>
-      <div class="edt-card">
-        <div class="edt-card-title">🎙 Reduksi Noise (AI Audio)</div>
-        <label class="ctl-line mono"><input type="checkbox" id="edtNc"> Aktifkan pengurang noise</label>
-        <label class="ctl-line mono"><span style="min-width:auto">Kekuatan</span><input type="range" id="edtNcStr" min="0.3" max="9" step="0.1" value="3"><span class="mono" id="edtNcStrVal">3.0</span></label>
-        <button class="btn btn-ghost" id="edtNcCal">🎯 Kalibrasi noise latar (2 dtk)</button>
-        <div class="mono edt-outinfo" id="edtNcInfo">Noise dibersihkan di audio hasil rekaman (2–3× lebih bersih).</div>
-      </div>
-      <div class="edt-card">
-        <div class="edt-card-title">Auto Track Orang</div>
         <label class="ctl-line mono"><input type="checkbox" id="edtTrack" checked> Pelacakan aktif (AI)</label>
         <select id="edtTrackMode" class="musik-select" style="width:100%">
           <option value="auto">Mode: paling aktif (bicara/bergerak)</option>
@@ -772,95 +756,45 @@
         </select>
         <div class="edt-tracks" id="edtTracks"></div>
         <div class="mono edt-outinfo" id="edtTrackInfo">Klik chip untuk mengunci ke orang tertentu.</div>
+        <label class="ctl-line mono"><input type="checkbox" id="edtShowBox" checked> Tampilkan kotak pelacakan</label>
+        <label class="ctl-line mono"><input type="checkbox" id="edtSmooth" checked> Kamera AI halus (hold target)</label>
       </div>
       <div class="edt-card">
-        <div class="edt-card-title">Subtitle Otomatis (AI)</div>
-        <label class="ctl-line mono"><input type="checkbox" id="edtSub"> Ucapkan &amp; rekam subtitle (mikrofon)</label>
+        <div class="edt-card-title">Subtitle dari Audio Video (AI)</div>
+        <button class="btn btn-dark" id="edtAsr" style="width:100%">🎧 Transkripsi dari Audio Video</button>
+        <div class="mono edt-outinfo" id="edtAsrInfo">Deteksi ucapan langsung dari suara video (tanpa mikrofon). Model AI diunduh sekali (±40 MB), lalu diproses di browser.</div>
+        <label class="ctl-line mono"><input type="checkbox" id="edtSub" disabled> Tampilkan subtitle di hasil</label>
         <select id="edtSubPos" class="musik-select" style="width:100%">
           <option value="bottom">Posisi: bawah</option>
           <option value="top">Posisi: atas</option>
         </select>
         <div class="ctl-line mono"><span>Ukuran</span><input type="range" id="edtSubSize" min="22" max="64" value="38"><span class="mono" id="edtSubSizeVal">38</span></div>
         <label class="ctl-line mono"><input type="checkbox" id="edtSubBg" checked> Latar gelap</label>
+        <div class="plock-list" id="edtAsrList"></div>
       </div>
       <div class="edt-card">
-        <div class="edt-card-title">Overlay Teks &amp; Logo</div>
-        <input type="text" id="edtTitle" class="musik-url" placeholder="Judul di video… (opsional)" style="width:100%">
-        <input type="text" id="edtMarquee" class="musik-url" placeholder="Teks berjalan… (opsional)" style="width:100%; margin-top:6px">
-        <div class="ctl-line mono"><span style="min-width:auto">Kecepatan berjalan</span><input type="range" id="edtMarqSpd" min="10" max="220" value="90"><span class="mono" id="edtMarqSpdVal">90</span></div>
-        <div class="row" style="gap:6px">
-          <input type="file" id="edtLogo" accept="image/png,image/jpeg,image/webp" hidden>
-          <button class="btn btn-ghost" id="edtLogoBtn">🖼 Logo/Watermark</button>
-          <select id="edtLogoPos" class="musik-select" style="flex:1">
-            <option value="tr">Posisi: kanan atas</option>
-            <option value="tl">Posisi: kiri atas</option>
-            <option value="br">Posisi: kanan bawah</option>
-            <option value="bl">Posisi: kiri bawah</option>
-          </select>
-        </div>
-        <div class="ctl-line mono"><span style="min-width:auto">Ukuran logo</span><input type="range" id="edtLogoSz" min="20" max="160" value="70"><span class="mono" id="edtLogoSzVal">70</span></div>
-        <div class="ctl-line mono"><span style="min-width:auto">Transparansi</span><input type="range" id="edtLogoOp" min="0" max="100" value="85"><span class="mono" id="edtLogoOpVal">85%</span></div>
-      </div>
-      <div class="edt-card">
-        <div class="edt-card-title">Klip Momen Penting (AI)</div>
-        <label class="ctl-line mono"><input type="checkbox" id="edtClip" checked> Deteksi otomatis bagian berenergi</label>
+        <div class="edt-card-title">Auto Klip Momen Penting</div>
+        <button class="btn btn-dark" id="edtAutoClip" style="width:100%">⚡ Auto Klip (Sekali Tekan)</button>
+        <div class="mono edt-outinfo" id="edtClipInfo">Deteksi otomatis bagian berenergi — langsung dipotong semua jadi file terpisah.</div>
         <div class="ctl-line"><span class="mono" style="min-width:auto">Sensitivitas</span><input type="range" id="edtSens" min="1" max="100" value="45"><span class="mono" id="edtSensVal">45</span></div>
         <div class="ctl-line mono"><span style="min-width:auto">Pra</span><input type="range" id="edtPre" min="0" max="4" step="0.5" value="1"><span class="mono" id="edtPreVal">1.0s</span></div>
         <div class="ctl-line mono"><span style="min-width:auto">Pasca</span><input type="range" id="edtPost" min="0" max="8" step="0.5" value="3"><span class="mono" id="edtPostVal">3.0s</span></div>
-      </div>
-    </div>
-
-    <div class="edt-card" style="margin-top:12px">
-      <div class="edt-card-title">📼 Timeline &amp; Trim — seret playhead, klik segmen kuning=klip penting, set A/B untuk memotong</div>
-      <div class="mono edt-outinfo" id="edtTimeInfo">Pilih video untuk membangun timeline thumbnail.</div>
-      <div id="edtTimelineWrap" style="position:relative; margin:8px 0 4px; display:none">
-        <div id="edtThumbs" style="display:flex; gap:2px; overflow:hidden; border-radius:8px; height:78px"></div>
-        <div id="edtSegs" style="position:absolute; inset:0; pointer-events:none"></div>
-        <div id="edtHead" style="position:absolute; top:0; bottom:0; width:3px; background:#ffd43b; box-shadow:0 0 6px rgba(255,212,59,.8); pointer-events:none"></div>
-        <div id="edtMarkA" class="edt-mark" style="left:0" title="Awal trim — geser">A</div>
-        <div id="edtMarkB" class="edt-mark" style="left:100%" title="Akhir trim — geser">B</div>
-      </div>
-      <div class="row">
-        <label class="ctl-line mono"><input type="checkbox" id="edtTrim"> Batasi putar/rekaman ke A–B</label>
-        <button class="btn btn-ghost" id="edtTrimGo">➡ Kirim A–B ke Clip Tool</button>
-        <button class="btn btn-ghost" id="edtTrimInfo">🧭 Zona hijau = yang disimpan</button>
+        <div class="plock-list" id="edtClipsBox"></div>
       </div>
     </div>
 
     <div class="row">
-      <button class="btn btn-primary" id="edtRec">● Rekam</button>
-      <button class="btn btn-ghost" id="edtStop" disabled>■ Stop &amp; Unduh</button>
-      <button class="btn btn-dark" id="edtRender">⬇ Unduh Hasil</button>
-      <button class="btn btn-ghost" id="edtClips" disabled>✂ Potong Klip Penting</button>
+      <button class="btn btn-primary" id="edtRender">⬇ Unduh Hasil</button>
       <span class="mono" id="edtTime">00:00</span>
       <span class="mono" id="edtRms"></span>
-    </div>
-
-    <div class="edt-card" style="margin-top:12px">
-      <div class="edt-card-title">✂ Clip Tool — potong video jadi beberapa klip pendek</div>
-      <div class="row">
-        <span class="mono" style="min-width:auto">Mulai</span>
-        <input type="range" id="clipA" min="0" max="1000" value="0" style="flex:1" title="Awal klip">
-        <span class="mono" id="clipATxt" style="min-width:48px; text-align:right">00:00</span>
-        <span class="mono" style="min-width:auto">Selesai</span>
-        <input type="range" id="clipB" min="0" max="1000" value="1000" style="flex:1" title="Akhir klip">
-        <span class="mono" id="clipBTxt" style="min-width:48px; text-align:right">00:00</span>
-      </div>
-      <div class="row">
-        <button class="btn btn-ghost" id="clipPrev">▶ Preview Segmen</button>
-        <button class="btn btn-dark" id="clipAdd">➕ Tambah Klip</button>
-        <button class="btn btn-primary" id="clipCut" disabled>✂ Potong &amp; Unduh Klip</button>
-        <button class="btn btn-ghost" id="clipClear" disabled>🗑 Bersihkan</button>
-      </div>
-      <div class="plock-list" id="clipList"></div>
     </div>
 
     <div class="edt-stage">
       <canvas id="edtCanvas"></canvas>
       <div class="edt-stage-msg" id="edtMsg">Pilih video untuk mulai — pelacakan orang dimuat otomatis</div>
     </div>
-    <div class="plock-list" id="edtClipsBox" style="display:none"></div>
-    <p class="hint"><b>Cara pakai:</b> pilih video, pilih <b>rasio</b> (9:16, 1:1, dst), mode <b>track</b> menentukan orang yang diikuti — "paling aktif" mengikuti yang bergerak/bicara, klik <b>chip orang</b> untuk mengunci ke yang kamu mau. Hasil crop mengikuti orang secara halus (dengan <b>kotak pelacakan</b> opsional). <b>Unduh Hasil</b> = render video utuh dari awal sampai akhir (crop, subtitle, semua efek) langsung jadi file WebM — tanpa tombol rekam; video diputar sekali secara otomatis dan hasilnya terunduh sendiri. <b>Subtitle:</b> aktifkan mikrofon, lalu bacakan/ucapkan — teks terbakar langsung ke video hasil. <b>Klip penting:</b> saat merekam, bagian yang berenergi (teriak, tepuk, ramai) dicatat; setelah Stop, tombol <b>✂ Potong Klip Penting</b> memotongnya jadi beberapa file terpisah (butuh koneksi internet sekali saja untuk engine FFmpeg, dan halaman harus dibuka via http/https). <b>Auto klip butuh suara video</b> — pastikan videonya ada audionya.</p>
+
+    <p class="hint"><b>Cara pakai:</b> pilih video → preview menampilkan <b>video asli</b> dengan kotak hasil <b>auto-track</b> (kuning TRACK) di kanan-bawah — klik <b>chip orang</b> untuk kunci target. <b>🎧 Transkripsi</b> membuat subtitle dari suara video (bukan mikrofon) — edit teks dengan mengklik baris. <b>⚡ Auto Klip</b> memindai video sekali, lalu memotong semua momen padat/berenergi jadi file terpisah. <b>⬇ Unduh Hasil</b> merender hasil follow+subtitle sampai selesai langsung jadi file WebM. Butuh koneksi internet (sekali untuk FFmpeg + model AI) dan halaman dibuka via http/https.</p>
   </div>
 
   <!-- VISUALIZER -->
@@ -981,12 +915,6 @@
           <option value="motor">Motor</option>
           <option value="kart">Kart</option>
           <option value="pesawat">Pesawat</option>
-        </select>
-      </label>
-      <label class="hint" style="margin:0; display:flex; align-items:center; gap:6px; white-space:nowrap">🎨 Model
-        <select id="tripStyle" class="musik-select" title="Gaya tampilan kendaraan">
-          <option value="3d" selected>3D Kartun</option>
-          <option value="2d">Ikon 2D</option>
         </select>
       </label>
       <select id="tripSpeed" class="musik-select" title="Kecepatan replay">
@@ -2822,8 +2750,27 @@ function ytId(u){
   const m = u.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
   return m ? m[1] : null;
 }
+async function ytPage(id){
+  const url = 'https://www.youtube.com/watch?v=' + id;
+  try{
+    const r = await fetch('https://r.jina.ai/' + url, {headers: {'X-Return-Format': 'html'}});
+    if(r.ok){
+      const html = await r.text();
+      if(html && html.includes('streamingData')) return html;
+    }
+  }catch(e){}
+  try{
+    const r = await fetch(url, {mode:'cors'});
+    if(r.ok){
+      const html = await r.text();
+      if(html && html.includes('streamingData')) return html;
+    }
+  }catch(e){}
+  const html = await (await fetchVia(url)).text();
+  return html;
+}
 async function ytStreamUrl(id){
-  const html = await (await fetchVia('https://www.youtube.com/watch?v=' + id)).text();
+  const html = await ytPage(id);
   let pr = null, err = null;
   try{ pr = JSON.parse(extractBalanced(html, 'ytInitialPlayerResponse')); }catch(e){ err = e; }
   if(!pr || !pr.streamingData){
@@ -2840,13 +2787,7 @@ async function ytStreamUrl(id){
 }
 async function ytFullInfo(id){
   let html = null;
-  try{ html = await (await fetchVia('https://www.youtube.com/watch?v=' + id, true)).text(); }catch(e){}
-  if(!html || !html.includes('streamingData')){
-    try{
-      const r = await fetch('https://r.jina.ai/https://www.youtube.com/watch?v=' + id, {headers: {'X-Return-Format': 'html'}});
-      if(r.ok) html = await r.text();
-    }catch(e){}
-  }
+  try{ html = await ytPage(id); }catch(e){}
   let pr = null, err = null;
   try{ pr = JSON.parse(extractBalanced(html || '', 'ytInitialPlayerResponse')); }catch(e){ err = e; }
   if(!pr || !pr.streamingData){
@@ -3937,7 +3878,6 @@ async function ytFullInfo(id){
   const veh = ()=> VEHICLES[vehSel.value] || VEHICLES.mobil;
 
   // ---------- 3D kartun (three.js + GLB, self-hosted) ----------
-  const styleSel = document.getElementById('tripStyle');
   const GLBS = {
     mobil:  {f:'mobil.glb',  yaw0: 90, s:1},
     taksi:  {f:'taksi.glb',  yaw0: 90, s:1},
@@ -3954,7 +3894,7 @@ async function ytFullInfo(id){
   const vehSpriteCx = vehSpriteCv.getContext('2d');
 
   function veh3dActive(){
-    return styleSel.value === '3d' && trip3dStatus === 'ok' && veh3dModels.has(vehSel.value) && trip3d && !trip3d.fail;
+    return trip3dStatus === 'ok' && veh3dModels.has(vehSel.value) && trip3d && !trip3d.fail;
   }
 
   function ensureTrip3D(){
@@ -3963,25 +3903,18 @@ async function ytFullInfo(id){
     trip3dStatus = 'loading';
     trip3dWait = (async ()=>{
       const abs = p => new URL(p, location.href).href;
-      const mapEl = map => {
-        const s = document.createElement('script');
-        s.type = 'importmap';
-        s.textContent = JSON.stringify({imports: map});
-        document.head.appendChild(s);
-      };
       const bases = [
-        {three: abs('./vendor/three/three.module.min.js'), loader: abs('./vendor/three/loaders/GLTFLoader.js')},
+        {three: './vendor/three/three.module.min.js', loader: './vendor/three/loaders/GLTFLoader.js'},
         {three: 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js', loader: 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js'},
         {three: 'https://unpkg.com/three@0.160.0/build/three.module.min.js', loader: 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js'},
       ];
       let THREE = null, GLTFLoader = null;
       for(const b of bases){
         try{
-          mapEl({three: b.three});
-          THREE = await import(b.three);
+          THREE = await import('three').catch(()=> null) || await import(b.three);
           const lm = await import(b.loader);
           GLTFLoader = lm.GLTFLoader;
-          break;
+          if(THREE && GLTFLoader) break;
         }catch(e){ THREE = null; GLTFLoader = null; }
       }
       if(!GLTFLoader) throw new Error('three.js gagal dimuat');
@@ -4011,10 +3944,7 @@ async function ytFullInfo(id){
     trip3dWait.catch(()=>{
       trip3dStatus = 'fail';
       trip3dWait = null;
-      if(styleSel.value === '3d'){
-        styleSel.value = '2d';
-        if(vehEl && vehMark){ try{ refreshVehIcon(); }catch(e){} }
-      }
+      if(vehEl && vehMark){ try{ refreshVehIcon(); }catch(e){} }
     });
     return trip3dWait;
   }
@@ -4067,7 +3997,7 @@ async function ytFullInfo(id){
   function refreshVehIcon(){
     if(!vehMark) return;
     const v = veh();
-    if(styleSel.value === '3d' && trip3dStatus === 'ok' && veh3dModels.has(vehSel.value) && !trip3d.fail){
+    if(veh3dActive()){
       vehMark.setIcon(L.divIcon({
         className: '',
         html: '<canvas class="veh3d" width="' + v.size + '" height="' + v.size + '"></canvas>',
@@ -4082,7 +4012,7 @@ async function ytFullInfo(id){
         iconSize: [v.size, v.size], iconAnchor: [v.size/2, v.size/2],
       }));
       vehEl = vehMark.getElement() && vehMark.getElement().querySelector('.veh3d');
-      if(vehEl && styleSel.value !== '3d'){ vehEl.style.transform = 'rotate(' + vehRot(hSmooth) + 'deg)'; }
+      if(vehEl){ vehEl.style.transform = 'rotate(' + vehRot(hSmooth) + 'deg)'; }
     }
   }
 
@@ -4205,20 +4135,24 @@ async function ytFullInfo(id){
 
   function drawRoute(){
     if(routeLine) routeLine.remove();
-    if(vehMark) vehMark.remove();
+    if(vehMark){ vehMark.remove(); vehMark = null; }
     const latlngs = spl.map(s=>L.latLng(s[0], s[1]));
     routeLine = L.polyline(latlngs, vehSel.value === 'pesawat'
       ? {color:'#60a5fa', weight: 4, opacity: 0.9, dashArray: '10 12'}
       : {color:'#d98a21', weight: 5, opacity: 0.9}).addTo(map);
     map.fitBounds(L.latLngBounds(latlngs), {padding: [40, 40]});
     hSmooth = 0;
-    if(styleSel.value === '3d'){
-      ensureTrip3D().then(()=>{
-        refreshVehIcon();
-      }).catch(()=>{});
-    }else{
+    const v = veh();
+    vehMark = L.marker(L.latLng(spl[0][0], spl[0][1]), {
+      icon: L.divIcon({className: '', html: '<div class="veh3d">' + v.svg + '</div>', iconSize: [v.size, v.size], iconAnchor: [v.size/2, v.size/2]}),
+      interactive: false,
+      zIndexOffset: 1000,
+    }).addTo(map);
+    vehEl = vehMark.getElement() && vehMark.getElement().querySelector('.veh3d');
+    if(vehEl){ vehEl.style.transform = 'rotate(' + vehRot(hSmooth) + 'deg)'; }
+    ensureTrip3D().then(()=>{
       refreshVehIcon();
-    }
+    }).catch(()=>{});
   }
 
   function posAt(f){
@@ -4320,18 +4254,7 @@ async function ytFullInfo(id){
       prog = 0; progEl.value = 0;
       updateMarker();
       timeEl.textContent = '00:00 / ' + fmtDur(relDur());
-      if(styleSel.value === '3d'){
-        ensureTrip3D().then(()=> loadVeh3d(vehSel.value)).then(()=> refreshVehIcon()).catch(()=>{});
-      }
-    }
-  });
-
-  styleSel.addEventListener('change', ()=>{
-    if(!vehMark) return;
-    if(styleSel.value === '3d'){
       ensureTrip3D().then(()=> loadVeh3d(vehSel.value)).then(()=> refreshVehIcon()).catch(()=>{});
-    }else{
-      refreshVehIcon();
     }
   });
 
@@ -4599,20 +4522,20 @@ async function ytFullInfo(id){
 
 
 /* ============================================================
-   11) EDITOR VIDEO — auto-track orang + subtitle + klip penting
+   11) EDITOR VIDEO — auto-track orang + subtitle (ASR video) + auto klip
    ============================================================ */
 (function(){
   const $ = id => document.getElementById(id);
   const fileEl = $('edtFile'), pickBtn = $('edtPick'), fileNameEl = $('edtFileName');
   const ratiosEl = $('edtRatios'), outInfoEl = $('edtOutInfo'), showBoxEl = $('edtShowBox');
-  const trackEl = $('edtTrack'), trackModeEl = $('edtTrackMode'), tracksEl = $('edtTracks'), trackInfoEl = $('edtTrackInfo');
-  const subEl = $('edtSub'), subPosEl = $('edtSubPos'), subSizeEl = $('edtSubSize'), subSizeValEl = $('edtSubSizeVal'), subBgEl = $('edtSubBg');
-  const clipEl = $('edtClip'), sensEl = $('edtSens'), sensValEl = $('edtSensVal'), preEl = $('edtPre'), preValEl = $('edtPreVal'), postEl = $('edtPost'), postValEl = $('edtPostVal');
-  const recBtn = $('edtRec'), stopBtn = $('edtStop'), clipsBtn = $('edtClips'), renderBtn = $('edtRender'), timeEl = $('edtTime'), rmsEl = $('edtRms');
+  const trackEl = $('edtTrack'), trackModeEl = $('edtTrackMode'), tracksEl = $('edtTracks'), trackInfoEl = $('edtTrackInfo'), smoothEl = $('edtSmooth');
+  const asrBtn = $('edtAsr'), asrInfoEl = $('edtAsrInfo'), subEl = $('edtSub'), subPosEl = $('edtSubPos'), subSizeEl = $('edtSubSize'), subSizeValEl = $('edtSubSizeVal'), subBgEl = $('edtSubBg'), asrListEl = $('edtAsrList');
+  const autoClipBtn = $('edtAutoClip'), clipInfoEl = $('edtClipInfo'), sensEl = $('edtSens'), sensValEl = $('edtSensVal'), preEl = $('edtPre'), preValEl = $('edtPreVal'), postEl = $('edtPost'), postValEl = $('edtPostVal'), clipsBoxEl = $('edtClipsBox');
+  const renderBtn = $('edtRender'), timeEl = $('edtTime'), rmsEl = $('edtRms');
   const canvas = $('edtCanvas'), cv = canvas.getContext('2d');
-  const msgEl = $('edtMsg'), clipsBoxEl = $('edtClipsBox');
+  const msgEl = $('edtMsg');
 
-  let videoEl = null;
+  let videoEl = null, srcFile = null;
   function freshVideo(){
     if(videoEl){ videoEl.pause(); videoEl.src = ''; videoEl.remove(); }
     videoEl = document.createElement('video');
@@ -4622,9 +4545,8 @@ async function ytFullInfo(id){
   }
   freshVideo();
 
-  let ratio = 1, outW = 720, outH = 720, customSize = false;
+  let ratio = 1, outW = 720, outH = 720;
   function setOutSize(){
-    if(customSize) return;
     if(ratio >= 1){ outW = Math.round(720*ratio); outH = 720; }
     else { outW = 720; outH = Math.round(720/ratio); }
     canvas.width = outW; canvas.height = outH;
@@ -4635,58 +4557,33 @@ async function ytFullInfo(id){
     if(!b) return;
     ratiosEl.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
-    customSize = false;
     ratio = eval(b.dataset.r);
     setOutSize();
   });
   setOutSize();
 
-  const sizeWEl = $('edtSizeW'), sizeHEl = $('edtSizeH'), sizeGoEl = $('edtSizeGo');
-  const ncEl = $('edtNc'), ncStrEl = $('edtNcStr'), ncStrValEl = $('edtNcStrVal'), ncCalEl = $('edtNcCal'), ncInfoEl = $('edtNcInfo');
-  const titleEl = $('edtTitle'), marqueeEl = $('edtMarquee'), marqSpdEl = $('edtMarqSpd'), marqSpdValEl = $('edtMarqSpdVal');
-  const logoBtn = $('edtLogoBtn'), logoFileEl = $('edtLogo'), logoPosEl = $('edtLogoPos'), logoSzEl = $('edtLogoSz'), logoSzValEl = $('edtLogoSzVal'), logoOpEl = $('edtLogoOp'), logoOpValEl = $('edtLogoOpVal');
-  const timeInfoEl = $('edtTimeInfo'), tlWrap = $('edtTimelineWrap'), thumbsEl = $('edtThumbs'), segsEl = $('edtSegs'), headEl = $('edtHead'), markAEl = $('edtMarkA'), markBEl = $('edtMarkB');
-  const trimEl = $('edtTrim'), trimGoEl = $('edtTrimGo'), trimInfoEl = $('edtTrimInfo');
-  const smoothEl = $('edtSmooth');
-
-  sizeGoEl.addEventListener('click', ()=>{
-    const w = Math.round(Math.max(120, Math.min(1920, +sizeWEl.value || 720)));
-    const h = Math.round(Math.max(120, Math.min(1920, +sizeHEl.value || 720)));
-    sizeWEl.value = w; sizeHEl.value = h;
-    customSize = true; ratio = w/h; outW = w; outH = h;
-    canvas.width = w; canvas.height = h;
-    outInfoEl.textContent = outW + '×' + outH + ' px · 30 fps';
-    showToast('Ukuran output ' + w + '×' + h);
-  });
-
-  let bgLogo = null, marqOff = 0, marqLast = 0;
-  let lastTarget = null, lastSeenAt = 0;
-  marqSpdEl.addEventListener('input', e=> marqSpdValEl.textContent = e.target.value);
-  logoSzEl.addEventListener('input', e=> logoSzValEl.textContent = e.target.value);
-  logoOpEl.addEventListener('input', e=> logoOpValEl.textContent = e.target.value + '%');
-  logoBtn.addEventListener('click', ()=> logoFileEl.click());
-  logoFileEl.addEventListener('change', ()=>{
-    const f = logoFileEl.files[0];
-    if(!f) return;
-    const im = new Image();
-    im.onload = ()=>{ bgLogo = im; showToast('🖼 Logo/watermark dimuat'); };
-    im.onerror = ()=> showToast('Gagal memuat gambar logo');
-    im.src = URL.createObjectURL(f);
-  });
-
-  let ctx = null, analyser = null, meSrc = null;
-  let raf = 0, running = false, recorder = null, chunks = [], recOn = false, recT0 = 0;
-  let energyLog = [], recBlob = null;
-  let poseDet = null, poseBusy = false, lastDet = 0;
-  let persons = [], prevLms = [], lockIdx = -1, lastCam = null;
-  let subText = '', subFinal = '', subRec = null;
+  let ctx = null, analyser = null, meSrc = null, pcmNode = null;
+  function setupAudio(){
+    if(ctx){ if(ctx.state === 'suspended') ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    ctx = new AC();
+    meSrc = ctx.createMediaElementSource(videoEl);
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 512; analyser.smoothingTimeConstant = 0.75;
+    meSrc.connect(analyser);
+    analyser.connect(ctx.destination);
+  }
   const freq = new Uint8Array(256);
-
   function fmtTime(sec){
     sec = Math.max(0, sec|0);
     return String(Math.floor(sec/60)).padStart(2,'0') + ':' + String(sec%60).padStart(2,'0');
   }
 
+  let running = false, raf = 0, rendering = false, scanning = false, asrRunning = false;
+
+  // ---- pose tracking (MediaPipe, self-hosted) ----
+  let poseDet = null, poseBusy = false, lastDet = 0;
+  let persons = [], prevLms = [], lockIdx = -1, lastTarget = null, lastSeenAt = 0, lastCam = null;
   async function ensurePose(){
     if(poseDet) return;
     const abs = p => new URL(p, location.href).href;
@@ -4704,7 +4601,7 @@ async function ytFullInfo(id){
         }catch(e){}
       }
     }
-    if(!vision) throw new Error('MediaPipe tidak tersedia (CDN & lokal)');
+    if(!vision) throw new Error('MediaPipe tidak tersedia');
     const WASMS = [
       abs('./vendor/tasks-vision/wasm'),
       'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm',
@@ -4734,58 +4631,6 @@ async function ytFullInfo(id){
     }
     throw lastErr || new Error('Model pose gagal dimuat');
   }
-
-  function setupAudio(){
-    if(ctx){ if(ctx.state === 'suspended') ctx.resume(); return; }
-    const AC = window.AudioContext || window.webkitAudioContext;
-    ctx = new AC();
-    meSrc = ctx.createMediaElementSource(videoEl);
-    analyser = ctx.createAnalyser();
-    analyser.fftSize = 512; analyser.smoothingTimeConstant = 0.75;
-    meSrc.connect(analyser);
-    analyser.connect(ctx.destination);
-  }
-
-  pickBtn.addEventListener('click', ()=> fileEl.click());
-  fileEl.addEventListener('change', async ()=>{
-    const f = fileEl.files[0];
-    if(!f) return;
-    srcFile = f;
-    fileNameEl.textContent = f.name;
-    running = false;
-    cancelAnimationFrame(raf);
-    if(recorder && recorder.state !== 'inactive') recorder.stop();
-    if(ctx){ try{ ctx.close(); }catch(e){} ctx = null; meSrc = null; analyser = null; }
-    freshVideo();
-    videoEl.src = URL.createObjectURL(f);
-    msgEl.style.display = 'flex';
-    msgEl.textContent = 'Memuat video…';
-    await new Promise(res=>{
-      videoEl.onloadedmetadata = res;
-      setTimeout(res, 8000);
-    });
-    if(!videoEl.videoWidth){
-      msgEl.textContent = 'Gagal memuat video — coba mp4/webm';
-      return;
-    }
-    setOutSize();
-    tlBusy = false;
-    tlFracA = 0; tlFracB = 1;
-    markAEl.style.left = '0'; markBEl.style.left = '100%';
-    thumbsEl.innerHTML = '';
-    segsEl.innerHTML = '';
-    timeInfoEl.textContent = 'Membangun thumbnail…';
-    try{ setupAudio(); }catch(e){}
-    msgEl.textContent = 'Memuat model pelacakan orang…';
-    try{ await ensurePose(); }
-    catch(e){ msgEl.textContent = 'Pelacakan tak tersedia: ' + String(e.message||e).slice(0,70); }
-    setTimeout(()=>{ msgEl.style.display = 'none'; }, 600);
-    videoEl.play().catch(()=>{});
-    buildTimeline();
-    running = true;
-    raf = requestAnimationFrame(loop);
-  });
-
   async function detectPeople(now){
     if(poseBusy || !poseDet || videoEl.readyState < 2) return;
     poseBusy = true;
@@ -4815,7 +4660,6 @@ async function ytFullInfo(id){
     }catch(e){}
     poseBusy = false;
   }
-
   function pickPerson(){
     if(!persons.length) return null;
     if(lockIdx >= 0 && lockIdx < persons.length) return persons[lockIdx];
@@ -4828,7 +4672,6 @@ async function ytFullInfo(id){
     if(mode === 'big') return persons.reduce((a,b)=> b.w*b.h > a.w*a.h ? b : a);
     return persons.reduce((a,b)=> b.score > a.score ? b : a);
   }
-
   function renderTracks(){
     tracksEl.innerHTML = '';
     const au = document.createElement('button');
@@ -4847,7 +4690,6 @@ async function ytFullInfo(id){
       ? persons.length + ' orang terdeteksi — klik chip untuk kunci.'
       : 'Belum ada orang terdeteksi (zoom tengah dipakai).';
   }
-
   function cropRect(vw, vh){
     const p = trackEl.checked ? pickPerson() : null;
     let cx = 0.5, cy = 0.5, pw = 0, ph = 0, have = false;
@@ -4884,7 +4726,68 @@ async function ytFullInfo(id){
     return {x: x|0, y: y|0, w: w|0, h: h|0};
   }
 
-  function draw(now){
+  // ---- subtitle render helpers ----
+  function wrapLines(txt, maxW){
+    const words = txt.split(/\s+/).filter(Boolean);
+    const lines = [];
+    let cur = '';
+    for(const w of words){
+      const t = (cur ? cur + ' ' : '') + w;
+      if(cv.measureText(t).width > maxW && cur){ lines.push(cur); cur = w; }
+      else cur = t;
+    }
+    if(cur) lines.push(cur);
+    return lines.slice(0, 3);
+  }
+  function drawSubtitle(c, cx, cy, cw, ch){
+    const s = currentSub(videoEl.currentTime);
+    if(!s || !s.text) return;
+    const maxW = Math.max(40, cw - 20);
+    const fs = Math.min(subSizeEl.value|0, Math.max(12, Math.round(ch/5)));
+    c.font = fs + 'px Inter, system-ui, sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+    const lines = wrapLines(s.text, maxW);
+    if(!lines.length) return;
+    const lh = fs + 6;
+    const total = lines.length*lh;
+    let y = subPosEl.value === 'top' ? cy + Math.max(8, fs*0.6) : cy + ch - 14 - total;
+    if(subBgEl.checked){
+      let maxW2 = Math.min(cw - 8, maxW);
+      lines.forEach(l=>{ const mw = c.measureText(l).width; if(mw > maxW2 && mw < cw - 12) maxW2 = mw; });
+      const bw = Math.min(cw - 8, maxW2 + 36);
+      c.fillStyle = 'rgba(0,0,0,0.62)';
+      c.fillRect(cx + cw/2 - bw/2, y - lh + 4, bw, total + 10);
+    }
+    c.fillStyle = '#ffffff';
+    lines.forEach((ln,i)=> c.fillText(ln, cx + cw/2, y + (i+1)*lh - 4));
+  }
+
+  // ---- preview (original + PiP hasil track) & render ----
+  function drawPreview(now){
+    const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
+    if(!vw || !vh) return;
+    cv.fillStyle = '#000'; cv.fillRect(0, 0, outW, outH);
+    const s = Math.min(outW/vw, outH/vh);
+    const dw = vw*s, dh = vh*s;
+    cv.drawImage(videoEl, 0, 0, vw, vh, (outW-dw)/2, (outH-dh)/2, dw, dh);
+    if(trackEl.checked){
+      const b = cropRect(vw, vh);
+      const pw = Math.round(outW*0.42), ph = Math.round(pw/ratio);
+      const px = outW - pw - 14, py = outH - ph - 14;
+      cv.fillStyle = 'rgba(0,0,0,0.45)'; cv.fillRect(px-10, py-10, pw+20, ph+20);
+      cv.drawImage(videoEl, b.x, b.y, b.w, b.h, px, py, pw, ph);
+      cv.strokeStyle = '#ffd43b'; cv.lineWidth = 4; cv.strokeRect(px-10, py-10, pw+20, ph+20);
+      cv.fillStyle = '#ffd43b'; cv.fillRect(px-10, py-28, 62, 20);
+      cv.fillStyle = '#12172A'; cv.font = '700 12px Inter, sans-serif';
+      cv.textBaseline = 'middle'; cv.textAlign = 'left';
+      cv.fillText('TRACK', px-5, py-18);
+      cv.textBaseline = 'alphabetic';
+      drawSubtitle(cv, px, py, pw, ph);
+    } else if(subEl.checked){
+      drawSubtitle(cv, 0, 0, outW, outH);
+    }
+  }
+  function drawRenderOut(){
     const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
     if(!vw || !vh) return;
     const b = cropRect(vw, vh);
@@ -4901,209 +4804,143 @@ async function ytFullInfo(id){
         cv.strokeRect(bx - bw2/2, by - bh2/2, bw2, bh2);
       }
     }
-    if(subText){
-      const words = subText.split(' ').filter(Boolean);
-      const lines = [];
-      let cur = '';
-      for(const w of words){
-        if((cur + ' ' + w).trim().length > 42){ lines.push(cur.trim()); cur = w; }
-        else cur = (cur + ' ' + w).trim();
-      }
-      if(cur) lines.push(cur.trim());
-      const capped = lines.slice(0, 3).join('\n');
-      if(capped){
-        const fs = subSizeEl.value|0;
-        cv.font = fs + 'px Inter, system-ui, sans-serif';
-        cv.textAlign = 'center';
-        const lc = capped.split('\n');
-        const y = subPosEl.value === 'top' ? fs*lc.length + 22 : outH - 22 - (lc.length-1)*(fs+6);
-        if(subBgEl.checked){
-          let maxW = 0;
-          lc.forEach(l=>{ const mw = cv.measureText(l).width; if(mw > maxW) maxW = mw; });
-          cv.fillStyle = 'rgba(0,0,0,0.6)';
-          cv.fillRect(outW/2 - maxW/2 - 18, y - lc.length*(fs+6) - 12, maxW + 36, lc.length*(fs+6) + 18);
+    if(subEl.checked) drawSubtitle(cv, 0, 0, outW, outH);
+  }
+
+  // ---- transkripsi ASR dari audio video (whisper via transformers.js) ----
+  const ASR_URL = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js/+esm';
+  const PCM_CODE = "class PCMCol extends AudioWorkletProcessor{ process(i){ const ch=i[0]&&i[0][0]; if(ch&&ch.length) this.port.postMessage(ch.slice()); return true; } } registerProcessor('pcm-col',PCMCol);";
+  let asrPipe = null, pcmUrl = null, chain = Promise.resolve();
+  let subSeqs = [];
+  function currentSub(t){ if(!subSeqs.length) return null; for(const s of subSeqs){ if(t >= s.s && t < s.e) return s; } return null; }
+  async function ensureAsr(){
+    if(asrPipe) return asrPipe;
+    asrInfoEl.textContent = '⏳ Mengunduh model AI (±40 MB) — sekali saja…';
+    const mod = await import(ASR_URL);
+    asrPipe = await mod.pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny');
+    return asrPipe;
+  }
+  async function attachPcm(){
+    if(pcmNode) return;
+    if(!ctx) setupAudio();
+    if(!pcmUrl) pcmUrl = URL.createObjectURL(new Blob([PCM_CODE], {type:'application/javascript'}));
+    await ctx.audioWorklet.addModule(pcmUrl);
+    pcmNode = new AudioWorkletNode(ctx, 'pcm-col');
+    meSrc.connect(pcmNode);
+  }
+  function decimate(src, sr){
+    const ratio = sr/16000, n = Math.max(1, Math.floor(src.length/ratio));
+    const out = new Float32Array(n);
+    for(let i=0;i<n;i++){
+      const s = Math.floor(i*ratio); let acc = 0;
+      for(let k=0;k<ratio;k++) acc += src[s+k] || 0;
+      out[i] = acc/ratio;
+    }
+    return out;
+  }
+  function processChunk(f32, off){
+    chain = chain.then(async ()=>{
+      try{
+        const out = await asrPipe(f32, {
+          chunk_length_s: 30, stride_length_s: 5, return_timestamps: true,
+          callback_function: p => { if(p && p.status === 'progress') asrInfoEl.textContent = '🧠 Menerjemahkan… ' + (p.file ? p.file.replace(/^.*\//,'') + ' ' : '') + Math.round((p.progress||0)*100) + '%'; },
+        });
+        const chunks = (out && out.chunks) ? out.chunks
+          : (out && out.text ? [{timestamp: [0, f32.length/16000], text: out.text}] : []);
+        for(const c of chunks){
+          if(c && c.text && c.timestamp){
+            const txt = String(c.text).trim();
+            if(txt) subSeqs.push({s: +(c.timestamp[0] + off).toFixed(2), e: +(c.timestamp[1] + off).toFixed(2), text: txt});
+          }
         }
-        cv.fillStyle = '#ffffff';
-        lc.forEach((ln,i)=> cv.fillText(ln, outW/2, y + i*(fs+6)));
-      }
-    }
-    seekPlayhead();
-    if(titleEl.value){
-      const fs = Math.round(outH*0.058);
-      cv.font = '700 ' + fs + 'px Inter, system-ui, sans-serif';
-      cv.textAlign = 'center'; cv.textBaseline = 'top';
-      const tw = cv.measureText(titleEl.value).width;
-      cv.fillStyle = 'rgba(0,0,0,0.55)';
-      cv.fillRect(outW/2 - tw/2 - 16, 18, tw + 32, fs + 22);
-      cv.fillStyle = '#ffffff';
-      cv.fillText(titleEl.value, outW/2, 26);
-      cv.textBaseline = 'alphabetic';
-    }
-    if(marqueeEl.value){
-      const fs = Math.round(outH*0.042);
-      cv.font = '600 ' + fs + 'px Inter, system-ui, sans-serif';
-      cv.textAlign = 'left'; cv.textBaseline = 'alphabetic';
-      const txt = marqueeEl.value;
-      const tw = cv.measureText(txt).width;
-      if(marqLast){
-        const dt = Math.min(0.1, (now - marqLast)/1000);
-        marqOff += dt*(30 + (+marqSpdEl.value))*outW/1400;
-      }
-      marqLast = now;
-      const span = outW + tw + 60;
-      if(marqOff > span + tw) marqOff = -tw;
-      const x = outW - marqOff + 0;
-      if(x > -tw && x < outW){
-        const y = outH - Math.round(outH*0.035) - fs/2;
-        cv.fillStyle = 'rgba(0,0,0,0.5)';
-        cv.fillRect(x - 10, y - fs - 14, tw + 20, fs + 28);
-        cv.fillStyle = '#ffd43b';
-        cv.fillText(txt, x, y);
-        cv.textAlign = 'left';
-      }
-    }
-    if(bgLogo){
-      const lo = logoPosEl.value;
-      const pad = Math.max(10, Math.round(outW*0.015));
-      const lh = Math.round(outH*0.32*(logoSzEl.value/100));
-      const lw = Math.round(bgLogo.width/bgLogo.height*lh);
-      const lx = lo.includes('l') ? pad : outW - lw - pad;
-      const ly = lo.includes('t') ? pad : outH - lh - pad;
-      cv.globalAlpha = Math.max(0, Math.min(1, logoOpEl.value/100));
-      cv.drawImage(bgLogo, lx, ly, lw, lh);
-      cv.globalAlpha = 1;
-    }
-    timeEl.textContent = fmtTime(videoEl.currentTime);
+      }catch(e){ console.error(e); }
+    });
+    return chain;
   }
-
-  function loop(){
-    if(!running) return;
-    raf = requestAnimationFrame(loop);
-    const now = performance.now();
-    if(videoEl.readyState < 2) return;
-    if(poseDet && trackEl.checked && now - lastDet > 80){
-      lastDet = now;
-      detectPeople(now);
-    }
-    let rms = 0;
-    if(analyser && ctx && ctx.state === 'running'){
-      analyser.getByteFrequencyData(freq);
-      let s = 0;
-      for(let i=0;i<freq.length;i++) s += freq[i]*freq[i];
-      rms = Math.sqrt(s/(freq.length*255*255));
-      rmsEl.textContent = '🔊 ' + Math.round(rms*100) + '%';
-    } else {
-      rmsEl.textContent = '';
-    }
-    if(recOn && analyser) energyLog.push({t: (now-recT0)/1000, rms});
-    if(trimEl.checked && videoEl.duration){
-      const a = tlFracA*videoEl.duration, b = tlFracB*videoEl.duration;
-      if(videoEl.currentTime >= b - 0.02){
-        videoEl.currentTime = a;
-      }
-    }
-    draw(now);
-  }
-
-  recBtn.addEventListener('click', ()=>{
+  asrBtn.addEventListener('click', async ()=>{
     if(!videoEl.videoWidth) return showToast('Pilih video dulu');
-    if(recOn){ stopRecorder(); return; }
-    if(ctx && ctx.state === 'suspended') ctx.resume();
-    videoEl.play().catch(()=>{});
-    chunks = [];
-    energyLog = [];
-    recT0 = performance.now();
-    fRecord();
-  });
-
-  function fRecord(){
-    let vs = null;
-    try{ vs = videoEl.captureStream(30); }catch(e){}
-    let stream;
-    try{ stream = canvas.captureStream(30); }
-    catch(e){ return showToast('Rekaman tak didukung browser ini'); }
-    if(ncEl.checked && ncDest && ncDest.stream.getAudioTracks().length){
-      stream.addTrack(ncDest.stream.getAudioTracks()[0]);
-    } else if(vs && vs.getAudioTracks().length){
-      stream.addTrack(vs.getAudioTracks()[0]);
-    }
-    const mime = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m)) || '';
-    recorder = new MediaRecorder(stream, mime ? {mimeType:mime, videoBitsPerSecond: 7e6} : undefined);
-    recorder.ondataavailable = e=>{ if(e.data && e.data.size) chunks.push(e.data); };
-    recorder.onstop = ()=>{
-      recOn = false;
-      recBtn.textContent = '● Rekam';
-      recBlob = new Blob(chunks, {type:'video/webm'});
-      downloadBlob(recBlob, 'edit-' + Date.now() + '.webm');
-      showToast('Rekaman tersimpan');
-      buildClips();
-    };
-    recorder.start(500);
-    recOn = true;
-    recBtn.textContent = '■ Stop Rekam';
-    stopBtn.disabled = false;
-  }
-  function stopRecorder(){
-    if(recorder && recorder.state !== 'inactive') recorder.stop();
-  }
-  let rendering = false;
-  renderBtn.addEventListener('click', async ()=>{
-    if(!videoEl.videoWidth) return showToast('Pilih video dulu');
-    if(rendering) return;
-    if(recOn){ showToast('Stop rekaman manual dulu'); return; }
-    rendering = true;
-    renderBtn.disabled = true;
-    recBtn.disabled = true;
-    stopBtn.disabled = true;
-    let tick = null;
+    if(asrRunning || scanning || rendering) return;
+    asrRunning = true;
+    asrBtn.disabled = true;
+    asrBtn.textContent = '⏳ Menyiapkan…';
+    subSeqs = [];
+    asrListEl.innerHTML = '';
     try{
+      await ensureAsr();
+      await attachPcm();
       if(ctx && ctx.state === 'suspended') ctx.resume();
+      videoEl.pause();
+      const wasMuted = videoEl.muted;
       videoEl.muted = true;
-      chunks = [];
-      energyLog = [];
-      recT0 = performance.now();
-      const rA = trimEl.checked ? tlFracA*(videoEl.duration||0) : 0;
-      const rB = trimEl.checked ? tlFracB*(videoEl.duration||0) : (videoEl.duration||0);
-      videoEl.currentTime = rA;
-      fRecord();
+      const sr = ctx.sampleRate;
+      const need = Math.round(45*sr);
+      let buf = new Float32Array(0), offset = 0;
+      const dur = videoEl.duration || 0;
+      videoEl.currentTime = 0;
+      const pend = [];
+      pcmNode.port.onmessage = e=>{
+        if(!asrRunning) return;
+        const n = buf.length + e.data.length;
+        const nb = new Float32Array(n);
+        nb.set(buf); nb.set(e.data, buf.length);
+        buf = nb;
+        if(buf.length >= need){
+          const b = buf; buf = new Float32Array(0);
+          pend.push(processChunk(decimate(b, sr), offset));
+          offset += 45;
+        }
+      };
       videoEl.play().catch(()=>{});
-      tick = setInterval(()=>{
-        const d = videoEl.duration || 0;
-        const doneFrac = trimEl.checked
-          ? Math.max(0, Math.min(1, (videoEl.currentTime - rA)/Math.max(0.001, rB - rA)))
-          : (d > 0 ? videoEl.currentTime/d : 0);
-        renderBtn.textContent = d > 0 ? '⏳ Render ' + Math.round(doneFrac*100) + '%…' : '⏳ Render…';
-      }, 250);
-      await new Promise(res=>{
-        let settled = false;
-        const fin = ()=>{ if(!settled){ settled = true; clearInterval(iv); res(); } };
+      await new Promise(resv=>{
         const iv = setInterval(()=>{
-          if(trimEl.checked ? videoEl.currentTime >= rB - 0.03 : videoEl.ended) fin();
-        }, 100);
-        videoEl.onended = fin;
-        setTimeout(fin, Math.max(120000, (videoEl.duration||0)*1000 + 30000));
+          if(videoEl.ended){ clearInterval(iv); resv(); }
+          else asrBtn.textContent = '⏳ Transkripsi ' + Math.round(((videoEl.currentTime||0)/(dur||1))*100) + '%…';
+        }, 200);
+        setTimeout(()=>{ clearInterval(iv); resv(); }, (dur > 0 ? dur*1000 : 150000) + 15000);
       });
+      if(buf.length > 0){ pend.push(processChunk(decimate(buf, sr), offset)); }
+      asrInfoEl.textContent = '🧠 Mengolah hasil…';
+      await chain;
+      await Promise.resolve();
+      if(!videoEl.paused) videoEl.pause();
+      videoEl.currentTime = 0;
+      videoEl.muted = wasMuted;
+      subSeqs.sort((a,b)=> a.s - b.s);
+      renderAsrList();
+      if(subSeqs.length){
+        subEl.disabled = false; subEl.checked = true;
+        asrInfoEl.textContent = '✅ ' + subSeqs.length + ' baris subtitle.' + (subSeqs.length > 1 ? ' Klik baris untuk mengedit teks.' : '');
+      }else{
+        asrInfoEl.textContent = 'Tidak ada ucapan terdeteksi (pastikan video punya audio).';
+      }
     }catch(e){
-      showToast('Render gagal: ' + String(e.message||e).slice(0,60));
-    }finally{
-      clearInterval(tick);
-      stopRecorder();
-      videoEl.onended = null;
-      videoEl.muted = false;
-      rendering = false;
-      renderBtn.disabled = false;
-      recBtn.disabled = false;
-      stopBtn.disabled = false;
-      renderBtn.textContent = '⬇ Unduh Hasil';
+      console.error(e);
+      asrInfoEl.textContent = 'Gagal: ' + String(e.message||e).slice(0, 80) + ' — coba lagi.';
     }
+    asrRunning = false;
+    asrBtn.disabled = false;
+    asrBtn.textContent = '🎧 Transkripsi dari Audio Video';
   });
-  stopBtn.addEventListener('click', ()=>{
-    if(recorder && recorder.state !== 'inactive') recorder.stop();
-    else showToast('Tidak ada rekaman berjalan');
-  });
+  function renderAsrList(){
+    asrListEl.innerHTML = '';
+    subSeqs.forEach((s,i)=>{
+      const d = document.createElement('div');
+      d.className = 'plock-item';
+      d.innerHTML = '<span class="mono">🗣</span><span class="grow">' + fmtTime(s.s) + '–' + fmtTime(s.e) + ' &middot; ' + s.text + '</span><button class="mini-btn" title="Hapus baris">✕</button>';
+      d.querySelector('.grow').addEventListener('click', ()=>{
+        const t = prompt('Ubah teks subtitle:', s.text);
+        if(t !== null && t.trim()){ s.text = t.trim(); renderAsrList(); }
+      });
+      d.querySelector('button').addEventListener('click', ()=>{ subSeqs.splice(i,1); renderAsrList(); if(!subSeqs.length){ subEl.checked = false; subEl.disabled = true; } });
+      asrListEl.appendChild(d);
+    });
+  }
+  subSizeEl.addEventListener('input', e=> subSizeValEl.textContent = e.target.value);
+  subEl.addEventListener('change', ()=>{ if(subEl.checked && !subSeqs.length){ subEl.checked = false; asrInfoEl.textContent = 'Jalankan 🎧 Transkripsi dulu.'; } });
 
-  function buildClips(){
-    if(!clipEl.checked || !energyLog.length) return;
+  // ---- Auto Klip (sekali tekan: scan → deteksi → potong) ----
+  let energyLog = [];
+  function detectSegments(){
     const th = Math.max(0.06, 0.22 + (1 - sensEl.value/100)*0.45);
     const pre = parseFloat(preEl.value), post = parseFloat(postEl.value);
     const runs = [];
@@ -5119,7 +4956,7 @@ async function ytFullInfo(id){
     let lastRunEnd = null;
     for(const [a,b] of runs){
       if(b - a < 2.5) continue;
-      const s = Math.max(0, a - pre), e = b + post;
+      const s = Math.max(0, a - pre), e = Math.min(videoEl.duration||0, b + post);
       if(lastRunEnd !== null && a - lastRunEnd < 3){
         segs[segs.length-1][1] = Math.max(segs[segs.length-1][1], e);
       }else{
@@ -5127,128 +4964,55 @@ async function ytFullInfo(id){
       }
       lastRunEnd = b;
     }
-    if(!segs.length) return;
-    clipsBtn.disabled = false;
-    clipsBtn.dataset.segs = JSON.stringify(segs.map(([s,e])=>({s:+s.toFixed(2), e:+e.toFixed(2)})));
-    segsEl.querySelectorAll('.edt-seg').forEach(s=>s.remove());
-    const dur = videoEl.duration || 1;
-    segs.forEach(([s,e])=>{
-      const sg = document.createElement('div');
-      sg.className = 'edt-seg';
-      sg.style.left = (s/dur*100) + '%';
-      sg.style.width = Math.max(0.3, (e-s)/dur*100) + '%';
-      segsEl.appendChild(sg);
-    });
-    clipsBoxEl.style.display = 'block';
-    clipsBoxEl.innerHTML = '<div class="hint"><b>✂ Klip penting ditemukan:</b> ' + segs.length + ' bagian. Tekan tombol Potong untuk memotongnya (FFmpeg, butuh internet sekali).</div>';
-    segs.forEach(([s,e],i)=>{
-      const d = document.createElement('div');
-      d.className = 'plock-item';
-      d.innerHTML = '<span class="mono">✂</span><span class="grow">Klip ' + (i+1) + ' — ' + fmtTime(s) + ' → ' + fmtTime(e) + ' (' + (e-s).toFixed(1) + 's)</span>';
-      clipsBoxEl.appendChild(d);
+    return segs;
+  }
+  function scanForEnergy(){
+    return new Promise(res=>{
+      setupAudio();
+      if(ctx && ctx.state === 'suspended') ctx.resume();
+      const wasMuted = videoEl.muted;
+      videoEl.muted = true;
+      videoEl.pause();
+      const dur = videoEl.duration || 0;
+      energyLog = [];
+      scanning = true;
+      let sraf = 0;
+      const done = ()=>{ scanning = false; cancelAnimationFrame(sraf); videoEl.muted = wasMuted; res(); };
+      const loop2 = ()=>{
+        if(!scanning){ done(); return; }
+        sraf = requestAnimationFrame(loop2);
+        if(videoEl.readyState < 2) return;
+        if(analyser && ctx && ctx.state === 'running'){
+          analyser.getByteFrequencyData(freq);
+          let s = 0;
+          for(let i=0;i<freq.length;i++) s += freq[i]*freq[i];
+          const rms = Math.sqrt(s/(freq.length*255*255));
+          energyLog.push({t: videoEl.currentTime, rms});
+          rmsEl.textContent = '🔊 ' + Math.round(rms*100) + '%';
+          if(dur) autoClipBtn.textContent = '⏳ Menganalisis audio ' + Math.round((videoEl.currentTime/dur)*100) + '%…';
+        }
+        if(videoEl.ended || (dur && videoEl.currentTime >= dur - 0.1)) done();
+      };
+      videoEl.currentTime = 0;
+      videoEl.play().catch(()=>{});
+      sraf = requestAnimationFrame(loop2);
+      setTimeout(()=>{ if(scanning) done(); }, (dur > 0 ? dur : 600)*1000 + 12000);
     });
   }
-
-  clipsBtn.addEventListener('click', async ()=>{
-    if(!recBlob || !recBlob.size) return showToast('Rekam dulu');
-    const segs = JSON.parse(clipsBtn.dataset.segs || '[]');
-    if(!segs.length) return;
-    clipsBtn.disabled = true;
-    clipsBtn.textContent = '⏳ Menyiapkan FFmpeg…';
+  async function cutSegments(segs){
+    clipInfoEl.textContent = '⏳ Menyiapkan engine FFmpeg…';
     try{ await ensureFfmpeg(); }
-    catch(e){
-      showToast(ffmpegFailHint(e));
-      clipsBtn.disabled = false;
-      clipsBtn.textContent = '✂ Potong Klip Penting';
-      return;
-    }
+    catch(e){ clipInfoEl.textContent = 'FFmpeg gagal dimuat.'; showToast(ffmpegFailHint(e)); return; }
     try{
-      ffState.onProgress = p => { clipsBtn.textContent = '⏳ Memotong ' + Math.round(p*100) + '%…'; };
-      const input = new Uint8Array(await recBlob.arrayBuffer());
-      await ffState.ffmpeg.writeFile('in.webm', input);
-      let done = 0;
-      for(const sg of segs){
-        await ffState.ffmpeg.exec([
-          '-ss', String(sg.s), '-t', String(Math.max(0.8, sg.e - sg.s)),
-          '-i', 'in.webm',
-          '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
-          '-c:v', 'libvpx', '-crf', '34', '-b:v', '2M',
-          '-c:a', 'libopus', '-y', 'out' + done + '.webm',
-        ]);
-        done++;
-      }
-      for(let i=0;i<done;i++){
-        const data = await ffState.ffmpeg.readFile('out' + i + '.webm');
-        downloadBlob(new Blob([new Uint8Array(data)]), 'klip-' + (i+1) + '-' + Date.now() + '.webm');
-      }
-      showToast('✂ ' + done + ' klip terunduh');
-    }catch(e){
-      console.error(e);
-      showToast('Gagal memotong: ' + String(e.message||e).slice(0,80));
-    }finally{
-      ffState.onProgress = null;
-      clipsBtn.disabled = false;
-      clipsBtn.textContent = '✂ Potong Klip Penting';
-      try{ await ffState.ffmpeg.deleteFile('in.webm'); }catch(e){}
-    }
-  });
-
-  // ---- Clip Tool (potong langsung dari file asli, tanpa rekam) ----
-  let srcFile = null;
-  const clipA = $('clipA'), clipB = $('clipB'), clipATxt = $('clipATxt'), clipBTxt = $('clipBTxt');
-  const clipPrev = $('clipPrev'), clipAdd = $('clipAdd'), clipCut = $('clipCut'), clipClear = $('clipClear'), clipList = $('clipList');
-  let clipSegs = [];
-  function clipFmt(t){ t = Math.max(0, t|0); return String(Math.floor(t/60)).padStart(2,'0') + ':' + String(t%60).padStart(2,'0'); }
-  function clipTs(v){ const d = videoEl.duration || 0; return d ? d*v/1000 : 0; }
-  function renderClipList(){
-    clipList.innerHTML = '';
-    clipCut.disabled = !clipSegs.length;
-    clipClear.disabled = !clipSegs.length;
-    clipSegs.forEach((s,i)=>{
-      const d = document.createElement('div');
-      d.className = 'plock-item';
-      d.innerHTML = '<span class="mono">✂</span><span class="grow">Klip ' + (i+1) + ' — ' + clipFmt(s[0]) + ' → ' + clipFmt(s[1]) + ' (' + (s[1]-s[0]).toFixed(1) + 's)</span><button class="mini-btn" title="Hapus klip ini">✕</button>';
-      d.querySelector('button').addEventListener('click', ()=>{ clipSegs.splice(i,1); renderClipList(); });
-      clipList.appendChild(d);
-    });
-  }
-  clipA.addEventListener('input', ()=>{ clipATxt.textContent = clipFmt(clipTs(+clipA.value)); });
-  clipB.addEventListener('input', ()=>{ clipBTxt.textContent = clipFmt(clipTs(+clipB.value)); });
-  clipPrev.addEventListener('click', ()=>{
-    if(!videoEl.videoWidth) return showToast('Pilih video dulu');
-    const s = clipTs(+clipA.value), e = clipTs(+clipB.value);
-    videoEl.currentTime = s;
-    videoEl.play().catch(()=>{});
-    setTimeout(()=>{ if(videoEl.currentTime >= e - 0.05) videoEl.pause(); }, Math.max(500, (e-s)*1000));
-  });
-  clipAdd.addEventListener('click', ()=>{
-    if(!videoEl.videoWidth) return showToast('Pilih video dulu');
-    const s = clipTs(+clipA.value), e = clipTs(+clipB.value);
-    if(e - s < 0.5) return showToast('Klip harus minimal 0,5 detik');
-    clipSegs.push([s, e]);
-    renderClipList();
-    showToast('➕ Klip ' + clipSegs.length + ' ditambahkan');
-  });
-  clipCut.addEventListener('click', async ()=>{
-    if(!srcFile || !clipSegs.length) return showToast('Pilih video & tambah klip dulu');
-    clipCut.disabled = true;
-    clipCut.textContent = '⏳ Menyiapkan FFmpeg…';
-    try{ await ensureFfmpeg(); }
-    catch(e){
-      showToast(ffmpegFailHint(e));
-      clipCut.disabled = false;
-      clipCut.textContent = '✂ Potong & Unduh Klip';
-      return;
-    }
-    try{
-      ffState.onProgress = p => { clipCut.textContent = '⏳ Memotong ' + Math.round(p*100) + '%…'; };
+      ffState.onProgress = p => { clipInfoEl.textContent = '⏳ Memotong klip… ' + Math.round(p*100) + '%'; };
       const ext = (srcFile.name.match(/\.[a-z0-9]+$/i) || ['.mp4'])[0].toLowerCase();
       const IN = 'src' + ext;
       await ffState.ffmpeg.writeFile(IN, new Uint8Array(await srcFile.arrayBuffer()));
       let done = 0;
-      for(const sg of clipSegs){
+      for(const sg of segs){
+        autoClipBtn.textContent = '⏳ Memotong ' + (done+1) + '/' + segs.length + '…';
         await ffState.ffmpeg.exec([
-          '-ss', sg[0].toFixed(2), '-t', Math.max(0.5, sg[1]-sg[0]).toFixed(2),
+          '-ss', sg.s.toFixed(2), '-t', Math.max(0.8, sg.e - sg.s).toFixed(2),
           '-i', IN,
           '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
           '-c:v', 'libvpx', '-crf', '34', '-b:v', '2M',
@@ -5259,332 +5023,190 @@ async function ytFullInfo(id){
       const base = (srcFile.name.replace(/\.[^.]+$/, '') || 'video');
       for(let i=0;i<done;i++){
         const data = await ffState.ffmpeg.readFile('clip' + i + '.webm');
-        downloadBlob(new Blob([new Uint8Array(data)], {type:'video/webm'}), base + '-klip' + (i+1) + '.webm');
+        downloadBlob(new Blob([new Uint8Array(data)], {type:'video/webm'}), base + '-klip' + (i+1) + '-' + Date.now() + '.webm');
       }
-      showToast('✂ ' + done + ' klip terunduh');
+      clipsBoxEl.innerHTML = '';
+      segs.forEach((sg,i)=>{
+        const d = document.createElement('div');
+        d.className = 'plock-item';
+        d.innerHTML = '<span class="mono">✂</span><span class="grow">Klip ' + (i+1) + ' — ' + fmtTime(sg[0]) + ' → ' + fmtTime(sg[1]) + ' (' + (sg[1]-sg[0]).toFixed(1) + 's)</span>';
+        clipsBoxEl.appendChild(d);
+      });
+      clipInfoEl.textContent = '✅ ' + done + ' klip terunduh.';
     }catch(e){
       console.error(e);
-      showToast('Gagal memotong: ' + String(e.message||e).slice(0,80));
+      clipInfoEl.textContent = 'Gagal memotong: ' + String(e.message||e).slice(0, 80);
     }finally{
       ffState.onProgress = null;
-      clipCut.disabled = false;
-      clipCut.textContent = '✂ Potong & Unduh Klip';
       try{
         const ext = (srcFile.name.match(/\.[a-z0-9]+$/i) || ['.mp4'])[0].toLowerCase();
         await ffState.ffmpeg.deleteFile('src' + ext);
       }catch(e){}
     }
-  });
-  clipClear.addEventListener('click', ()=>{ clipSegs = []; renderClipList(); });
-
-  // ---- Timeline, Trim A–B & thumbnail strip ----
-  let tlBusy = false, tlFracA = 0, tlFracB = 1;
-  let markDrag = null;
-  function seekPlayhead(){
-    const dur = videoEl.duration || 1;
-    let f = videoEl.currentTime/dur;
-    if(trimEl.checked && dur){
-      const span = (tlFracB - tlFracA)||1;
-      f = Math.max(0, Math.min(1, (videoEl.currentTime - tlFracA*dur)/span));
+  }
+  autoClipBtn.addEventListener('click', async ()=>{
+    if(!srcFile || !videoEl.videoWidth) return showToast('Pilih video dulu');
+    if(scanning || asrRunning || rendering) return;
+    autoClipBtn.disabled = true;
+    try{
+      const dur = videoEl.duration || 0;
+      const covered = energyLog.length && energyLog[energyLog.length-1].t >= dur*0.97 && energyLog[energyLog.length-1].t > 0;
+      if(!covered) await scanForEnergy();
+      const segs = detectSegments();
+      if(!segs.length){
+        clipInfoEl.textContent = 'Tidak ada momen berpengaruh — coba turunkan sensitivitas atau pastikan video punya audio.';
+        return;
+      }
+      await cutSegments(segs);
+    }catch(e){
+      console.error(e);
+      clipInfoEl.textContent = 'Auto klip gagal: ' + String(e.message||e).slice(0, 80);
+    }finally{
+      autoClipBtn.disabled = false;
+      autoClipBtn.textContent = '⚡ Auto Klip (Sekali Tekan)';
     }
-    headEl.style.left = (f*100) + '%';
-  }
-  function redrawMarkers(){
-    markAEl.style.left = (tlFracA*100) + '%';
-    markBEl.style.left = (tlFracB*100) + '%';
-    const dur = videoEl.duration || 0;
-    timeInfoEl.textContent = 'A–B = ' + fmtTime(tlFracA*dur) + ' → ' + fmtTime(tlFracB*dur) +
-      ' (' + ((tlFracB-tlFracA)*dur).toFixed(1) + 's)';
-  }
-  function drawTrimZone(){
-    let z = segsEl.querySelector('.edt-trimz');
-    if(!z){ z = document.createElement('div'); z.className = 'edt-trimz'; segsEl.appendChild(z); }
-    z.style.left = (tlFracA*100) + '%';
-    z.style.width = Math.max(0.3, (tlFracB - tlFracA)*100) + '%';
-    z.style.display = trimInfoEl.dataset.on ? '' : 'none';
-  }
-  function refreshSegs(){
-    segsEl.querySelectorAll('.edt-seg').forEach(s=>s.remove());
-    drawTrimZone();
-  }
-  trimInfoEl.addEventListener('click', ()=>{
-    trimInfoEl.dataset.on = trimInfoEl.dataset.on ? '' : '1';
-    trimInfoEl.textContent = trimInfoEl.dataset.on ? '🧭 Zona hijau aktif' : '🧭 Zona hijau = yang disimpan';
-    drawTrimZone();
   });
-  function attachMark(el, which){
-    el.addEventListener('pointerdown', e=>{
-      markDrag = which;
-      el.setPointerCapture(e.pointerId);
-      markMove(e);
-    });
-    el.addEventListener('pointermove', e=>{ if(markDrag === which) markMove(e); });
-    el.addEventListener('pointerup', ()=>{ markDrag = null; });
-    el.addEventListener('pointercancel', ()=>{ markDrag = null; });
-    function markMove(e){
-      const r = el.parentElement.getBoundingClientRect();
-      if(!r.width) return;
-      let f = Math.max(0, Math.min(1, (e.clientX - r.left)/r.width));
-      if(which === 'A') tlFracA = Math.min(f, tlFracB - 0.01);
-      else tlFracB = Math.max(f, tlFracA + 0.01);
-      redrawMarkers();
-      refreshSegs();
-    }
-  }
-  attachMark(markAEl, 'A');
-  attachMark(markBEl, 'B');
-  trimGoEl.addEventListener('click', ()=>{
-    if(!videoEl.videoWidth) return showToast('Pilih video dulu');
-    clipA.value = Math.round(tlFracA*1000);
-    clipB.value = Math.round(tlFracB*1000);
-    clipA.dispatchEvent(new Event('input'));
-    clipB.dispatchEvent(new Event('input'));
-    showToast('A–B disalin ke Clip Tool — tekan ➕ Tambah Klip untuk menyimpan');
-  });
-  function playFrom(t){
-    if(!videoEl.videoWidth) return showToast('Pilih video dulu');
-    videoEl.currentTime = Math.max(0, Math.min(videoEl.duration || 0, t));
-    videoEl.play().catch(()=>{});
-  }
-  async function buildTimeline(){
-    const dur = videoEl.duration || 1;
-    if(!dur) return;
-    tlBusy = true;
-    const n = Math.max(8, Math.min(28, Math.ceil(dur/3)));
-    const th = 78;
-    const tw = Math.max(14, Math.round(th*videoEl.videoWidth/videoEl.videoHeight));
-    const c = document.createElement('canvas'); c.width = tw; c.height = th;
-    const cx = c.getContext('2d');
-    const prevTime = videoEl.currentTime;
-    for(let i=0; i<n && tlBusy; i++){
-      const t = (n === 1 ? 0 : i/(n-1))*dur;
-      await new Promise(r=>{
-        const tmr = setTimeout(r, 350);
-        videoEl.onseeked = ()=>{ clearTimeout(tmr); r(); };
-        videoEl.currentTime = t;
-      });
-      videoEl.onseeked = null;
-      try{
-        cx.drawImage(videoEl, 0, 0, tw, th);
-        const cu = document.createElement('canvas');
-        cu.width = tw; cu.height = th;
-        cu.getContext('2d').drawImage(c, 0, 0);
-        cu.addEventListener('click', ()=> playFrom(t));
-        thumbsEl.appendChild(cu);
-      }catch(e){}
-    }
-    tlBusy = false;
-    tlWrap.style.display = '';
-    timeInfoEl.textContent = (n) + ' thumbnail · klik gambar untuk melompat.';
-    redrawMarkers();
-    refreshSegs();
-    try{ videoEl.currentTime = prevTime; }catch(e){}
-  }
-  subSizeEl.addEventListener('input', e=> subSizeValEl.textContent = e.target.value);
   sensEl.addEventListener('input', e=> sensValEl.textContent = e.target.value);
   preEl.addEventListener('input', e=> preValEl.textContent = (+e.target.value).toFixed(1) + 's');
   postEl.addEventListener('input', e=> postValEl.textContent = (+e.target.value).toFixed(1) + 's');
   trackModeEl.addEventListener('change', ()=>{ lockIdx = -1; renderTracks(); });
   canvas.addEventListener('pointerdown', ()=>{ if(ctx && ctx.state === 'suspended') ctx.resume(); });
 
-  subEl.addEventListener('change', ()=>{
-    if(subEl.checked){
-      const SRc = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if(!SRc){ showToast('Subtitle otomatis butuh Chrome/Edge'); subEl.checked = false; return; }
-      subRec = new SRc();
-      subRec.continuous = true;
-      subRec.interimResults = true;
-      subRec.lang = 'id-ID';
-      subRec.onresult = e=>{
-        let finalT = '', interimT = '';
-        for(let i = e.resultIndex; i < e.results.length; i++){
-          const r = e.results[i];
-          if(r.isFinal) finalT += r[0].transcript;
-          else interimT += r[0].transcript;
-        }
-        if(finalT) subFinal = (subFinal + ' ' + finalT).trim().slice(-160);
-        subText = (subFinal + (interimT ? ' ' + interimT : '')).trim();
-      };
-      subRec.onerror = ()=>{
-        showToast('Subtitle: ' + ((subRec.error && subRec.error.error) || 'gagal akses mikrofon'));
-        subEl.checked = false;
-        subRec = null; subText = ''; subFinal = '';
-      };
-      subRec.onend = ()=>{ if(subEl.checked) try{ subRec.start(); }catch(e){} };
-      try{ subRec.start(); }catch(e){}
-      showToast('🎙 Subtitle aktif — ucapkan sesuatu');
-    }else{
-      if(subRec) try{ subRec.stop(); }catch(e){}
-      subRec = null; subText = ''; subFinal = '';
+  // ---- load video ----
+  pickBtn.addEventListener('click', ()=> fileEl.click());
+  fileEl.addEventListener('change', async ()=>{
+    const f = fileEl.files[0];
+    if(!f) return;
+    srcFile = f;
+    fileNameEl.textContent = f.name;
+    running = false;
+    cancelAnimationFrame(raf);
+    energyLog = [];
+    subSeqs = []; asrListEl.innerHTML = '';
+    subEl.checked = false; subEl.disabled = true;
+    if(pcmNode){ try{ pcmNode.disconnect(); }catch(e){} pcmNode = null; }
+    if(ctx){ try{ ctx.close(); }catch(e){} ctx = null; meSrc = null; analyser = null; }
+    freshVideo();
+    videoEl.src = URL.createObjectURL(f);
+    msgEl.style.display = 'flex';
+    msgEl.textContent = 'Memuat video…';
+    await new Promise(res=>{
+      videoEl.onloadedmetadata = res;
+      setTimeout(res, 8000);
+    });
+    if(!videoEl.videoWidth){
+      msgEl.textContent = 'Gagal memuat video — coba mp4/webm';
+      return;
     }
+    setOutSize();
+    try{ setupAudio(); }catch(e){}
+    msgEl.textContent = 'Memuat model pelacakan orang…';
+    try{ await ensurePose(); }
+    catch(e){ msgEl.textContent = 'Pelacakan tak tersedia: ' + String(e.message||e).slice(0, 70); }
+    setTimeout(()=>{ if(msgEl.style.display !== 'none') msgEl.style.display = 'none'; }, 600);
+    videoEl.play().catch(()=>{});
+    running = true;
+    raf = requestAnimationFrame(loop);
   });
 
-  // ---- Reduksi Noise (spektral subtraction via AudioWorklet) ----
-  let ncNode = null, ncDest = null, ncUrl = null, ncConnected = false;
-  const NC_WORKLET = [
-    "const N=1024,H=512;",
-    "const WIN=(k)=>{const w=N-1;return 0.5-0.5*Math.cos(2*Math.PI*k/w);};",
-    "class NCReduce extends AudioWorkletProcessor{",
-    "constructor(){",
-    " super();",
-    " this.lin=new Float32Array(N); this.count=0;",
-    " this.acc=new Float32Array(N); this.outQ=[]; this.qFill=0;",
-    " this.re=new Float32Array(N); this.im=new Float32Array(N);",
-    " this.mag=new Float32Array(N/2+1);",
-    " this.noise=null; this.avg=new Float32Array(N/2+1);",
-    " this.coef=0.36; this.calibrating=false; this.calFrames=0;",
-    " this.port.onmessage=e=>{",
-    "   const d=e.data;",
-    "   if(d.cmd==='calibrate'){ this.calibrating=true; this.calFrames=0; this.avg.fill(0); }",
-    "   else if(d.cmd==='coef'){ this.coef=Math.max(0,Number(d.v)||0); }",
-    " };",
-    "}",
-    "fft(re,im){",
-    " const n=re.length;",
-    " for(let i=1,j=0;i<n;i++){",
-    "   let b=n>>1;",
-    "   for(; j&b; b>>=1) j^=b;",
-    "   j^=b;",
-    "   if(i<j){ const tr=re[i]; re[i]=re[j]; re[j]=tr; const ti=im[i]; im[i]=im[j]; im[j]=ti; }",
-    " }",
-    " for(let len=2;len<=n;len<<=1){",
-    "   const ang=-2*Math.PI/len, wpr=Math.cos(ang), wpi=Math.sin(ang);",
-    "   for(let i=0;i<n;i+=len){",
-    "     let wr=1, wi=0;",
-    "     const h=len>>1;",
-    "     for(let j=0;j<h;j++){",
-    "       const ur=re[i+j], ui=im[i+j];",
-    "       const vr=wr*re[i+j+h]-wi*im[i+j+h];",
-    "       const vi=wr*im[i+j+h]+wi*re[i+j+h];",
-    "       re[i+j]=ur+vr; im[i+j]=ui+vi;",
-    "       re[i+j+h]=ur-vr; im[i+j+h]=ui-vi;",
-    "       const nw=wr*wpr-wi*wpi;",
-    "       wi=wr*wpi+wi*wpr; wr=nw;",
-    "     }",
-    "   }",
-    " }",
-    "}",
-    "ifft(re,im){ this.fft(re,im); for(let i=0;i<re.length;i++){ re[i]/=re.length; im[i]/=re.length; } }",
-    "analyze(){",
-    " const re=this.re, im=this.im, ln=this.lin;",
-    " for(let i=0;i<N;i++){ re[i]=ln[i]*WIN(i); im[i]=0; }",
-    " this.fft(re,im);",
-    " const mag=this.mag;",
-    " for(let i=0;i<=N/2;i++) mag[i]=Math.hypot(re[i],im[i]);",
-    " if(this.calibrating){",
-    "   for(let i=0;i<=N/2;i++) this.avg[i]+=mag[i];",
-    "   this.calFrames++;",
-    "   if(this.calFrames>=43){",
-    "     this.calibrating=false;",
-    "     this.noise=new Float32Array(this.avg);",
-    "     for(let i=0;i<=N/2;i++) this.noise[i]/=43;",
-    "     this.port.postMessage({ev:'cal'});",
-    "   }",
-    "   return;",
-    " }",
-    " if(this.noise){",
-    "   const c=this.coef;",
-    "   for(let i=1;i<=N/2;i++){",
-    "     const m=mag[i];",
-    "     if(m>1e-9){",
-    "       const g=m-this.noise[i]*c;",
-    "       const out=g>0?g:0;",
-    "       let scale=out/m;",
-    "       if(scale<0.06) scale=0.06;",
-    "       re[i]*=scale; im[i]*=scale;",
-    "     }",
-    "   }",
-    "   for(let i=N/2+1;i<N;i++){ re[i]=re[N-i]; im[i]=-im[N-i]; }",
-    " }",
-    " this.ifft(re,im);",
-    " const acc=this.acc;",
-    " for(let i=0;i<N;i++){ acc[i]+=re[i]*WIN(i); }",
-    " for(let i=0;i<H;i++){ this.outQ.push(acc[i]/1.5); }",
-    " acc.copyWithin(0,H);",
-    " for(let i=N-H;i<N;i++) acc[i]=0;",
-    "}",
-    "process(inputs,outputs){",
-    " const inp=inputs[0], out=outputs[0];",
-    " if(!inp||!inp[0]) return true;",
-    " const ch=inp[0], o=out[0], n=out.length, ln=this.lin;",
-    " for(let i=0;i<n;i++){",
-    "   ln[this.count]=ch[i]||0;",
-    "   this.count++;",
-    "   if(this.count>=N){",
-    "     this.analyze();",
-    "     ln.copyWithin(0,H);",
-    "     this.count=N-H;",
-    "   }",
-    "   o[i]=this.outQ.length?this.outQ.shift():0;",
-    " }",
-    " return true;",
-    "}",
-    "}",
-    "registerProcessor('nc-reduce',NCReduce);",
-  ].join('\n');
-  async function ensureNc(){
-    if(ncNode) return;
-    if(!ctx) setupAudio();
-    if(!ncUrl){
-      ncUrl = URL.createObjectURL(new Blob([NC_WORKLET], {type:'application/javascript'}));
+  function loop(){
+    if(!running) return;
+    raf = requestAnimationFrame(loop);
+    const now = performance.now();
+    if(videoEl.readyState < 2) return;
+    if(poseDet && trackEl.checked && !rendering && !scanning && !asrRunning && now - lastDet > 80){
+      lastDet = now;
+      detectPeople(now);
     }
-    await ctx.audioWorklet.addModule(ncUrl);
-    ncNode = new AudioWorkletNode(ctx, 'nc-reduce');
-    meSrc.connect(ncNode);
-    ncDest = ctx.createMediaStreamDestination();
-    ncNode.connect(ncDest);
-    ncConnected = true;
-    try{ ncNode.port.postMessage({cmd:'coef', v: +ncStrEl.value*0.12}); }catch(e){}
+    let rms = 0;
+    if(analyser && ctx && ctx.state === 'running'){
+      analyser.getByteFrequencyData(freq);
+      let s = 0;
+      for(let i=0;i<freq.length;i++) s += freq[i]*freq[i];
+      rms = Math.sqrt(s/(freq.length*255*255));
+      rmsEl.textContent = '🔊 ' + Math.round(rms*100) + '%';
+    } else {
+      rmsEl.textContent = '';
+    }
+    if(!scanning && !asrRunning && !rendering && analyser && videoEl.duration){
+      energyLog.push({t: videoEl.currentTime, rms});
+      if(energyLog.length > 20000) energyLog.splice(0, 5000);
+    }
+    if(rendering) drawRenderOut();
+    else drawPreview(now);
+    timeEl.textContent = fmtTime(videoEl.currentTime);
   }
-  ncEl.addEventListener('change', async ()=>{
-    if(ncEl.checked){
-      try{ await ensureNc(); showToast('🔕 Reduksi noise aktif — kalibrasi untuk hasil terbaik'); }
-      catch(e){ console.error(e); showToast('Reduksi noise gagal: ' + String(e.message||e).slice(0,60)); ncEl.checked = false; }
-    }else{
-      if(ncNode){ try{ ncNode.disconnect(); }catch(e){} ncNode = null; }
-      if(ncDest){ try{ ncDest.disconnect(); }catch(e){} ncDest = null; }
-      ncConnected = false;
+
+  // ---- render hasil (Unduh Hasil) ----
+  let recorder = null, chunks = [];
+  function fRecord(){
+    let stream;
+    try{ stream = canvas.captureStream(30); }
+    catch(e){ return showToast('Rekaman tak didukung browser ini'); }
+    try{
+      const vs = videoEl.captureStream(30);
+      if(vs.getAudioTracks().length) stream.addTrack(vs.getAudioTracks()[0]);
+    }catch(e){}
+    const mime = ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m)) || '';
+    recorder = new MediaRecorder(stream, mime ? {mimeType:mime, videoBitsPerSecond: 7e6} : undefined);
+    chunks = [];
+    recorder.ondataavailable = e=>{ if(e.data && e.data.size) chunks.push(e.data); };
+    recorder.start(500);
+  }
+  renderBtn.addEventListener('click', async ()=>{
+    if(!videoEl.videoWidth) return showToast('Pilih video dulu');
+    if(rendering || scanning || asrRunning) return;
+    rendering = true;
+    renderBtn.disabled = true;
+    let iv2 = null;
+    try{
+      if(ctx && ctx.state === 'suspended') ctx.resume();
+      videoEl.pause();
+      videoEl.muted = true;
+      const dur = videoEl.duration || 0;
+      videoEl.currentTime = 0;
+      fRecord();
+      videoEl.play().catch(()=>{});
+      iv2 = setInterval(()=>{
+        renderBtn.textContent = dur > 0 ? '⏳ Render ' + Math.round((videoEl.currentTime/dur)*100) + '%…' : '⏳ Render…';
+      }, 250);
+      await new Promise(res=>{
+        let settled = false;
+        const fin = ()=>{ if(!settled){ settled = true; clearInterval(ivv); res(); } };
+        const ivv = setInterval(()=>{ if(videoEl.ended || videoEl.currentTime >= dur - 0.05) fin(); }, 100);
+        videoEl.onended = fin;
+        setTimeout(fin, Math.max(120000, dur*1000 + 30000));
+      });
+      if(recorder && recorder.state !== 'inactive'){
+        await new Promise(res=>{ recorder.onstop = res; recorder.stop(); });
+        const b = new Blob(chunks, {type:'video/webm'});
+        if(b.size) downloadBlob(b, 'edit-' + Date.now() + '.webm');
+      }
+      showToast('⬇ Hasil terunduh');
+    }catch(e){
+      console.error(e);
+      showToast('Render gagal: ' + String(e.message||e).slice(0, 60));
+    }finally{
+      clearInterval(iv2);
+      videoEl.onended = null;
+      videoEl.muted = false;
+      rendering = false;
+      renderBtn.disabled = false;
+      renderBtn.textContent = '⬇ Unduh Hasil';
     }
-  });
-  ncStrEl.addEventListener('input', e=>{
-    ncStrValEl.textContent = (+e.target.value).toFixed(1);
-    if(ncNode){ try{ ncNode.port.postMessage({cmd:'coef', v: +e.target.value*0.12}); }catch(err){} }
-  });
-  ncCalEl.addEventListener('click', async ()=>{
-    if(!ncEl.checked){ showToast('Aktifkan reduksi noise dulu'); return; }
-    const wasPaused = videoEl.paused;
-    try{ videoEl.pause(); }catch(e){}
-    ncInfoEl.textContent = '🎧 Merekam noise latar (±2 dtk) — jangan bersuara…';
-    try{ ncNode.port.postMessage({cmd:'calibrate'}); }catch(e){}
-    await new Promise(r=> setTimeout(r, 2300));
-    ncInfoEl.textContent = '✅ Profil noise tersimpan — mainkan video & cek hasilnya.';
-    if(wasPaused){ videoEl.play().catch(()=>{}); }
   });
 
   function stopAll(finalize){
     running = false;
+    scanning = false;
     cancelAnimationFrame(raf);
     if(recorder && recorder.state !== 'inactive'){
-      recorder.onstop = ()=>{
-        recOn = false;
-        recBtn.textContent = '● Rekam';
-        if(finalize !== false){
-          const b = new Blob(chunks, {type:'video/webm'});
-          if(b.size) downloadBlob(b, 'edit-' + Date.now() + '.webm');
-        }
-      };
-      recorder.stop();
+      try{ recorder.stop(); }catch(e){}
     }
-    if(subRec){ try{ subRec.stop(); }catch(e){} subRec = null; subEl.checked = false; }
-    if(ncNode){ try{ ncNode.disconnect(); }catch(e){} ncNode = null; }
-    if(ncDest){ try{ ncDest.disconnect(); }catch(e){} ncDest = null; }
-    ncConnected = false;
-    tlBusy = false;
+    if(pcmNode){ try{ pcmNode.disconnect(); }catch(e){} pcmNode = null; }
     if(videoEl) videoEl.pause();
     timeEl.textContent = '00:00';
     rmsEl.textContent = '';
-    recBtn.textContent = '● Rekam';
-    recOn = false;
   }
   window.__editorStop = ()=> stopAll(true);
 })();
@@ -5684,19 +5306,22 @@ async function ytFullInfo(id){
     if(btn.disabled) return;
     btn.disabled = true;
     const old = btn.textContent;
-    const prog = row.parentElement.querySelector('.dl-progress');
+    const infoBox = row.closest('.dl-info');
+    const prog = infoBox ? infoBox.querySelector('.dl-progress') : null;
     let last = 0;
-    prog.classList.add('on');
-    prog.querySelector('i').style.width = '2%';
-    const setP = p =>{ if(p - last > 0.02){ last = p; prog.querySelector('i').style.width = Math.round(p*100) + '%'; } };
+    const setP = p =>{ if(prog && p - last > 0.02){ last = p; prog.querySelector('i').style.width = Math.round(p*100) + '%'; } };
+    if(prog){
+      prog.classList.add('on');
+      prog.querySelector('i').style.width = '2%';
+    }
     try{
       const info = await onStart(bd, setP);
-      if(info == null){ prog.querySelector('i').style.width = '100%'; setTimeout(()=>{ prog.classList.remove('on'); }, 900); return; }
+      if(info == null){ if(prog){ prog.querySelector('i').style.width = '100%'; setTimeout(()=>{ prog.classList.remove('on'); }, 900); } return; }
       const res = await fetchVia(Array.isArray(info) ? info[0] : info.url || info, true);
       if(!res || !res.ok) throw new Error('Unduhan gagal');
       const blob = await res.blob();
       downloadBlob(blob, (Array.isArray(info) ? info[1] : info.name) || fname(bd.fileName || 'video', bd.ext || '.mp4'));
-      prog.querySelector('i').style.width = '100%';
+      if(prog) prog.querySelector('i').style.width = '100%';
       showToast('⬇ Unduhan selesai');
     }catch(e){
       console.error(e);
@@ -5704,7 +5329,7 @@ async function ytFullInfo(id){
     }finally{
       btn.disabled = false;
       btn.textContent = old;
-      setTimeout(()=>{ prog.classList.remove('on'); }, 900);
+      if(prog) setTimeout(()=>{ prog.classList.remove('on'); }, 900);
     }
   }
 
