@@ -4583,7 +4583,7 @@ async function ytFullInfo(id){
 
   // ---- pose tracking (MediaPipe, self-hosted) ----
   let poseDet = null, poseBusy = false, lastDet = 0;
-  let persons = [], prevLms = [], lockIdx = -1, lastTarget = null, lastSeenAt = 0, lastCam = null;
+  let persons = [], prevLms = [], smP = [], lastAutoIdx = -1, lockIdx = -1, lastTarget = null, lastSeenAt = 0, lastCam = null;
   async function ensurePose(){
     if(poseDet) return;
     const abs = p => new URL(p, location.href).href;
@@ -4637,6 +4637,7 @@ async function ytFullInfo(id){
     try{
       const res = await poseDet.detectForVideo(videoEl, now);
       const poses = res.landmarks || [];
+      const sm = smP;
       persons = poses.map((lms, idx)=>{
         let minX=1, maxX=0, minY=1, maxY=0;
         for(const lm of lms){
@@ -4651,8 +4652,21 @@ async function ytFullInfo(id){
           for(let i=0;i<lms.length;i++) act += Math.abs(lms[i].x-prev[i].x) + Math.abs(lms[i].y-prev[i].y);
         }
         prevLms[idx] = lms.map(l=>({x:l.x, y:l.y}));
-        return {cx:(minX+maxX)/2, cy:(minY+maxY)/2, w:maxX-minX, h:maxY-minY, act, score: 1};
+        const padX = (maxX-minX)*0.14, padY = (maxY-minY)*0.18;
+        let cx = (minX+maxX)/2, cy = (minY+maxY)/2;
+        let w = Math.min(1.2, maxX-minX+padX*2), h = Math.min(1.2, maxY-minY+padY*2);
+        const pr = sm[idx];
+        if(pr){
+          const k = 0.5;
+          cx = pr.cx + (cx-pr.cx)*k;
+          cy = pr.cy + (cy-pr.cy)*k;
+          w = pr.w + (w-pr.w)*k;
+          h = pr.h + (h-pr.h)*k;
+        }
+        sm[idx] = {cx, cy, w, h};
+        return {cx, cy, w, h, act, score: 1};
       });
+      smP = sm.slice(0, persons.length);
       prevLms = prevLms.slice(0, persons.length);
       if(lockIdx >= persons.length) lockIdx = -1;
       renderTracks();
@@ -4664,12 +4678,22 @@ async function ytFullInfo(id){
     if(lockIdx >= 0 && lockIdx < persons.length) return persons[lockIdx];
     const mode = trackModeEl.value;
     if(mode === 'auto'){
+      const cur = (lastAutoIdx >= 0 && lastAutoIdx < persons.length) ? persons[lastAutoIdx] : null;
+      if(cur){
+        const better = persons.find((p,i)=> i !== lastAutoIdx && p.act > cur.act*1.6 + 0.012);
+        if(!better) return cur;
+        lastAutoIdx = persons.indexOf(better);
+        return better;
+      }
       const best = persons.reduce((a,b)=> b.act > a.act ? b : a);
+      lastAutoIdx = persons.indexOf(best);
       if(best.act > 0.004) return best;
-      return persons.reduce((a,b)=> b.w*b.h > a.w*a.h ? b : a);
+      const big = persons.reduce((a,b)=> b.w*b.h > a.w*a.h ? b : a);
+      lastAutoIdx = persons.indexOf(big);
+      return big;
     }
     if(mode === 'big') return persons.reduce((a,b)=> b.w*b.h > a.w*a.h ? b : a);
-    return persons.reduce((a,b)=> b.score > a.score ? b : a);
+    return persons[0];
   }
   function renderTracks(){
     tracksEl.innerHTML = '';
@@ -4681,7 +4705,7 @@ async function ytFullInfo(id){
     persons.forEach((p,i)=>{
       const b = document.createElement('button');
       b.className = 'person-chip' + (lockIdx === i ? ' active' : '');
-      b.textContent = 'Orang ' + (i+1) + ' · ' + Math.round(p.score*100) + '%' + (p.act > 0.004 ? ' ⚡' : '');
+      b.textContent = 'Orang ' + (i+1) + (p.act > 0.004 ? ' ⚡' : '');
       b.addEventListener('click', ()=>{ lockIdx = lockIdx === i ? -1 : i; renderTracks(); });
       tracksEl.appendChild(b);
     });
@@ -4712,7 +4736,7 @@ async function ytFullInfo(id){
     }
     let x = cx*vw - w/2, y = cy*vh - h/2;
     if(lastCam){
-      const sm = 0.14;
+      const sm = 0.18;
       x = lastCam.x + (x-lastCam.x)*sm;
       y = lastCam.y + (y-lastCam.y)*sm;
       w = lastCam.w + (w-lastCam.w)*sm;
@@ -4762,24 +4786,76 @@ async function ytFullInfo(id){
   }
 
   // ---- preview (original + PiP hasil track) & render ----
+  function rr(c, x, y, w, h, r){
+    if(c.roundRect){ c.beginPath(); c.roundRect(x, y, w, h, r); return; }
+    c.beginPath();
+    c.moveTo(x+r, y); c.arcTo(x+w, y, x+w, y+h, r); c.arcTo(x+w, y+h, x, y+h, r);
+    c.arcTo(x, y+h, x, y, r); c.arcTo(x, y, x+w, y, r); c.closePath();
+  }
+  function ratioLbl(){
+    if(Math.abs(ratio - 9/16) < 0.01) return '9:16';
+    if(Math.abs(ratio - 4/5) < 0.01) return '4:5';
+    if(Math.abs(ratio - 1) < 0.01) return '1:1';
+    if(Math.abs(ratio - 4/3) < 0.01) return '4:3';
+    return '16:9';
+  }
   function drawPreview(now){
     const vw = videoEl.videoWidth, vh = videoEl.videoHeight;
     if(!vw || !vh) return;
-    cv.fillStyle = '#000'; cv.fillRect(0, 0, outW, outH);
+    cv.fillStyle = '#0b1020'; cv.fillRect(0, 0, outW, outH);
+    try{
+      cv.filter = 'blur(18px) saturate(1.15)';
+      cv.drawImage(videoEl, 0, 0, vw, vh, -outW*0.08, -outH*0.08, outW*1.16, outH*1.16);
+      cv.filter = 'none';
+    }catch(e){}
+    cv.fillStyle = 'rgba(8,10,20,0.45)'; cv.fillRect(0, 0, outW, outH);
     const s = Math.min(outW/vw, outH/vh);
     const dw = vw*s, dh = vh*s;
-    cv.drawImage(videoEl, 0, 0, vw, vh, (outW-dw)/2, (outH-dh)/2, dw, dh);
+    const dx = (outW-dw)/2, dy = (outH-dh)/2;
+    cv.save();
+    rr(cv, dx-1.5, dy-1.5, dw+3, dh+3, 10); cv.clip();
+    cv.fillStyle = '#000'; cv.fillRect(dx-1.5, dy-1.5, dw+3, dh+3);
+    cv.drawImage(videoEl, 0, 0, vw, vh, dx, dy, dw, dh);
+    cv.restore();
+    cv.strokeStyle = 'rgba(255,255,255,0.22)'; cv.lineWidth = 1.5;
+    rr(cv, dx, dy, dw, dh, 9); cv.stroke();
+    cv.strokeStyle = 'rgba(255,255,255,0.08)'; cv.lineWidth = 1;
+    for(let i=1;i<3;i++){
+      const x = dx + dw*i/3, y = dy + dh*i/3;
+      cv.beginPath(); cv.moveTo(x, dy+1); cv.lineTo(x, dy+dh-1); cv.stroke();
+      cv.beginPath(); cv.moveTo(dx+1, y); cv.lineTo(dx+dw-1, y); cv.stroke();
+    }
+    cv.textBaseline = 'middle';
+    cv.fillStyle = 'rgba(10,14,28,0.72)';
+    rr(cv, 12, 12, 72, 26, 7); cv.fill();
+    cv.fillStyle = '#ffd43b'; cv.font = '700 13px Inter, sans-serif';
+    cv.textAlign = 'left';
+    cv.fillText(ratioLbl(), 22, 25);
+    const tstr = fmtTime(videoEl.currentTime);
+    const tw = cv.measureText(tstr).width;
+    cv.fillStyle = 'rgba(10,14,28,0.72)';
+    rr(cv, outW-12-tw-20, 12, tw+20, 26, 7); cv.fill();
+    cv.fillStyle = '#cfe3ff'; cv.font = '600 13px "IBM Plex Mono", monospace';
+    cv.fillText(tstr, outW-12-tw-10, 25);
     if(trackEl.checked){
       const b = cropRect(vw, vh);
       const pw = Math.round(outW*0.42), ph = Math.round(pw/ratio);
-      const px = outW - pw - 14, py = outH - ph - 14;
-      cv.fillStyle = 'rgba(0,0,0,0.45)'; cv.fillRect(px-10, py-10, pw+20, ph+20);
+      const px = outW-pw-16, py = outH-ph-16;
+      cv.save();
+      cv.shadowColor = 'rgba(0,0,0,0.55)'; cv.shadowBlur = 18; cv.shadowOffsetY = 4;
+      cv.fillStyle = 'rgba(0,0,0,0.4)'; rr(cv, px, py, pw, ph, 12); cv.fill();
+      cv.restore();
+      cv.save();
+      rr(cv, px, py, pw, ph, 12); cv.clip();
       cv.drawImage(videoEl, b.x, b.y, b.w, b.h, px, py, pw, ph);
-      cv.strokeStyle = '#ffd43b'; cv.lineWidth = 4; cv.strokeRect(px-10, py-10, pw+20, ph+20);
-      cv.fillStyle = '#ffd43b'; cv.fillRect(px-10, py-28, 62, 20);
+      cv.restore();
+      cv.strokeStyle = '#ffd43b'; cv.lineWidth = 3;
+      rr(cv, px, py, pw, ph, 12); cv.stroke();
+      cv.fillStyle = '#ffd43b';
+      rr(cv, px-4, py-30, 66, 22, 6); cv.fill();
       cv.fillStyle = '#12172A'; cv.font = '700 12px Inter, sans-serif';
-      cv.textBaseline = 'middle'; cv.textAlign = 'left';
-      cv.fillText('TRACK', px-5, py-18);
+      cv.textAlign = 'left'; cv.textBaseline = 'middle';
+      cv.fillText('TRACK', px+7, py-19);
       cv.textBaseline = 'alphabetic';
       drawSubtitle(cv, px, py, pw, ph);
     } else if(subEl.checked){
@@ -5024,7 +5100,7 @@ async function ytFullInfo(id){
       for(const sg of segs){
         autoClipBtn.textContent = '⏳ Memotong ' + (done+1) + '/' + segs.length + '…';
         await ffState.ffmpeg.exec([
-          '-ss', sg.s.toFixed(2), '-t', Math.max(0.8, sg.e - sg.s).toFixed(2),
+          '-ss', sg[0].toFixed(2), '-t', Math.max(0.8, sg[1] - sg[0]).toFixed(2),
           '-i', IN,
           '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
           '-c:v', 'libvpx', '-crf', '34', '-b:v', '2M',
@@ -5126,7 +5202,7 @@ async function ytFullInfo(id){
     raf = requestAnimationFrame(loop);
     const now = performance.now();
     if(videoEl.readyState < 2) return;
-    if(poseDet && trackEl.checked && !rendering && !scanning && !asrRunning && now - lastDet > 80){
+    if(poseDet && trackEl.checked && !rendering && !scanning && !asrRunning && now - lastDet > 66){
       lastDet = now;
       detectPeople(now);
     }
