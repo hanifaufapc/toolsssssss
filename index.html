@@ -4636,9 +4636,8 @@ async function ytFullInfo(id){
     poseBusy = true;
     try{
       const res = await poseDet.detectForVideo(videoEl, now);
-      const poses = res.poses || [];
-      persons = poses.map((ps, idx)=>{
-        const lms = ps.landmarks || [];
+      const poses = res.landmarks || [];
+      persons = poses.map((lms, idx)=>{
         let minX=1, maxX=0, minY=1, maxY=0;
         for(const lm of lms){
           if(lm.x < minX) minX = lm.x;
@@ -4652,7 +4651,7 @@ async function ytFullInfo(id){
           for(let i=0;i<lms.length;i++) act += Math.abs(lms[i].x-prev[i].x) + Math.abs(lms[i].y-prev[i].y);
         }
         prevLms[idx] = lms.map(l=>({x:l.x, y:l.y}));
-        return {cx:(minX+maxX)/2, cy:(minY+maxY)/2, w:maxX-minX, h:maxY-minY, act, score: (ps.score && ps.score[0]) || 0};
+        return {cx:(minX+maxX)/2, cy:(minY+maxY)/2, w:maxX-minX, h:maxY-minY, act, score: 1};
       });
       prevLms = prevLms.slice(0, persons.length);
       if(lockIdx >= persons.length) lockIdx = -1;
@@ -4817,7 +4816,20 @@ async function ytFullInfo(id){
     if(asrPipe) return asrPipe;
     asrInfoEl.textContent = '⏳ Mengunduh model AI (±40 MB) — sekali saja…';
     const mod = await import(ASR_URL);
-    asrPipe = await mod.pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny');
+    const env = (mod && mod.env) || (mod && mod.default && mod.default.env);
+    if(env){
+      env.allowLocalModels = false;
+      env.remoteHost = 'https://huggingface.co';
+      env.remotePathTemplate = '{model}/resolve/{revision}/';
+    }
+    try{
+      asrPipe = await mod.pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny');
+    }catch(e1){
+      if(!env) throw e1;
+      env.remoteHost = 'https://hf-mirror.com';
+      try{ asrPipe = await mod.pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny'); }
+      catch(e2){ throw e2; }
+    }
     return asrPipe;
   }
   async function attachPcm(){
