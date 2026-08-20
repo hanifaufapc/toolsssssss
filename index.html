@@ -7,7 +7,9 @@
 <meta name="description" content="Kompresor, konverter, palet warna, kode QR, dan webcam efektif — gratis, tanpa login, semua jalan di browser.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js">/* ============================================================
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+/* ============================================================
    12) DOWNLOADER MEDIA — YouTube + TikTok + IG Reels (kualitas terbaik)
    ============================================================ */
 (function(){
@@ -277,9 +279,19 @@
         thumb: info.thumb, title: info.title, author: info.author, duration: info.duration, sub: 'IG Reels · halaman Instagram',
         onStart: (bd, setP)=> bd.task(setP),
         rows: [
-          {label: 'Kualitas',
+          {label: 'Format',
            buttons: [
              {text: '⬇ Unduh Video (terbaik)', primary: true, ext:'.mp4', fileName: info.title, task: v => Promise.resolve([info.url, fname(info.title || 'reels-' + code, '.mp4')])},
+             {text: '♪ Audio saja (MP3)', ext:'.mp3', fileName: info.title, task: async setP => {
+                await ensureFfmpeg();
+                const b = await fetchProgress(info.url, p=> setP(p*0.6));
+                await ffState.ffmpeg.writeFile('ig.mp4', new Uint8Array(await b.arrayBuffer()));
+                await ffState.ffmpeg.exec(['-i','ig.mp4','-vn','-c:a','libmp3lame','-q:a','2','-y','out.mp3']);
+                const out = await ffState.ffmpeg.readFile('out.mp3');
+                downloadBlob(new Blob([new Uint8Array(out)], {type:'audio/mp3'}), fname(info.title || 'reels-' + code, '.mp3'));
+                try{ await ffState.ffmpeg.deleteFile('ig.mp4'); await ffState.ffmpeg.deleteFile('out.mp3'); }catch(e){}
+                return null;
+             }},
            ]},
         ],
       });
@@ -4628,13 +4640,12 @@ async function ytFullInfo(id){
   let subText = '', subFinal = '', subRec = null;
   const freq = new Uint8Array(256);
 
-  async function ensurePose(){
-
   function fmtTime(sec){
     sec = Math.max(0, sec|0);
     return String(Math.floor(sec/60)).padStart(2,'0') + ':' + String(sec%60).padStart(2,'0');
   }
-  const freq = new Uint8Array(256);
+
+  async function ensurePose(){
     if(poseDet) return;
     const abs = p => new URL(p, location.href).href;
     let vision = window.__mpVision;
