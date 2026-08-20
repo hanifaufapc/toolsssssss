@@ -5,309 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PERKAKAS — Tools Digital Gratis</title>
 <meta name="description" content="Kompresor, konverter, palet warna, kode QR, dan webcam efektif — gratis, tanpa login, semua jalan di browser.">
+<link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script>
-/* ============================================================
-   12) DOWNLOADER MEDIA — YouTube + TikTok + IG Reels (kualitas terbaik)
-   ============================================================ */
-(function(){
-  const tabs = document.querySelectorAll('.dl-tab');
-  const secs = {yt: document.getElementById('dlSecYt'), tk: document.getElementById('dlSecTk'), ig: document.getElementById('dlSecIg')};
-  const infos = {
-    yt: document.getElementById('dlYtInfo'),
-    tk: document.getElementById('dlTkInfo'),
-    ig: document.getElementById('dlIgInfo'),
-  };
-  const inputs = {
-    yt: document.getElementById('dlYtUrl'),
-    tk: document.getElementById('dlTkUrl'),
-    ig: document.getElementById('dlIgUrl'),
-  };
-  const gos = {
-    yt: document.getElementById('dlYtGo'),
-    tk: document.getElementById('dlTkGo'),
-    ig: document.getElementById('dlIgGo'),
-  };
-  let cur = 'yt';
-  tabs.forEach(b=> b.addEventListener('click', ()=>{
-    cur = b.dataset.dltab;
-    tabs.forEach(x=> x.classList.toggle('active', x === b));
-    Object.keys(secs).forEach(k=> secs[k].style.display = k === cur ? '' : 'none');
-  }));
 
-  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-  function fmtT(t){ t = Math.max(0, Math.round(t||0)); return String(Math.floor(t/60)).padStart(2,'0') + ':' + String(t%60).padStart(2,'0'); }
-  function fname(s, ext){ const b = String(s||'video').replace(/[^\w\- ]+/g,'').replace(/\s+/g,' ').trim().slice(0,70); return (b || 'video') + ext; }
-
-  async function fetchProgress(url, pcb){
-    let r = null, err = null;
-    try{ r = await fetch(url); }catch(e){ err = e; }
-    if(!r || !r.ok){
-      const proxied = await fetchVia(url, true);
-      if(!proxied || !proxied.ok) throw new Error('Gagal mengunduh stream');
-      r = proxied;
-    }
-    const total = +r.headers.get('content-length') || 0;
-    const reader = r.body.getReader();
-    const chunks = [];
-    let got = 0;
-    for(;;){
-      const {done, value} = await reader.read();
-      if(done) break;
-      chunks.push(value);
-      got += value.length;
-      if(total && pcb) pcb(got/total);
-    }
-    return new Blob(chunks);
-  }
-
-  function card(infoEl, opts){
-    infoEl.innerHTML = '';
-    const card = document.createElement('div');
-    card.className = 'dl-info';
-    if(opts.thumb) card.innerHTML = '<img class="thumb" src="' + esc(opts.thumb) + '" alt="">';
-    const meta = document.createElement('div');
-    meta.className = 'dl-meta';
-    const t = document.createElement('div'); t.className = 'dl-title'; t.textContent = opts.title || 'Video';
-    const s = document.createElement('div'); s.className = 'dl-sub'; s.textContent = (opts.author ? opts.author + ' · ' : '') + (opts.duration ? fmtT(opts.duration) + ' · ' : '') + opts.sub;
-    meta.appendChild(t); meta.appendChild(s);
-    const rowsBox = document.createElement('div');
-    opts.rows.forEach(ro =>{
-      const row = document.createElement('div');
-      row.className = 'dl-row';
-      const lab = document.createElement('span'); lab.className = 'dl-quality'; lab.textContent = ro.label;
-      row.appendChild(lab);
-      ro.buttons.forEach(bd =>{
-        const b = document.createElement('button');
-        b.className = bd.primary ? 'btn btn-primary' : 'btn btn-dark';
-        b.textContent = bd.text;
-        b.addEventListener('click', ()=>{ runDl(opts.onStart, bd, row, b); });
-        row.appendChild(b);
-      });
-      if(ro.fileName && ro.extra) row.appendChild(extra);
-      rowsBox.appendChild(row);
-    });
-    meta.appendChild(rowsBox);
-    const prog = document.createElement('div');
-    prog.className = 'dl-progress';
-    prog.innerHTML = '<i></i>';
-    meta.appendChild(prog);
-    card.appendChild(meta);
-    infoEl.appendChild(card);
-    return {prog, meta};
-  }
-
-  async function runDl(onStart, bd, row, btn){
-    if(btn.disabled) return;
-    btn.disabled = true;
-    const old = btn.textContent;
-    const prog = row.parentElement.querySelector('.dl-progress');
-    let last = 0;
-    prog.classList.add('on');
-    prog.querySelector('i').style.width = '2%';
-    const setP = p =>{ if(p - last > 0.02){ last = p; prog.querySelector('i').style.width = Math.round(p*100) + '%'; } };
-    try{
-      const info = await onStart(bd, setP);
-      if(info == null){ prog.querySelector('i').style.width = '100%'; setTimeout(()=>{ prog.classList.remove('on'); }, 900); return; }
-      const res = await fetchVia(Array.isArray(info) ? info[0] : info.url || info, true);
-      if(!res || !res.ok) throw new Error('Unduhan gagal');
-      const blob = await res.blob();
-      downloadBlob(blob, (Array.isArray(info) ? info[1] : info.name) || fname(bd.fileName || 'video', bd.ext || '.mp4'));
-      prog.querySelector('i').style.width = '100%';
-      showToast('⬇ Unduhan selesai');
-    }catch(e){
-      console.error(e);
-      showToast('❌ ' + String(e.message||e).slice(0,90));
-    }finally{
-      btn.disabled = false;
-      btn.textContent = old;
-      setTimeout(()=>{ prog.classList.remove('on'); }, 900);
-    }
-  }
-
-  // ---------- YouTube ----------
-  gos.yt.addEventListener('click', async ()=>{
-    const u = inputs.yt.value.trim();
-    if(!u) return showToast('Tempel link YouTube dulu');
-    infos.yt.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">Menganalisis video…</div></div>';
-    gos.yt.disabled = true;
-    try{
-      const id = ytId(u);
-      if(!id) throw new Error('Link YouTube tidak dikenali');
-      const info = await ytFullInfo(id);
-      card(infos.yt, {
-        thumb: info.thumb, title: info.title, author: info.author, duration: info.duration, sub: 'YouTube',
-        onStart: (bd, setP)=> bd.task(setP),
-        rows: [
-          {label: 'Metode',
-           buttons: [
-             {text: '⬇ Unduh Terbaik (video + audio)', primary: true, ext:'.mp4', fileName: info.title, task: async setP => {
-               const n = fname(info.title, '.mp4');
-               if(!info.videoUrl || !info.audioUrl) throw new Error('Stream terbaik tidak tersedia');
-               try{
-                 await ensureFfmpeg();
-                 const vl = info.videoLabel, al = info.audioLabel;
-                 let pc = 0;
-                 ffState.onProgress = p =>{ if(Math.abs(p - pc) > 0.05){ pc = p; setP(0.75 + p*0.25); } };
-                 const vb = await fetchProgress(info.videoUrl, p=> setP(p*0.6));
-                 const ab = await fetchProgress(info.audioUrl, p=> setP(0.6 + p*0.15));
-                 await ffState.ffmpeg.writeFile('v.mp4', new Uint8Array(await vb.arrayBuffer()));
-                 await ffState.ffmpeg.writeFile('a.m4a', new Uint8Array(await ab.arrayBuffer()));
-                 try{
-                   await ffState.ffmpeg.exec(['-i','v.mp4','-i','a.m4a','-c:v','copy','-c:a','aac','-movflags','+faststart','-y','out.mp4']);
-                 }catch(e){
-                   await ffState.ffmpeg.exec(['-i','v.mp4','-i','a.m4a','-c:v','libx264','-crf','23','-preset','veryfast','-c:a','aac','-movflags','+faststart','-y','out.mp4']);
-                 }
-                 const out = await ffState.ffmpeg.readFile('out.mp4');
-                 downloadBlob(new Blob([new Uint8Array(out)], {type:'video/mp4'}), n);
-                 showToast('✅ ' + vl + ' + ' + al + ' digabung (FFmpeg)');
-                 return null; // already downloaded
-               }catch(e){
-                 if(info.combinedUrl){
-                   showToast('FFmpeg gagal — fallback ' + info.combinedLabel);
-                   const b = await (await fetchVia(info.combinedUrl, true)).blob();
-                   downloadBlob(b, n);
-                   return null;
-                 }
-                 throw e;
-               }finally{
-                 ffState.onProgress = null;
-                 try{ await ffState.ffmpeg.deleteFile('v.mp4'); await ffState.ffmpeg.deleteFile('a.m4a'); await ffState.ffmpeg.deleteFile('out.mp4'); }catch(e){}
-               }
-             }},
-             {text: '720p satu file', ext:'.mp4', fileName: info.title, task: async setP => {
-               if(!info.combinedUrl) throw new Error('Tidak ada format satu file');
-               const b = await (await fetchVia(info.combinedUrl, true)).blob();
-               downloadBlob(b, fname(info.title, '.mp4'));
-               return null;
-             }},
-             {text: '♪ Hanya audio', ext:'.m4a', fileName: info.title, task: async setP => {
-               if(!info.audioUrl) throw new Error('Tidak ada stream audio');
-               const b = await (await fetchVia(info.audioUrl, true)).blob();
-               downloadBlob(b, fname(info.title, '.m4a'));
-               return null;
-             }},
-           ]},
-        ],
-      });
-    }catch(e){
-      infos.yt.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">❌ ' + esc(String(e.message||e).slice(0,100)) + '</div></div>';
-    }finally{
-      gos.yt.disabled = false;
-    }
-  });
-  inputs.yt.addEventListener('keydown', e=>{ if(e.key === 'Enter') gos.yt.click(); });
-
-  // ---------- TikTok ----------
-  gos.tk.addEventListener('click', async ()=>{
-    const u = inputs.tk.value.trim();
-    if(!u) return showToast('Tempel link TikTok dulu');
-    infos.tk.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">Menganalisis video…</div></div>';
-    gos.tk.disabled = true;
-    try{
-      let j;
-      const r = await fetchVia('https://www.tikwm.com/api/?url=' + encodeURIComponent(u), true);
-      j = await r.json();
-      if(j.code !== 0 || !j.data) throw new Error(j.msg || 'Video tidak ditemukan / TikTok menolak');
-      const d = j.data;
-      card(infos.tk, {
-        thumb: d.cover || d.origin_cover, title: d.title || 'TikTok', author: d.author || d.nickname, duration: d.duration, sub: 'TikTok',
-        onStart: (bd, setP)=> bd.task(setP),
-        rows: [
-          {label: 'Kualitas',
-           buttons: [
-             {text: d.hdplay ? '⬇ HD tanpa watermark' : '⬇ Tanpa watermark', primary: true, ext:'.mp4', fileName: fname(d.title, '') + (d.hdplay ? '-HD' : ''), task: v => Promise.resolve([d.hdplay || d.play, fname((d.title||'tiktok') + (d.hdplay ? '-HD' : ''), '.mp4')])},
-             {text: '⬇ Dengan watermark', ext:'.mp4', fileName: d.title, task: v => Promise.resolve([d.wmplay || d.watermark_play || d.play, fname((d.title||'tiktok') + '-wm', '.mp4')])},
-             {text: '♪ Audio saja', ext:'.mp3', fileName: d.title, task: v => Promise.resolve([d.music, fname((d.title||'tiktok') + '-audio', '.mp3')])},
-           ]},
-        ],
-      });
-    }catch(e){
-      infos.tk.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">❌ ' + esc(String(e.message||e).slice(0,100)) + '</div></div>';
-    }finally{
-      gos.tk.disabled = false;
-    }
-  });
-  inputs.tk.addEventListener('keydown', e=>{ if(e.key === 'Enter') gos.tk.click(); });
-
-  // ---------- Instagram ----------
-  function igParse(html){
-    const unE = s => String(s||'').replace(/&quot;/g,'"').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>');
-    const block = html.match(/"video_versions":\[([^\]]*)\]/);
-    if(!block || !block[1].includes('.mp4')) return null;
-    const vv = JSON.parse('[' + block[1] + ']');
-    const best = vv.find(v=> v && v.url && v.url.includes('.mp4'));
-    if(!best) return null;
-    const cap = html.match(/"caption":\{"text":"((?:[^"\\]|\\.)*)"/s);
-    const capText = cap ? JSON.parse('"' + cap[1] + '"').slice(0, 140) : '';
-    const ogT = html.match(/"og:title" content="([^"]*)"/);
-    const ogD = html.match(/"og:description" content="([^"]*)"/);
-    const desc = unE(ogD ? ogD[1] : '');
-    const author = (desc.match(/^[^\-]*?-\s*([a-z0-9_.]+)\s+on\s+/i) || [,''])[1] || (html.match(/"username":"([^"]+)"/) || [,''])[1] || '';
-    const ogI = html.match(/"og:image" content="([^"]*)"/);
-    return {
-      title: capText || unE(ogT ? ogT[1] : '').replace(/^.+? on Instagram:\s*/i, '') || 'Instagram Reel',
-      author: author || 'instagram',
-      duration: 0,
-      thumb: ogI ? ogI[1] : '',
-      url: best.url,
-    };
-  }
-
-  gos.ig.addEventListener('click', async ()=>{
-    const u = inputs.ig.value.trim();
-    if(!u) return showToast('Tempel link Reels Instagram dulu');
-    infos.ig.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">Menganalisis video…</div></div>';
-    gos.ig.disabled = true;
-    try{
-      let m = u.match(/\/(?:reel[s]?|p|tv)\/([A-Za-z0-9_-]+)/);
-      if(!m && /^[A-Za-z0-9_-]{5,15}$/.test(u)) m = [,u];
-      const code = m && m[1];
-      if(!code) throw new Error('Link Instagram tidak dikenali (butuh /reel/…, /p/…, atau kode Reels)');
-      const pageUrl = 'https://www.instagram.com/reel/' + code + '/';
-      let html = null;
-      try{
-        const r = await fetch('https://r.jina.ai/' + pageUrl, {headers: {'X-Return-Format': 'html'}});
-        if(r.ok) html = await r.text();
-      }catch(e){}
-      if(!html || !html.includes('video_versions')) throw new Error('Instagram menolak akses anonim saat ini (atau batas permintaan tercapai). Pastikan Reel publik & link benar, lalu coba lagi nanti.');
-      const info = igParse(html);
-      if(!info) throw new Error('Video tidak ditemukan di halaman (akun privat / Reel dihapus?)');
-      card(infos.ig, {
-        thumb: info.thumb, title: info.title, author: info.author, duration: info.duration, sub: 'IG Reels · halaman Instagram',
-        onStart: (bd, setP)=> bd.task(setP),
-        rows: [
-          {label: 'Format',
-           buttons: [
-             {text: '⬇ Unduh Video (terbaik)', primary: true, ext:'.mp4', fileName: info.title, task: v => Promise.resolve([info.url, fname(info.title || 'reels-' + code, '.mp4')])},
-             {text: '♪ Audio saja (MP3)', ext:'.mp3', fileName: info.title, task: async setP => {
-                await ensureFfmpeg();
-                const b = await fetchProgress(info.url, p=> setP(p*0.6));
-                await ffState.ffmpeg.writeFile('ig.mp4', new Uint8Array(await b.arrayBuffer()));
-                await ffState.ffmpeg.exec(['-i','ig.mp4','-vn','-c:a','libmp3lame','-q:a','2','-y','out.mp3']);
-                const out = await ffState.ffmpeg.readFile('out.mp3');
-                downloadBlob(new Blob([new Uint8Array(out)], {type:'audio/mp3'}), fname(info.title || 'reels-' + code, '.mp3'));
-                try{ await ffState.ffmpeg.deleteFile('ig.mp4'); await ffState.ffmpeg.deleteFile('out.mp3'); }catch(e){}
-                return null;
-             }},
-           ]},
-        ],
-      });
-    }catch(e){
-      infos.ig.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">❌ ' + esc(String(e.message||e).slice(0,120)) + '</div></div>';
-    }finally{
-      gos.ig.disabled = false;
-    }
-  });
-  inputs.ig.addEventListener('keydown', e=>{ if(e.key === 'Enter') gos.ig.click(); });
-
-  window.__downStop = ()=>{};
-})();
-
-
-</script>
 <style>
   :root{
     --ink:#12172A;
@@ -5193,6 +4895,307 @@ async function ytFullInfo(id){
   window.__editorStop = ()=> stopAll(true);
 })();
 </script>
+<script>
+/* ============================================================
+   12) DOWNLOADER MEDIA — YouTube + TikTok + IG Reels (kualitas terbaik)
+   ============================================================ */
+(function(){
+  const tabs = document.querySelectorAll('.dl-tab');
+  const secs = {yt: document.getElementById('dlSecYt'), tk: document.getElementById('dlSecTk'), ig: document.getElementById('dlSecIg')};
+  const infos = {
+    yt: document.getElementById('dlYtInfo'),
+    tk: document.getElementById('dlTkInfo'),
+    ig: document.getElementById('dlIgInfo'),
+  };
+  const inputs = {
+    yt: document.getElementById('dlYtUrl'),
+    tk: document.getElementById('dlTkUrl'),
+    ig: document.getElementById('dlIgUrl'),
+  };
+  const gos = {
+    yt: document.getElementById('dlYtGo'),
+    tk: document.getElementById('dlTkGo'),
+    ig: document.getElementById('dlIgGo'),
+  };
+  let cur = 'yt';
+  tabs.forEach(b=> b.addEventListener('click', ()=>{
+    cur = b.dataset.dltab;
+    tabs.forEach(x=> x.classList.toggle('active', x === b));
+    Object.keys(secs).forEach(k=> secs[k].style.display = k === cur ? '' : 'none');
+  }));
+
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function fmtT(t){ t = Math.max(0, Math.round(t||0)); return String(Math.floor(t/60)).padStart(2,'0') + ':' + String(t%60).padStart(2,'0'); }
+  function fname(s, ext){ const b = String(s||'video').replace(/[^\w\- ]+/g,'').replace(/\s+/g,' ').trim().slice(0,70); return (b || 'video') + ext; }
+
+  async function fetchProgress(url, pcb){
+    let r = null, err = null;
+    try{ r = await fetch(url); }catch(e){ err = e; }
+    if(!r || !r.ok){
+      const proxied = await fetchVia(url, true);
+      if(!proxied || !proxied.ok) throw new Error('Gagal mengunduh stream');
+      r = proxied;
+    }
+    const total = +r.headers.get('content-length') || 0;
+    const reader = r.body.getReader();
+    const chunks = [];
+    let got = 0;
+    for(;;){
+      const {done, value} = await reader.read();
+      if(done) break;
+      chunks.push(value);
+      got += value.length;
+      if(total && pcb) pcb(got/total);
+    }
+    return new Blob(chunks);
+  }
+
+  function card(infoEl, opts){
+    infoEl.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'dl-info';
+    if(opts.thumb) card.innerHTML = '<img class="thumb" src="' + esc(opts.thumb) + '" alt="">';
+    const meta = document.createElement('div');
+    meta.className = 'dl-meta';
+    const t = document.createElement('div'); t.className = 'dl-title'; t.textContent = opts.title || 'Video';
+    const s = document.createElement('div'); s.className = 'dl-sub'; s.textContent = (opts.author ? opts.author + ' · ' : '') + (opts.duration ? fmtT(opts.duration) + ' · ' : '') + opts.sub;
+    meta.appendChild(t); meta.appendChild(s);
+    const rowsBox = document.createElement('div');
+    opts.rows.forEach(ro =>{
+      const row = document.createElement('div');
+      row.className = 'dl-row';
+      const lab = document.createElement('span'); lab.className = 'dl-quality'; lab.textContent = ro.label;
+      row.appendChild(lab);
+      ro.buttons.forEach(bd =>{
+        const b = document.createElement('button');
+        b.className = bd.primary ? 'btn btn-primary' : 'btn btn-dark';
+        b.textContent = bd.text;
+        b.addEventListener('click', ()=>{ runDl(opts.onStart, bd, row, b); });
+        row.appendChild(b);
+      });
+      if(ro.fileName && ro.extra) row.appendChild(extra);
+      rowsBox.appendChild(row);
+    });
+    meta.appendChild(rowsBox);
+    const prog = document.createElement('div');
+    prog.className = 'dl-progress';
+    prog.innerHTML = '<i></i>';
+    meta.appendChild(prog);
+    card.appendChild(meta);
+    infoEl.appendChild(card);
+    return {prog, meta};
+  }
+
+  async function runDl(onStart, bd, row, btn){
+    if(btn.disabled) return;
+    btn.disabled = true;
+    const old = btn.textContent;
+    const prog = row.parentElement.querySelector('.dl-progress');
+    let last = 0;
+    prog.classList.add('on');
+    prog.querySelector('i').style.width = '2%';
+    const setP = p =>{ if(p - last > 0.02){ last = p; prog.querySelector('i').style.width = Math.round(p*100) + '%'; } };
+    try{
+      const info = await onStart(bd, setP);
+      if(info == null){ prog.querySelector('i').style.width = '100%'; setTimeout(()=>{ prog.classList.remove('on'); }, 900); return; }
+      const res = await fetchVia(Array.isArray(info) ? info[0] : info.url || info, true);
+      if(!res || !res.ok) throw new Error('Unduhan gagal');
+      const blob = await res.blob();
+      downloadBlob(blob, (Array.isArray(info) ? info[1] : info.name) || fname(bd.fileName || 'video', bd.ext || '.mp4'));
+      prog.querySelector('i').style.width = '100%';
+      showToast('⬇ Unduhan selesai');
+    }catch(e){
+      console.error(e);
+      showToast('❌ ' + String(e.message||e).slice(0,90));
+    }finally{
+      btn.disabled = false;
+      btn.textContent = old;
+      setTimeout(()=>{ prog.classList.remove('on'); }, 900);
+    }
+  }
+
+  // ---------- YouTube ----------
+  gos.yt.addEventListener('click', async ()=>{
+    const u = inputs.yt.value.trim();
+    if(!u) return showToast('Tempel link YouTube dulu');
+    infos.yt.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">Menganalisis video…</div></div>';
+    gos.yt.disabled = true;
+    try{
+      const id = ytId(u);
+      if(!id) throw new Error('Link YouTube tidak dikenali');
+      const info = await ytFullInfo(id);
+      card(infos.yt, {
+        thumb: info.thumb, title: info.title, author: info.author, duration: info.duration, sub: 'YouTube',
+        onStart: (bd, setP)=> bd.task(setP),
+        rows: [
+          {label: 'Metode',
+           buttons: [
+             {text: '⬇ Unduh Terbaik (video + audio)', primary: true, ext:'.mp4', fileName: info.title, task: async setP => {
+               const n = fname(info.title, '.mp4');
+               if(!info.videoUrl || !info.audioUrl) throw new Error('Stream terbaik tidak tersedia');
+               try{
+                 await ensureFfmpeg();
+                 const vl = info.videoLabel, al = info.audioLabel;
+                 let pc = 0;
+                 ffState.onProgress = p =>{ if(Math.abs(p - pc) > 0.05){ pc = p; setP(0.75 + p*0.25); } };
+                 const vb = await fetchProgress(info.videoUrl, p=> setP(p*0.6));
+                 const ab = await fetchProgress(info.audioUrl, p=> setP(0.6 + p*0.15));
+                 await ffState.ffmpeg.writeFile('v.mp4', new Uint8Array(await vb.arrayBuffer()));
+                 await ffState.ffmpeg.writeFile('a.m4a', new Uint8Array(await ab.arrayBuffer()));
+                 try{
+                   await ffState.ffmpeg.exec(['-i','v.mp4','-i','a.m4a','-c:v','copy','-c:a','aac','-movflags','+faststart','-y','out.mp4']);
+                 }catch(e){
+                   await ffState.ffmpeg.exec(['-i','v.mp4','-i','a.m4a','-c:v','libx264','-crf','23','-preset','veryfast','-c:a','aac','-movflags','+faststart','-y','out.mp4']);
+                 }
+                 const out = await ffState.ffmpeg.readFile('out.mp4');
+                 downloadBlob(new Blob([new Uint8Array(out)], {type:'video/mp4'}), n);
+                 showToast('✅ ' + vl + ' + ' + al + ' digabung (FFmpeg)');
+                 return null; // already downloaded
+               }catch(e){
+                 if(info.combinedUrl){
+                   showToast('FFmpeg gagal — fallback ' + info.combinedLabel);
+                   const b = await (await fetchVia(info.combinedUrl, true)).blob();
+                   downloadBlob(b, n);
+                   return null;
+                 }
+                 throw e;
+               }finally{
+                 ffState.onProgress = null;
+                 try{ await ffState.ffmpeg.deleteFile('v.mp4'); await ffState.ffmpeg.deleteFile('a.m4a'); await ffState.ffmpeg.deleteFile('out.mp4'); }catch(e){}
+               }
+             }},
+             {text: '720p satu file', ext:'.mp4', fileName: info.title, task: async setP => {
+               if(!info.combinedUrl) throw new Error('Tidak ada format satu file');
+               const b = await (await fetchVia(info.combinedUrl, true)).blob();
+               downloadBlob(b, fname(info.title, '.mp4'));
+               return null;
+             }},
+             {text: '♪ Hanya audio', ext:'.m4a', fileName: info.title, task: async setP => {
+               if(!info.audioUrl) throw new Error('Tidak ada stream audio');
+               const b = await (await fetchVia(info.audioUrl, true)).blob();
+               downloadBlob(b, fname(info.title, '.m4a'));
+               return null;
+             }},
+           ]},
+        ],
+      });
+    }catch(e){
+      infos.yt.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">❌ ' + esc(String(e.message||e).slice(0,100)) + '</div></div>';
+    }finally{
+      gos.yt.disabled = false;
+    }
+  });
+  inputs.yt.addEventListener('keydown', e=>{ if(e.key === 'Enter') gos.yt.click(); });
+
+  // ---------- TikTok ----------
+  gos.tk.addEventListener('click', async ()=>{
+    const u = inputs.tk.value.trim();
+    if(!u) return showToast('Tempel link TikTok dulu');
+    infos.tk.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">Menganalisis video…</div></div>';
+    gos.tk.disabled = true;
+    try{
+      let j;
+      const r = await fetchVia('https://www.tikwm.com/api/?url=' + encodeURIComponent(u), true);
+      j = await r.json();
+      if(j.code !== 0 || !j.data) throw new Error(j.msg || 'Video tidak ditemukan / TikTok menolak');
+      const d = j.data;
+      card(infos.tk, {
+        thumb: d.cover || d.origin_cover, title: d.title || 'TikTok', author: d.author || d.nickname, duration: d.duration, sub: 'TikTok',
+        onStart: (bd, setP)=> bd.task(setP),
+        rows: [
+          {label: 'Kualitas',
+           buttons: [
+             {text: d.hdplay ? '⬇ HD tanpa watermark' : '⬇ Tanpa watermark', primary: true, ext:'.mp4', fileName: fname(d.title, '') + (d.hdplay ? '-HD' : ''), task: v => Promise.resolve([d.hdplay || d.play, fname((d.title||'tiktok') + (d.hdplay ? '-HD' : ''), '.mp4')])},
+             {text: '⬇ Dengan watermark', ext:'.mp4', fileName: d.title, task: v => Promise.resolve([d.wmplay || d.watermark_play || d.play, fname((d.title||'tiktok') + '-wm', '.mp4')])},
+             {text: '♪ Audio saja', ext:'.mp3', fileName: d.title, task: v => Promise.resolve([d.music, fname((d.title||'tiktok') + '-audio', '.mp3')])},
+           ]},
+        ],
+      });
+    }catch(e){
+      infos.tk.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">❌ ' + esc(String(e.message||e).slice(0,100)) + '</div></div>';
+    }finally{
+      gos.tk.disabled = false;
+    }
+  });
+  inputs.tk.addEventListener('keydown', e=>{ if(e.key === 'Enter') gos.tk.click(); });
+
+  // ---------- Instagram ----------
+  function igParse(html){
+    const unE = s => String(s||'').replace(/&quot;/g,'"').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+    const block = html.match(/"video_versions":\[([^\]]*)\]/);
+    if(!block || !block[1].includes('.mp4')) return null;
+    const vv = JSON.parse('[' + block[1] + ']');
+    const best = vv.find(v=> v && v.url && v.url.includes('.mp4'));
+    if(!best) return null;
+    const cap = html.match(/"caption":\{"text":"((?:[^"\\]|\\.)*)"/s);
+    const capText = cap ? JSON.parse('"' + cap[1] + '"').slice(0, 140) : '';
+    const ogT = html.match(/"og:title" content="([^"]*)"/);
+    const ogD = html.match(/"og:description" content="([^"]*)"/);
+    const desc = unE(ogD ? ogD[1] : '');
+    const author = (desc.match(/^[^\-]*?-\s*([a-z0-9_.]+)\s+on\s+/i) || [,''])[1] || (html.match(/"username":"([^"]+)"/) || [,''])[1] || '';
+    const ogI = html.match(/"og:image" content="([^"]*)"/);
+    return {
+      title: capText || unE(ogT ? ogT[1] : '').replace(/^.+? on Instagram:\s*/i, '') || 'Instagram Reel',
+      author: author || 'instagram',
+      duration: 0,
+      thumb: ogI ? ogI[1] : '',
+      url: best.url,
+    };
+  }
+
+  gos.ig.addEventListener('click', async ()=>{
+    const u = inputs.ig.value.trim();
+    if(!u) return showToast('Tempel link Reels Instagram dulu');
+    infos.ig.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">Menganalisis video…</div></div>';
+    gos.ig.disabled = true;
+    try{
+      let m = u.match(/\/(?:reel[s]?|p|tv)\/([A-Za-z0-9_-]+)/);
+      if(!m && /^[A-Za-z0-9_-]{5,15}$/.test(u)) m = [,u];
+      const code = m && m[1];
+      if(!code) throw new Error('Link Instagram tidak dikenali (butuh /reel/…, /p/…, atau kode Reels)');
+      const pageUrl = 'https://www.instagram.com/reel/' + code + '/';
+      let html = null;
+      try{
+        const r = await fetch('https://r.jina.ai/' + pageUrl, {headers: {'X-Return-Format': 'html'}});
+        if(r.ok) html = await r.text();
+      }catch(e){}
+      if(!html || !html.includes('video_versions')) throw new Error('Instagram menolak akses anonim saat ini (atau batas permintaan tercapai). Pastikan Reel publik & link benar, lalu coba lagi nanti.');
+      const info = igParse(html);
+      if(!info) throw new Error('Video tidak ditemukan di halaman (akun privat / Reel dihapus?)');
+      card(infos.ig, {
+        thumb: info.thumb, title: info.title, author: info.author, duration: info.duration, sub: 'IG Reels · halaman Instagram',
+        onStart: (bd, setP)=> bd.task(setP),
+        rows: [
+          {label: 'Format',
+           buttons: [
+             {text: '⬇ Unduh Video (terbaik)', primary: true, ext:'.mp4', fileName: info.title, task: v => Promise.resolve([info.url, fname(info.title || 'reels-' + code, '.mp4')])},
+             {text: '♪ Audio saja (MP3)', ext:'.mp3', fileName: info.title, task: async setP => {
+                await ensureFfmpeg();
+                const b = await fetchProgress(info.url, p=> setP(p*0.6));
+                await ffState.ffmpeg.writeFile('ig.mp4', new Uint8Array(await b.arrayBuffer()));
+                await ffState.ffmpeg.exec(['-i','ig.mp4','-vn','-c:a','libmp3lame','-q:a','2','-y','out.mp3']);
+                const out = await ffState.ffmpeg.readFile('out.mp3');
+                downloadBlob(new Blob([new Uint8Array(out)], {type:'audio/mp3'}), fname(info.title || 'reels-' + code, '.mp3'));
+                try{ await ffState.ffmpeg.deleteFile('ig.mp4'); await ffState.ffmpeg.deleteFile('out.mp3'); }catch(e){}
+                return null;
+             }},
+           ]},
+        ],
+      });
+    }catch(e){
+      infos.ig.innerHTML = '<div class="dl-info"><div class="dl-meta dl-title">❌ ' + esc(String(e.message||e).slice(0,120)) + '</div></div>';
+    }finally{
+      gos.ig.disabled = false;
+    }
+  });
+  inputs.ig.addEventListener('keydown', e=>{ if(e.key === 'Enter') gos.ig.click(); });
+
+  window.__downStop = ()=>{};
+})();
+
+
+</script>
+
 
 </body>
 </html>
